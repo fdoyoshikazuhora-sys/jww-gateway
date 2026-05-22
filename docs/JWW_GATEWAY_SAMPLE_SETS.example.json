@@ -1,0 +1,23 @@
+{
+  "format": "jww-gateway-sample-sets",
+  "$schema": "docs/jww-gateway-sample-sets.schema.json",
+  "notes": [
+    "Copy this file and replace the paths with local JWW/JWF pairs used for handoff verification."
+  ],
+  "samples": [
+    {
+      "name": "Architectural plan",
+      "slug": "architectural-plan",
+      "jww": "C:\\path\\to\\A-00-3 平面図.jww",
+      "jwf": "C:\\path\\to\\建築.JWF",
+      "tags": ["architecture", "plan"]
+    },
+    {
+      "name": "Mechanical sanitary plan",
+      "slug": "mechanical-sanitary-plan",
+      "jww": "C:\\path\\to\\M-07 1階平面図(衛生).jww",
+      "jwf": "C:\\path\\to\\設備設計用.jwf",
+      "tags": ["mechanical", "sanitary"]
+    }
+  ]
+}

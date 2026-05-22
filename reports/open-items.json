@@ -1,0 +1,133 @@
+{
+  "format": "jww-gateway-open-items",
+  "generatedAt": "2026-05-22T07:21:05.559Z",
+  "packageName": "@cadstudio/jww-gateway",
+  "packageVersion": "0.1.0",
+  "manifestFile": "JWW_GATEWAY_MANIFEST.json",
+  "manifestGeneratedAt": "2026-05-16T10:40:55.839Z",
+  "unresolvedEnvironmentKeys": [
+    "LTYPE_HC",
+    "LCOLLOR_M"
+  ],
+  "counts": {
+    "total": 7,
+    "byStatus": {
+      "not-supported": 1,
+      "sample-blocked": 2,
+      "audit-only": 1,
+      "downstream-renderer": 1,
+      "needs-samples": 1,
+      "not-required-for-conversion": 1
+    },
+    "byCategory": {
+      "output": 1,
+      "jwf-environment": 3,
+      "renderer": 1,
+      "geometry": 1,
+      "environment": 1
+    },
+    "byClassification": {
+      "separate-project": 1,
+      "sample-blocked": 2,
+      "audit-only": 1,
+      "metadata-ready": 1,
+      "sample-comparison": 1,
+      "out-of-scope-for-conversion": 1
+    },
+    "byReleaseDecision": {
+      "not a release blocker for read-only Gateway": 1,
+      "keep open until direct matches repeat in real files": 1,
+      "keep open until exact RGB matches repeat in real files": 1,
+      "not promoted until a stable storage pattern is found": 1,
+      "not a parser blocker because decoration metadata is exported": 1,
+      "not promoted further without confirmed before/after examples": 1,
+      "track in audits but do not block Gateway release": 1
+    }
+  },
+  "openItems": [
+    {
+      "id": "jww-write",
+      "status": "not-supported",
+      "category": "output",
+      "classification": "separate-project",
+      "conversionImpact": "none for import; required only for round-trip JWW editing",
+      "releaseDecision": "not a release blocker for read-only Gateway",
+      "title": "JWW save/write",
+      "detail": "Gateway is read/import only. Editing results are exported as CAD Studio JSON and do not update the source JWW file.",
+      "evidence": "capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.",
+      "nextAction": "Keep JWW write disabled until a separate writer format and round-trip test suite exist."
+    },
+    {
+      "id": "LTYPE_HC",
+      "status": "sample-blocked",
+      "category": "jwf-environment",
+      "classification": "sample-blocked",
+      "conversionImpact": "low for current conversion; candidate bytes are retained for later comparison",
+      "releaseDecision": "keep open until direct matches repeat in real files",
+      "title": "Hatch/line type environment key",
+      "detail": "Candidate bytes after LTYPE_L4 are retained, but tested sample files do not directly match the JWF LTYPE_HC values.",
+      "evidence": "core-open summaries across current sample sets show matched 0 and direct-match false.",
+      "nextAction": "Review new real files that actively use this setting before promoting it to extracted coverage."
+    },
+    {
+      "id": "LCOLLOR_M",
+      "status": "sample-blocked",
+      "category": "jwf-environment",
+      "classification": "sample-blocked",
+      "conversionImpact": "low for entity rendering; affects a JWF special/zoom text color rather than parsed entity colors",
+      "releaseDecision": "keep open until exact RGB matches repeat in real files",
+      "title": "Zoom text/special color environment key",
+      "detail": "Special color audits search nearby RGB triplets, but no stable direct match has been found yet.",
+      "evidence": "special-color audits found no direct LCOLLOR_M match in the current real-file set.",
+      "nextAction": "Promote only after direct matches repeat across real JWW/JWF pairs."
+    },
+    {
+      "id": "LAYCOL_LAYWID_LAYTYP",
+      "status": "audit-only",
+      "category": "jwf-environment",
+      "classification": "audit-only",
+      "conversionImpact": "low for imported drawing display; entity-level color, width, and line type are already read",
+      "releaseDecision": "not promoted until a stable storage pattern is found",
+      "title": "Layer default color, width, and line type settings",
+      "detail": "Entity-level pen color, width, and style are read, but JWF layer default setting rows remain audit-only.",
+      "evidence": "layer-default summaries keep promotionCandidates at 0; non-zero M-08 layer defaults still do not direct-match.",
+      "nextAction": "Use layer-defaults audit/summary reports when new sample sets are added."
+    },
+    {
+      "id": "jww-text-decoration-rendering",
+      "status": "downstream-renderer",
+      "category": "renderer",
+      "classification": "metadata-ready",
+      "conversionImpact": "medium visual-fidelity item; converted metadata exists but Gateway does not draw a view",
+      "releaseDecision": "not a parser blocker because decoration metadata is exported",
+      "title": "JWW text decoration overprint rendering",
+      "detail": "Special text runs and decoration segments are preserved as metadata, but exact visual overprint reproduction is not implemented in Gateway.",
+      "evidence": "Gateway exports jwwSpecialRuns and jwwTextSegments for renderer-side overprint work.",
+      "nextAction": "Implement in the downstream renderer using jwwSpecialRuns and jwwTextSegments."
+    },
+    {
+      "id": "tilted-ellipse-arc-comparison",
+      "status": "needs-samples",
+      "category": "geometry",
+      "classification": "sample-comparison",
+      "conversionImpact": "medium for rare complex arcs; source angles and diagnostics are preserved",
+      "releaseDecision": "not promoted further without confirmed before/after examples",
+      "title": "Tilted arcs and ellipse-like arcs",
+      "detail": "Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.",
+      "evidence": "Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.",
+      "nextAction": "Add targeted before/after diagnostics when more confirmed JWW examples are available."
+    },
+    {
+      "id": "jwf-operation-settings",
+      "status": "not-required-for-conversion",
+      "category": "environment",
+      "classification": "out-of-scope-for-conversion",
+      "conversionImpact": "none for drawing import; useful only for complete Jw_cad environment persistence",
+      "releaseDecision": "track in audits but do not block Gateway release",
+      "title": "Operation-only JWF settings",
+      "detail": "Command, key assignment, clock menu, and other operation settings are tracked in audits but are outside drawing conversion.",
+      "evidence": "operation-scope value scans show no stable extraction candidates and these settings do not affect converted geometry.",
+      "nextAction": "Keep them visible in coverage reports; promote only if a connected app needs full environment persistence."
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>JWW Gateway Open Items</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 24px; color: #172033; }
+    h1 { font-size: 22px; margin: 0 0 16px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { border: 1px solid #d8e0ea; padding: 7px 10px; text-align: left; vertical-align: top; }
+    th { background: #eef3f8; }
+    .meta { margin-bottom: 16px; color: #42526b; }
+  </style>
+</head>
+<body>
+  <h1>JWW Gateway Open Items</h1>
+  <p class="meta">Package @cadstudio/jww-gateway 0.1.0 / 7 items</p>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Status</th><th>Category</th><th>Class</th><th>Impact</th><th>Decision</th><th>Title</th><th>Detail</th><th>Evidence</th><th>Next</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>jww-write</td>
+        <td>not-supported</td>
+        <td>output</td>
+        <td>separate-project</td>
+        <td>none for import; required only for round-trip JWW editing</td>
+        <td>not a release blocker for read-only Gateway</td>
+        <td>JWW save/write</td>
+        <td>Gateway is read/import only. Editing results are exported as CAD Studio JSON and do not update the source JWW file.</td>
+        <td>capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.</td>
+        <td>Keep JWW write disabled until a separate writer format and round-trip test suite exist.</td>
+      </tr>
+      <tr>
+        <td>LTYPE_HC</td>
+        <td>sample-blocked</td>
+        <td>jwf-environment</td>
+        <td>sample-blocked</td>
+        <td>low for current conversion; candidate bytes are retained for later comparison</td>
+        <td>keep open until direct matches repeat in real files</td>
+        <td>Hatch/line type environment key</td>
+        <td>Candidate bytes after LTYPE_L4 are retained, but tested sample files do not directly match the JWF LTYPE_HC values.</td>
+        <td>core-open summaries across current sample sets show matched 0 and direct-match false.</td>
+        <td>Review new real files that actively use this setting before promoting it to extracted coverage.</td>
+      </tr>
+      <tr>
+        <td>LCOLLOR_M</td>
+        <td>sample-blocked</td>
+        <td>jwf-environment</td>
+        <td>sample-blocked</td>
+        <td>low for entity rendering; affects a JWF special/zoom text color rather than parsed entity colors</td>
+        <td>keep open until exact RGB matches repeat in real files</td>
+        <td>Zoom text/special color environment key</td>
+        <td>Special color audits search nearby RGB triplets, but no stable direct match has been found yet.</td>
+        <td>special-color audits found no direct LCOLLOR_M match in the current real-file set.</td>
+        <td>Promote only after direct matches repeat across real JWW/JWF pairs.</td>
+      </tr>
+      <tr>
+        <td>LAYCOL_LAYWID_LAYTYP</td>
+        <td>audit-only</td>
+        <td>jwf-environment</td>
+        <td>audit-only</td>
+        <td>low for imported drawing display; entity-level color, width, and line type are already read</td>
+        <td>not promoted until a stable storage pattern is found</td>
+        <td>Layer default color, width, and line type settings</td>
+        <td>Entity-level pen color, width, and style are read, but JWF layer default setting rows remain audit-only.</td>
+        <td>layer-default summaries keep promotionCandidates at 0; non-zero M-08 layer defaults still do not direct-match.</td>
+        <td>Use layer-defaults audit/summary reports when new sample sets are added.</td>
+      </tr>
+      <tr>
+        <td>jww-text-decoration-rendering</td>
+        <td>downstream-renderer</td>
+        <td>renderer</td>
+        <td>metadata-ready</td>
+        <td>medium visual-fidelity item; converted metadata exists but Gateway does not draw a view</td>
+        <td>not a parser blocker because decoration metadata is exported</td>
+        <td>JWW text decoration overprint rendering</td>
+        <td>Special text runs and decoration segments are preserved as metadata, but exact visual overprint reproduction is not implemented in Gateway.</td>
+        <td>Gateway exports jwwSpecialRuns and jwwTextSegments for renderer-side overprint work.</td>
+        <td>Implement in the downstream renderer using jwwSpecialRuns and jwwTextSegments.</td>
+      </tr>
+      <tr>
+        <td>tilted-ellipse-arc-comparison</td>
+        <td>needs-samples</td>
+        <td>geometry</td>
+        <td>sample-comparison</td>
+        <td>medium for rare complex arcs; source angles and diagnostics are preserved</td>
+        <td>not promoted further without confirmed before/after examples</td>
+        <td>Tilted arcs and ellipse-like arcs</td>
+        <td>Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.</td>
+        <td>Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.</td>
+        <td>Add targeted before/after diagnostics when more confirmed JWW examples are available.</td>
+      </tr>
+      <tr>
+        <td>jwf-operation-settings</td>
+        <td>not-required-for-conversion</td>
+        <td>environment</td>
+        <td>out-of-scope-for-conversion</td>
+        <td>none for drawing import; useful only for complete Jw_cad environment persistence</td>
+        <td>track in audits but do not block Gateway release</td>
+        <td>Operation-only JWF settings</td>
+        <td>Command, key assignment, clock menu, and other operation settings are tracked in audits but are outside drawing conversion.</td>
+        <td>operation-scope value scans show no stable extraction candidates and these settings do not affect converted geometry.</td>
+        <td>Keep them visible in coverage reports; promote only if a connected app needs full environment persistence.</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

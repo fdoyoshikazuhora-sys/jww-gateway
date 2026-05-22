@@ -1,0 +1,611 @@
+{
+  "format": "jww-gateway-verify-report",
+  "generatedAt": "2026-05-22T07:20:50.491Z",
+  "packageName": "@cadstudio/jww-gateway",
+  "packageVersion": "0.1.0",
+  "manifestFile": "JWW_GATEWAY_MANIFEST.json",
+  "manifestGeneratedAt": "2026-05-16T10:40:55.839Z",
+  "manifestSchema": "docs/jww-gateway-manifest.schema.json",
+  "valid": true,
+  "manifest": {
+    "valid": true,
+    "errors": [],
+    "missingFiles": []
+  },
+  "counts": {
+    "commands": 28,
+    "binaries": 23,
+    "packageFiles": 89,
+    "missingFiles": 0,
+    "missingScripts": 0,
+    "missingBins": 0,
+    "unresolvedEnvironmentKeys": 2,
+    "unexpectedUnresolvedEnvironmentKeys": 0,
+    "missingExpectedUnresolvedEnvironmentKeys": 0,
+    "openItems": 7
+  },
+  "missingScripts": [],
+  "missingBins": [],
+  "fileInventory": [
+    {
+      "file": "JWW_GATEWAY_HANDOFF.md",
+      "bytes": 2594,
+      "sha256": "66bcc7918b8afad7e6895d94f96eee83c4fcac8ddd011af68309c708779a5fe3"
+    },
+    {
+      "file": "JWW_GATEWAY_MANIFEST.json",
+      "bytes": 11875,
+      "sha256": "05b036756cbd1bb722b81205564a60b9c1e24b9bc3c4c3b37712894a076e88ea"
+    },
+    {
+      "file": "README.ja.md",
+      "bytes": 6839,
+      "sha256": "7457e2a70563375f3daf3d410bade5671a9650523062506a2e2a5bf245c1783f"
+    },
+    {
+      "file": "README.md",
+      "bytes": 9562,
+      "sha256": "a2a729c188e0f27b7ce8eb9dfde15d7c6b8caabcf38627523d31b0b6f780a7e7"
+    },
+    {
+      "file": "docs/JWW_GATEWAY_HANDOFF.md",
+      "bytes": 2594,
+      "sha256": "66bcc7918b8afad7e6895d94f96eee83c4fcac8ddd011af68309c708779a5fe3"
+    },
+    {
+      "file": "docs/JWW_GATEWAY_RELEASE_CHECKLIST.md",
+      "bytes": 3807,
+      "sha256": "57f36788ff0bd786ed8f2dca2c32db987539673c6b490c9666367a27d0ae2ded"
+    },
+    {
+      "file": "docs/JWW_GATEWAY_RELEASE_NOTES.md",
+      "bytes": 3383,
+      "sha256": "ac617085743e41563ee95e2dcafbb51777d9dda13a7d850dd3ae9ca576200d81"
+    },
+    {
+      "file": "docs/JWW_GATEWAY_REPORTS.md",
+      "bytes": 1921,
+      "sha256": "86317b6a390db99df4d14818727e6c4d989e9290dfef4fc23032385f91ea495a"
+    },
+    {
+      "file": "docs/JWW_GATEWAY_SAMPLE_SETS.example.json",
+      "bytes": 700,
+      "sha256": "c4de25e2d8ee81ff57c2487f69c8373dc53acff071be7a08486a03ea1bab7c51"
+    },
+    {
+      "file": "docs/JWW_GATEWAY_SPEC.md",
+      "bytes": 26787,
+      "sha256": "7a160cd5e87ce258895d05eeb71fbf29d21650aed0abffdb61d2cf81b112c10a"
+    },
+    {
+      "file": "docs/JWW_GATEWAY_WINDOWS_COMMANDS.md",
+      "bytes": 4629,
+      "sha256": "65cde6943986cabeec226684d2967c553559e69f8b498c305013fce4fa9e0c5b"
+    },
+    {
+      "file": "docs/JWW_JWF_ENV_AUDIT.md",
+      "bytes": 50369,
+      "sha256": "1bc06c1e93140a83c6c7dafe2efd6ae95c6356c79fa0b3a9a5f047a9017ddaf2"
+    },
+    {
+      "file": "docs/cadstudio-jww-json.schema.json",
+      "bytes": 5998,
+      "sha256": "7fecb44f1e1875e60204bd4a0c484b0bbcd69fca0f70ecf6d21ae0b11c2beb20"
+    },
+    {
+      "file": "docs/jww-gateway-manifest.schema.json",
+      "bytes": 9505,
+      "sha256": "82a8c5dde7540b58c08a8e23df9eb1296a3220bfc09fd30d15f4db3162cae9b0"
+    },
+    {
+      "file": "docs/jww-gateway-sample-sets.schema.json",
+      "bytes": 1214,
+      "sha256": "c5694d7e9282344bcd5c6577356d23f60684a95e326a22557528cd3083ea839b"
+    },
+    {
+      "file": "jww-gateway-convert.cmd",
+      "bytes": 55,
+      "sha256": "a6065cece25b83fb6d99c97ea900522628540391429ed506964a3f7cb73cf274"
+    },
+    {
+      "file": "jww-gateway-core-open-summary.cmd",
+      "bytes": 60,
+      "sha256": "4ede71b1c995095a84304a6157d110201fd17176b204746369ad74497e7e73f9"
+    },
+    {
+      "file": "jww-gateway-coverage-summary.cmd",
+      "bytes": 64,
+      "sha256": "fa824b8039da59a094cc81c9673a9f46ee1047893ff60540a635155292fbd153"
+    },
+    {
+      "file": "jww-gateway-coverage.cmd",
+      "bytes": 56,
+      "sha256": "3f7f9779f096c803bc0140be068c49b1fb4257c63fb4d4e3f20bf8d7310c0e3d"
+    },
+    {
+      "file": "jww-gateway-diagnose.cmd",
+      "bytes": 56,
+      "sha256": "a6e91ad1425080c5e06f7359bd02b25988ca5b108268265a4694fb5e3ce52037"
+    },
+    {
+      "file": "jww-gateway-diff.cmd",
+      "bytes": 52,
+      "sha256": "7af9cd14ac24d9c76b501cbe2db5d1a8749734e553fcd43b30f6625e8acaaa48"
+    },
+    {
+      "file": "jww-gateway-env-scan.cmd",
+      "bytes": 56,
+      "sha256": "1038c1ae18397ba7d92e8fca2baf2261d6972eb3c46c3a30621e056a6f24534e"
+    },
+    {
+      "file": "jww-gateway-jwf-compare.cmd",
+      "bytes": 59,
+      "sha256": "def17e3c881a0990bfb96a493ed48993f8d9a0a69f5931abe779c3ed43f32faf"
+    },
+    {
+      "file": "jww-gateway-jwf-parse.cmd",
+      "bytes": 57,
+      "sha256": "ac4917dff5c5064b314cd5f6b57a27a756429587562a03f068a43b7edf41831a"
+    },
+    {
+      "file": "jww-gateway-jwf-value-scan.cmd",
+      "bytes": 62,
+      "sha256": "422f442a4f8945917c4766021845c5bc9360012d040f72b51ec58e52d917a2d8"
+    },
+    {
+      "file": "jww-gateway-layer-defaults-audit.cmd",
+      "bytes": 68,
+      "sha256": "ffd232a7042ff47d07004fc63f36162e36d0f305348bea3b8b61f76590dd6834"
+    },
+    {
+      "file": "jww-gateway-layer-defaults-summary.cmd",
+      "bytes": 70,
+      "sha256": "b5e3dabfb01e19d32f0caf4dacdb0623da90680b9b936f07aa8e9a2710dfc10f"
+    },
+    {
+      "file": "jww-gateway-open-items.cmd",
+      "bytes": 58,
+      "sha256": "cf554303770c4e437406add9f22a5098f3880103b4edac211251951595723a74"
+    },
+    {
+      "file": "jww-gateway-report-index.cmd",
+      "bytes": 61,
+      "sha256": "89b28f52517901cff5d1652bcd2c8fae08c2fd85c0794a113185ee7419587868"
+    },
+    {
+      "file": "jww-gateway-sample-plan.cmd",
+      "bytes": 59,
+      "sha256": "23ac4512f2548049c3db1b22b9e2d224e05173594ec8adb497b7383db3ed1350"
+    },
+    {
+      "file": "jww-gateway-special-color-audit.cmd",
+      "bytes": 67,
+      "sha256": "9efe4833e72d7baacdae960505cd47506e36c6b73e88afe222f97cdf9cc6bff5"
+    },
+    {
+      "file": "jww-gateway-special-color-summary.cmd",
+      "bytes": 69,
+      "sha256": "570473110c16cf7f94d35e85787daddaecdf19c3d50c99edf27de20568031b14"
+    },
+    {
+      "file": "jww-gateway-status.cmd",
+      "bytes": 48,
+      "sha256": "ca08234c4cbb8089bc3687a236030fced1733f416c191348f1996bd22e2c5009"
+    },
+    {
+      "file": "jww-gateway-validate.cmd",
+      "bytes": 56,
+      "sha256": "a219d4312507e0e013e30c16faa838310ce19e33c73337e1488db9d459680d3d"
+    },
+    {
+      "file": "jww-gateway-verify-all.cmd",
+      "bytes": 52,
+      "sha256": "c4ec9113e058d3e93a058b75db0e0df917148d34be68a5bcefd7b042a15ed9e6"
+    },
+    {
+      "file": "jww-gateway-verify-diff.cmd",
+      "bytes": 59,
+      "sha256": "43e827a0b5d5e234c7ff825b870f599cade641391792067a10189d0d0b000e28"
+    },
+    {
+      "file": "jww-gateway-verify-handoff.cmd",
+      "bytes": 56,
+      "sha256": "6170522d529055031780a6fc231477b0632be374a44009b1571bd86c1a973186"
+    },
+    {
+      "file": "jww-gateway-verify-report.cmd",
+      "bytes": 61,
+      "sha256": "47bfbedc142b07306c5a761cf6daf4f81d2464798cedb2129399bbc3bd019527"
+    },
+    {
+      "file": "package.json",
+      "bytes": 4373,
+      "sha256": "04b2189bc65674c5b46b527250a885475cc28d6b3523130d0f69874c16780099"
+    },
+    {
+      "file": "reports/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "reports/README.md",
+      "bytes": 1859,
+      "sha256": "21c26f34891503de77c22644fcdfa6ce07122a1f9b703e8fb6e47ebe5dcf7046"
+    },
+    {
+      "file": "src/jww/BinaryReader.js",
+      "bytes": 1285,
+      "sha256": "ff1d1290811209f8f06ab320ed96f2d67537d384ac28aad37ac1538badbacec8"
+    },
+    {
+      "file": "src/jww/arcDiagnostics.js",
+      "bytes": 3042,
+      "sha256": "c103c13096599c32385901ecd9a86820ab079a785adca2dea58a0c801360fb25"
+    },
+    {
+      "file": "src/jww/coreOpenSummary.js",
+      "bytes": 1623,
+      "sha256": "81adf25f1857970c8916f4f23fb2969291e8f1ac43cdf482062e28e133b2a6f9"
+    },
+    {
+      "file": "src/jww/coreOpenSummary.test.js",
+      "bytes": 1688,
+      "sha256": "4b3eb3cf9927d4e2b90c65d98707455b1582a0879718c3eba0bb512568175ff7"
+    },
+    {
+      "file": "src/jww/decoder.js",
+      "bytes": 16131,
+      "sha256": "45baa39732f8c2365b1777ed515ff437e7bf3b294d0bf51088be298113ca7be4"
+    },
+    {
+      "file": "src/jww/decoder.test.js",
+      "bytes": 5391,
+      "sha256": "b6370b6c1979ae0a2db3833d28018f94bfd2513a4a678dd6458d869b7b317dd3"
+    },
+    {
+      "file": "src/jww/environment.js",
+      "bytes": 10031,
+      "sha256": "28f58279302afbbd0d4c5d6ee0410c25758ec1bfa65905d53a75365fa6470304"
+    },
+    {
+      "file": "src/jww/environment.test.js",
+      "bytes": 4015,
+      "sha256": "4dd28e34f54071a02f87786adae63234165999e7f79eb526c0a2413efd80f854"
+    },
+    {
+      "file": "src/jww/gatewayManifest.js",
+      "bytes": 15400,
+      "sha256": "a488eccb0ac2a83a42dc2faae1139a5cd6b558d5122cc1ec61820fac5caa57aa"
+    },
+    {
+      "file": "src/jww/gatewayManifest.test.js",
+      "bytes": 24260,
+      "sha256": "dbb68647796e799e6ba06b8293b3ec05a5786bcc5f2ad706775bbe815747ceb9"
+    },
+    {
+      "file": "src/jww/gatewayPackageFiles.js",
+      "bytes": 3051,
+      "sha256": "e43bd0e7f89f930031ccb557b2a13f96393be8a52a8692af5c45c057d4583b97"
+    },
+    {
+      "file": "src/jww/jwf.js",
+      "bytes": 14244,
+      "sha256": "1ccddfc2d1376aad99fe93a9e884106f4065bf5bd715fc574fc659f6b07b35d4"
+    },
+    {
+      "file": "src/jww/jwf.test.js",
+      "bytes": 3726,
+      "sha256": "defa5f47dff68bdcd0144bf200c4cfa6f4566431d1923d35e4741bd415be1c3f"
+    },
+    {
+      "file": "src/jww/jwfValueScan.js",
+      "bytes": 4623,
+      "sha256": "76c1f0c9f6bc431d4870df4cc6d66b1e05c4eb6fb41badc13317a3d395fcc376"
+    },
+    {
+      "file": "src/jww/jwfValueScan.test.js",
+      "bytes": 1865,
+      "sha256": "56185a17b865f8e2e69e81e0822c1cf1f14f5cc90387828d7a9269f85ee550f8"
+    },
+    {
+      "file": "src/jww/layerDefaultsSummary.js",
+      "bytes": 3596,
+      "sha256": "d653fbf2dd22cd045659f2ac00e6aefef2a38074eab0d0e6a71b0c617aa8f0fe"
+    },
+    {
+      "file": "src/jww/layerDefaultsSummary.test.js",
+      "bytes": 3480,
+      "sha256": "e37ea8f4b6dce1aebdc938e85f5159779b96b58c87e76ceddc14536844d85d1e"
+    },
+    {
+      "file": "src/jww/parser.js",
+      "bytes": 32374,
+      "sha256": "63ebc66a016fc316cfc2ce2e3b20c20a3d492b68698310994044431d846c83da"
+    },
+    {
+      "file": "src/jww/parser.test.js",
+      "bytes": 2982,
+      "sha256": "afaf2fcd1042c3f2b5dd6fb044e3f8e54850d4601b83c749607b5f0cb0360f4a"
+    },
+    {
+      "file": "src/jww/schemaValidator.test.js",
+      "bytes": 4551,
+      "sha256": "2bd06f27c44cb62f56d796b36d41c65af9a73b0bfc28e3ea11cfe1d4c1cc35bf"
+    },
+    {
+      "file": "src/jww/shared.js",
+      "bytes": 5639,
+      "sha256": "bfead85abfa13f4a65981dce06715baa335af826a0e2a09522fbee805918e451"
+    },
+    {
+      "file": "src/jww/testHarness.js",
+      "bytes": 5561,
+      "sha256": "58e6fd71ba864b77a70b5c58c45047416965ed90bf90618b1b61d64ddf405564"
+    },
+    {
+      "file": "src/jww/valueScanSummary.js",
+      "bytes": 3291,
+      "sha256": "baf3a8a6debf8e5b9e7d5d614b4b97a1758531b1ef39409c55ca69e767fab6b5"
+    },
+    {
+      "file": "src/jww/valueScanSummary.test.js",
+      "bytes": 3481,
+      "sha256": "0158f301cd08354267d905df531d6ca795948fe928c8b4988b43204634f725f0"
+    },
+    {
+      "file": "tools/jwf-parse.mjs",
+      "bytes": 2325,
+      "sha256": "e777656353c69671e0088ba5f953fb4f866d0240269459797c714fa2e99ebcce"
+    },
+    {
+      "file": "tools/jww-core-open-summary.mjs",
+      "bytes": 7308,
+      "sha256": "a640c9449162b0f9295648553f39f4c74d797b606b6481a16f52208f1f9b232e"
+    },
+    {
+      "file": "tools/jww-coverage-summary.mjs",
+      "bytes": 10728,
+      "sha256": "21376bdb00c90ec3c1317ca8da3f18d1e510b575ac7f993b6db11575c189e0a2"
+    },
+    {
+      "file": "tools/jww-coverage.mjs",
+      "bytes": 10839,
+      "sha256": "c1cd0fec22004b35f883269c0dd72c9c181e5b4841765970ffdee896a3c5578f"
+    },
+    {
+      "file": "tools/jww-diagnostics-diff.mjs",
+      "bytes": 10358,
+      "sha256": "19ab3fd41768a90f6d5790f5cbdbfbeb9c0c90ba3e01be507b35a0bd0065395f"
+    },
+    {
+      "file": "tools/jww-diagnostics.mjs",
+      "bytes": 34028,
+      "sha256": "26462cf8d5de1ed082445445f407f33b6b3b2e9dfb6656283396e52ecd59cbbb"
+    },
+    {
+      "file": "tools/jww-env-scan.mjs",
+      "bytes": 6803,
+      "sha256": "bd597c3241f5ebcbc46212363e2a1c6bdfd82e75ad484c8d763f8e2c2c5b95df"
+    },
+    {
+      "file": "tools/jww-gateway-open-items.mjs",
+      "bytes": 6860,
+      "sha256": "1a048071f4ef1977543b69fd5c25756ba423d015debe7fa67925e4db6983bd01"
+    },
+    {
+      "file": "tools/jww-gateway-report-index.mjs",
+      "bytes": 9252,
+      "sha256": "98bb4f2555aaa581ebbac16d9c026d2d162796a2a452441770cca55f6a49808c"
+    },
+    {
+      "file": "tools/jww-gateway-smoke.mjs",
+      "bytes": 22956,
+      "sha256": "cab143333419792f2c12280dee249fec7d06e4969c5e30ff93d5a2d20557e826"
+    },
+    {
+      "file": "tools/jww-gateway-status.mjs",
+      "bytes": 2342,
+      "sha256": "11d65df817f347d3c028eafe01f19389ab30a4509653fd9cfff8e685a5b32912"
+    },
+    {
+      "file": "tools/jww-gateway-verify-report-diff.mjs",
+      "bytes": 6800,
+      "sha256": "5f57183ffc5cdaddf82c372650ad6aa9f8c0ca43d00ef685014e299a0aabb9c6"
+    },
+    {
+      "file": "tools/jww-gateway-verify-report.mjs",
+      "bytes": 11871,
+      "sha256": "d831c2356b83936526ea47f8555414fee7db5745edc9299dd7aef0bfb9971235"
+    },
+    {
+      "file": "tools/jww-gateway.mjs",
+      "bytes": 11101,
+      "sha256": "9986dc8b4629f48e9144d7bd92e72aaa69f19d781c105fc6f3239cc6e70a0f14"
+    },
+    {
+      "file": "tools/jww-jwf-compare.mjs",
+      "bytes": 14414,
+      "sha256": "bf4ee01329e076da92a8c0db952f06bc4c818525814c81d27452d80b1aafc29d"
+    },
+    {
+      "file": "tools/jww-jwf-value-scan.mjs",
+      "bytes": 20453,
+      "sha256": "98103a5b274725ed1424cecf3b3a19c5ec799f4c5a554d1e6f05db307d699d83"
+    },
+    {
+      "file": "tools/jww-layer-defaults-audit.mjs",
+      "bytes": 10388,
+      "sha256": "bffc6e968707161721324c6ec68db50e66aa67e0dddbf3df99ff03a6d3378e41"
+    },
+    {
+      "file": "tools/jww-layer-defaults-summary.mjs",
+      "bytes": 8232,
+      "sha256": "3bcc840a33fc5f81d6d2c22fcdc1d583e2c1cf5a90073859ad12d1a82279ac16"
+    },
+    {
+      "file": "tools/jww-manifest-validate.mjs",
+      "bytes": 2268,
+      "sha256": "713440e2006de9a5c5be1730ae93f58adeba61b3bc49b04f0942385b746e111e"
+    },
+    {
+      "file": "tools/jww-sample-plan.mjs",
+      "bytes": 14999,
+      "sha256": "e851a1cef994744b4e269bc08c726d568005e29a22f63bc281bef6d537a27234"
+    },
+    {
+      "file": "tools/jww-schema-validate.mjs",
+      "bytes": 13955,
+      "sha256": "f47ec992709a7ca670f11c122e01f39ee7d7ea0c4c21458905ee19bbdc05df44"
+    },
+    {
+      "file": "tools/jww-special-color-audit.mjs",
+      "bytes": 10182,
+      "sha256": "63ec4919ba1d5cc3ba3ea0471419180aa521efe9c3665207fec21b5edfd08a5e"
+    },
+    {
+      "file": "tools/jww-special-color-summary.mjs",
+      "bytes": 10744,
+      "sha256": "8403bb108e28e21b895398a8979b8bddc38247a7bf1b43454a8173a89a9e7d68"
+    },
+    {
+      "file": "tools/jww-value-scan-summary.mjs",
+      "bytes": 8660,
+      "sha256": "c38ba12bc0d4427dc41f9284e3188d70fd58fa40f22226308b1aeb3beaf46793"
+    }
+  ],
+  "handoff": {
+    "entrypoint": "JWW_GATEWAY_HANDOFF.md",
+    "releaseChecklist": "docs/JWW_GATEWAY_RELEASE_CHECKLIST.md",
+    "sampleSetsExample": "docs/JWW_GATEWAY_SAMPLE_SETS.example.json",
+    "sampleSetsSchema": "docs/jww-gateway-sample-sets.schema.json",
+    "verifyCommand": "npm run verify:handoff",
+    "samplePlanCommand": "npm run sample:plan -- docs\\JWW_GATEWAY_SAMPLE_SETS.example.json --html -o reports\\sample-plan.html",
+    "openItemsCommand": "npm run open-items -- --html -o reports\\open-items.html",
+    "reportIndexCommand": "npm run reports:index -- --html -o reports\\index.html"
+  },
+  "capabilities": {
+    "convert": true,
+    "coverage": true,
+    "coverageSummary": true,
+    "diagnose": true,
+    "diagnosticsDiff": true,
+    "schemaValidate": true,
+    "environmentScan": true,
+    "jwfParse": true,
+    "jwfCompare": true,
+    "jwfValueScan": true,
+    "layerDefaultsAudit": true,
+    "layerDefaultsSummary": true,
+    "specialColorAudit": true,
+    "specialColorSummary": true,
+    "valueScanSummary": true,
+    "promotionCandidateGate": true,
+    "coreOpenSummary": true,
+    "samplePlan": true,
+    "openItemsReport": true,
+    "reportIndex": true,
+    "jwwWrite": false
+  },
+  "unresolvedEnvironmentKeys": [
+    "LTYPE_HC",
+    "LCOLLOR_M"
+  ],
+  "unresolvedExpectation": {
+    "checked": false,
+    "valid": true,
+    "expected": [],
+    "missing": [],
+    "unexpected": []
+  },
+  "openItems": [
+    {
+      "id": "jww-write",
+      "status": "not-supported",
+      "category": "output",
+      "classification": "separate-project",
+      "conversionImpact": "none for import; required only for round-trip JWW editing",
+      "releaseDecision": "not a release blocker for read-only Gateway",
+      "title": "JWW save/write",
+      "detail": "Gateway is read/import only. Editing results are exported as CAD Studio JSON and do not update the source JWW file.",
+      "evidence": "capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.",
+      "nextAction": "Keep JWW write disabled until a separate writer format and round-trip test suite exist."
+    },
+    {
+      "id": "LTYPE_HC",
+      "status": "sample-blocked",
+      "category": "jwf-environment",
+      "classification": "sample-blocked",
+      "conversionImpact": "low for current conversion; candidate bytes are retained for later comparison",
+      "releaseDecision": "keep open until direct matches repeat in real files",
+      "title": "Hatch/line type environment key",
+      "detail": "Candidate bytes after LTYPE_L4 are retained, but tested sample files do not directly match the JWF LTYPE_HC values.",
+      "evidence": "core-open summaries across current sample sets show matched 0 and direct-match false.",
+      "nextAction": "Review new real files that actively use this setting before promoting it to extracted coverage."
+    },
+    {
+      "id": "LCOLLOR_M",
+      "status": "sample-blocked",
+      "category": "jwf-environment",
+      "classification": "sample-blocked",
+      "conversionImpact": "low for entity rendering; affects a JWF special/zoom text color rather than parsed entity colors",
+      "releaseDecision": "keep open until exact RGB matches repeat in real files",
+      "title": "Zoom text/special color environment key",
+      "detail": "Special color audits search nearby RGB triplets, but no stable direct match has been found yet.",
+      "evidence": "special-color audits found no direct LCOLLOR_M match in the current real-file set.",
+      "nextAction": "Promote only after direct matches repeat across real JWW/JWF pairs."
+    },
+    {
+      "id": "LAYCOL_LAYWID_LAYTYP",
+      "status": "audit-only",
+      "category": "jwf-environment",
+      "classification": "audit-only",
+      "conversionImpact": "low for imported drawing display; entity-level color, width, and line type are already read",
+      "releaseDecision": "not promoted until a stable storage pattern is found",
+      "title": "Layer default color, width, and line type settings",
+      "detail": "Entity-level pen color, width, and style are read, but JWF layer default setting rows remain audit-only.",
+      "evidence": "layer-default summaries keep promotionCandidates at 0; non-zero M-08 layer defaults still do not direct-match.",
+      "nextAction": "Use layer-defaults audit/summary reports when new sample sets are added."
+    },
+    {
+      "id": "jww-text-decoration-rendering",
+      "status": "downstream-renderer",
+      "category": "renderer",
+      "classification": "metadata-ready",
+      "conversionImpact": "medium visual-fidelity item; converted metadata exists but Gateway does not draw a view",
+      "releaseDecision": "not a parser blocker because decoration metadata is exported",
+      "title": "JWW text decoration overprint rendering",
+      "detail": "Special text runs and decoration segments are preserved as metadata, but exact visual overprint reproduction is not implemented in Gateway.",
+      "evidence": "Gateway exports jwwSpecialRuns and jwwTextSegments for renderer-side overprint work.",
+      "nextAction": "Implement in the downstream renderer using jwwSpecialRuns and jwwTextSegments."
+    },
+    {
+      "id": "tilted-ellipse-arc-comparison",
+      "status": "needs-samples",
+      "category": "geometry",
+      "classification": "sample-comparison",
+      "conversionImpact": "medium for rare complex arcs; source angles and diagnostics are preserved",
+      "releaseDecision": "not promoted further without confirmed before/after examples",
+      "title": "Tilted arcs and ellipse-like arcs",
+      "detail": "Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.",
+      "evidence": "Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.",
+      "nextAction": "Add targeted before/after diagnostics when more confirmed JWW examples are available."
+    },
+    {
+      "id": "jwf-operation-settings",
+      "status": "not-required-for-conversion",
+      "category": "environment",
+      "classification": "out-of-scope-for-conversion",
+      "conversionImpact": "none for drawing import; useful only for complete Jw_cad environment persistence",
+      "releaseDecision": "track in audits but do not block Gateway release",
+      "title": "Operation-only JWF settings",
+      "detail": "Command, key assignment, clock menu, and other operation settings are tracked in audits but are outside drawing conversion.",
+      "evidence": "operation-scope value scans show no stable extraction candidates and these settings do not affect converted geometry.",
+      "nextAction": "Keep them visible in coverage reports; promote only if a connected app needs full environment persistence."
+    }
+  ],
+  "notes": [
+    "JWW save/write is not supported.",
+    "LTYPE_HC and LCOLLOR_M remain unresolved until real files show stable direct matches.",
+    "Open items include classification, conversion impact, evidence, and release decision fields so sample-blocked research is not mistaken for a release blocker."
+  ]
+}

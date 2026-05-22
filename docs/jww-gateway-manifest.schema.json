@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cadstudio.local/schemas/jww-gateway-manifest.schema.json",
+  "title": "JWW Gateway Package Manifest",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "generatedAt",
+    "packageName",
+    "packageVersion",
+    "commands",
+    "binaries",
+    "packageFiles",
+    "supportedEncodings",
+    "outputFormat",
+    "manifestSchema",
+    "handoff",
+    "capabilities",
+    "unresolvedEnvironmentKeys",
+    "openItems"
+  ],
+  "properties": {
+    "format": {
+      "const": "jww-gateway-package-manifest"
+    },
+    "formatVersion": {
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "string"
+    },
+    "packageName": {
+      "type": "string"
+    },
+    "packageVersion": {
+      "type": "string"
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "convert",
+          "coverage",
+          "coverage:summary",
+          "diagnose",
+          "diff",
+          "validate",
+          "env:scan",
+          "jwf:parse",
+          "jwf:compare",
+          "jwf:value-scan",
+          "layer-defaults:audit",
+          "layer-defaults:summary",
+          "special-color:audit",
+          "special-color:summary",
+          "value-scan:summary",
+          "core:summary",
+          "sample:plan",
+          "open-items",
+          "reports:index",
+          "manifest:validate",
+          "status",
+          "verify:report",
+          "verify:reports",
+          "verify:diff",
+          "smoke",
+          "verify",
+          "verify:all",
+          "verify:handoff"
+        ]
+      },
+      "allOf": [
+        { "contains": { "const": "convert" } },
+        { "contains": { "const": "coverage" } },
+        { "contains": { "const": "coverage:summary" } },
+        { "contains": { "const": "diagnose" } },
+        { "contains": { "const": "layer-defaults:audit" } },
+        { "contains": { "const": "layer-defaults:summary" } },
+        { "contains": { "const": "special-color:audit" } },
+        { "contains": { "const": "special-color:summary" } },
+        { "contains": { "const": "value-scan:summary" } },
+        { "contains": { "const": "sample:plan" } },
+        { "contains": { "const": "open-items" } },
+        { "contains": { "const": "reports:index" } },
+        { "contains": { "const": "manifest:validate" } },
+        { "contains": { "const": "status" } },
+        { "contains": { "const": "verify:report" } },
+        { "contains": { "const": "verify:reports" } },
+        { "contains": { "const": "verify:diff" } },
+        { "contains": { "const": "smoke" } },
+        { "contains": { "const": "verify" } },
+        { "contains": { "const": "verify:all" } },
+        { "contains": { "const": "verify:handoff" } }
+      ]
+    },
+    "binaries": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "jww-gateway",
+          "jww-coverage",
+          "jww-coverage-summary",
+          "jww-diagnostics",
+          "jww-diagnostics-diff",
+          "jww-schema-validate",
+          "jww-env-scan",
+          "jwf-parse",
+          "jww-jwf-compare",
+          "jww-jwf-value-scan",
+          "jww-layer-defaults-audit",
+          "jww-layer-defaults-summary",
+          "jww-special-color-audit",
+          "jww-special-color-summary",
+          "jww-value-scan-summary",
+          "jww-core-open-summary",
+          "jww-sample-plan",
+          "jww-gateway-open-items",
+          "jww-gateway-report-index",
+          "jww-manifest-validate",
+          "jww-gateway-status",
+          "jww-gateway-verify-report",
+          "jww-gateway-verify-report-diff"
+        ]
+      },
+      "allOf": [
+        { "contains": { "const": "jww-gateway" } },
+        { "contains": { "const": "jww-coverage" } },
+        { "contains": { "const": "jww-coverage-summary" } },
+        { "contains": { "const": "jww-layer-defaults-audit" } },
+        { "contains": { "const": "jww-layer-defaults-summary" } },
+        { "contains": { "const": "jww-special-color-audit" } },
+        { "contains": { "const": "jww-special-color-summary" } },
+        { "contains": { "const": "jww-sample-plan" } },
+        { "contains": { "const": "jww-gateway-open-items" } },
+        { "contains": { "const": "jww-gateway-report-index" } },
+        { "contains": { "const": "jww-manifest-validate" } },
+        { "contains": { "const": "jww-gateway-status" } },
+        { "contains": { "const": "jww-gateway-verify-report" } },
+        { "contains": { "const": "jww-gateway-verify-report-diff" } },
+        { "contains": { "const": "jww-value-scan-summary" } }
+      ]
+    },
+    "packageFiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "allOf": [
+        { "contains": { "const": "JWW_GATEWAY_MANIFEST.json" } },
+        { "contains": { "const": "tools/jww-manifest-validate.mjs" } },
+        {
+          "contains": {
+            "const": "docs/jww-gateway-manifest.schema.json"
+          }
+        },
+        { "contains": { "const": "reports/.gitkeep" } },
+        { "contains": { "const": "reports/README.md" } }
+      ]
+    },
+    "supportedEncodings": {
+      "type": "array",
+      "items": {
+        "enum": ["shift_jis", "utf-8", "utf-16le", "utf-16be"]
+      }
+    },
+    "outputFormat": {
+      "type": "object",
+      "required": ["format", "formatVersion", "schema"],
+      "properties": {
+        "format": {
+          "const": "cadstudio-jww-json"
+        },
+        "formatVersion": {
+          "const": 1
+        },
+        "schema": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "manifestSchema": {
+      "const": "docs/jww-gateway-manifest.schema.json"
+    },
+    "handoff": {
+      "type": "object",
+      "required": [
+        "entrypoint",
+        "releaseChecklist",
+        "sampleSetsExample",
+        "sampleSetsSchema",
+        "verifyCommand",
+        "samplePlanCommand",
+        "openItemsCommand",
+        "reportIndexCommand"
+      ],
+      "properties": {
+        "entrypoint": {
+          "const": "JWW_GATEWAY_HANDOFF.md"
+        },
+        "releaseChecklist": {
+          "const": "docs/JWW_GATEWAY_RELEASE_CHECKLIST.md"
+        },
+        "sampleSetsExample": {
+          "const": "docs/JWW_GATEWAY_SAMPLE_SETS.example.json"
+        },
+        "sampleSetsSchema": {
+          "const": "docs/jww-gateway-sample-sets.schema.json"
+        },
+        "verifyCommand": {
+          "const": "npm run verify:handoff"
+        },
+        "samplePlanCommand": {
+          "type": "string"
+        },
+        "openItemsCommand": {
+          "const": "npm run open-items -- --html -o reports\\open-items.html"
+        },
+        "reportIndexCommand": {
+          "const": "npm run reports:index -- --html -o reports\\index.html"
+        }
+      },
+      "additionalProperties": true
+    },
+    "capabilities": {
+      "type": "object",
+      "required": [
+        "convert",
+        "coverage",
+        "coverageSummary",
+        "diagnose",
+        "diagnosticsDiff",
+        "schemaValidate",
+        "environmentScan",
+        "jwfParse",
+        "jwfCompare",
+        "jwfValueScan",
+        "layerDefaultsAudit",
+        "layerDefaultsSummary",
+        "specialColorAudit",
+        "specialColorSummary",
+        "valueScanSummary",
+        "promotionCandidateGate",
+        "coreOpenSummary",
+        "samplePlan",
+        "openItemsReport",
+        "reportIndex",
+        "jwwWrite"
+      ],
+      "properties": {
+        "convert": { "type": "boolean" },
+        "coverage": { "type": "boolean" },
+        "coverageSummary": { "type": "boolean" },
+        "diagnose": { "type": "boolean" },
+        "diagnosticsDiff": { "type": "boolean" },
+        "schemaValidate": { "type": "boolean" },
+        "environmentScan": { "type": "boolean" },
+        "jwfParse": { "type": "boolean" },
+        "jwfCompare": { "type": "boolean" },
+        "jwfValueScan": { "type": "boolean" },
+        "layerDefaultsAudit": { "type": "boolean" },
+        "layerDefaultsSummary": { "type": "boolean" },
+        "specialColorAudit": { "type": "boolean" },
+        "specialColorSummary": { "type": "boolean" },
+        "valueScanSummary": { "type": "boolean" },
+        "promotionCandidateGate": { "type": "boolean" },
+        "coreOpenSummary": { "type": "boolean" },
+        "samplePlan": { "type": "boolean" },
+        "openItemsReport": { "type": "boolean" },
+        "reportIndex": { "type": "boolean" },
+        "jwwWrite": { "const": false }
+      },
+      "additionalProperties": true
+    },
+    "unresolvedEnvironmentKeys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "openItems": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "category", "title", "detail"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "type": "string" },
+          "category": { "type": "string" },
+          "classification": { "type": "string" },
+          "conversionImpact": { "type": "string" },
+          "releaseDecision": { "type": "string" },
+          "title": { "type": "string" },
+          "detail": { "type": "string" },
+          "evidence": { "type": "string" },
+          "nextAction": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}
