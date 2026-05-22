@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-05-22T07:20:50.491Z",
+  "generatedAt": "2026-05-22T07:37:21.448Z",
   "packageName": "@cadstudio/jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -39,8 +39,8 @@
     },
     {
       "file": "README.ja.md",
-      "bytes": 6839,
-      "sha256": "7457e2a70563375f3daf3d410bade5671a9650523062506a2e2a5bf245c1783f"
+      "bytes": 6797,
+      "sha256": "5fab9ab7ad9fd1975d4598d891a1ac2941e820198e23ecc320fb836359b8827a"
     },
     {
       "file": "README.md",
@@ -59,8 +59,8 @@
     },
     {
       "file": "docs/JWW_GATEWAY_RELEASE_NOTES.md",
-      "bytes": 3383,
-      "sha256": "ac617085743e41563ee95e2dcafbb51777d9dda13a7d850dd3ae9ca576200d81"
+      "bytes": 3347,
+      "sha256": "8cddce8a9f75bae5502fcbde84dd7b29265cab1674ce1b72cae9abda779e39de"
     },
     {
       "file": "docs/JWW_GATEWAY_REPORTS.md",
@@ -74,8 +74,8 @@
     },
     {
       "file": "docs/JWW_GATEWAY_SPEC.md",
-      "bytes": 26787,
-      "sha256": "7a160cd5e87ce258895d05eeb71fbf29d21650aed0abffdb61d2cf81b112c10a"
+      "bytes": 26757,
+      "sha256": "779025717bf5854eb52d5a40431a6204db5ed7ec52cc3104ea900b21adfdfee7"
     },
     {
       "file": "docs/JWW_GATEWAY_WINDOWS_COMMANDS.md",

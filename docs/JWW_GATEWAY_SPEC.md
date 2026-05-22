@@ -4,7 +4,7 @@ Last updated: 2026-05-11
 
 ## 目的
 
-JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、`kitakyushu-water-app` で扱える図面データへ変換するための読み込み・診断レイヤーです。
+JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、CAD Studio互換JSONへ変換するための読み込み・診断レイヤーです。
 
 現時点では JWW の保存は対象外です。主目的は次の3つです。
 

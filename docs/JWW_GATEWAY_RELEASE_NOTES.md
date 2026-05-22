@@ -2,9 +2,8 @@
 
 ## 0.1.0
 
-JWW Gateway is a standalone command-line package extracted from
-kitakyushu-water-app for JWW import, conversion, diagnostics, JWF comparison,
-and package handoff verification.
+JWW Gateway is a standalone command-line package for JWW import, conversion,
+diagnostics, JWF comparison, and package handoff verification.
 
 ### Supported
 
