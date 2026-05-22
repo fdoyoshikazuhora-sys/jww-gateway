@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fdoyoshikazuhora-sys.github.io/jww-gateway/sitemap.xml

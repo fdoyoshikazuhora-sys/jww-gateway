@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JWW Gateway</title>
+  <meta name="description" content="JWW Gateway は、Jw_cad .jww ファイルを読み込み、JWW Gateway JSON と診断レポートを出力する単体CLIです。JWW保存/書き出しには未対応です。">
+  <meta property="og:title" content="JWW Gateway">
+  <meta property="og:description" content="JWW読み込み・変換・診断用の単体CLI。生成したJSONや診断レポートを他のツールへ受け渡して使います。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://fdoyoshikazuhora-sys.github.io/jww-gateway/">
+  <meta name="twitter:card" content="summary">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18202b;
+      --muted: #586474;
+      --line: #d8dee8;
+      --soft: #f5f7fa;
+      --accent: #136f63;
+      --accent-strong: #0b4d45;
+      --warn: #8a5a00;
+      --code: #101820;
+      --code-soft: #e7edf3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #ffffff;
+      line-height: 1.65;
+    }
+
+    header,
+    main,
+    footer {
+      width: min(1040px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 32px 0 28px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 44px;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .links {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      font-size: 14px;
+    }
+
+    a {
+      color: var(--accent-strong);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    h1 {
+      font-size: clamp(34px, 7vw, 72px);
+      line-height: 1.02;
+      margin: 0 0 18px;
+      letter-spacing: 0;
+      max-width: 820px;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 760px;
+      margin: 0;
+    }
+
+    .notice {
+      margin-top: 22px;
+      color: var(--warn);
+      font-weight: 600;
+    }
+
+    section {
+      padding: 34px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .item {
+      border-left: 3px solid var(--accent);
+      padding: 2px 0 2px 14px;
+    }
+
+    .item h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    .item p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    ol {
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 8px 0;
+    }
+
+    pre {
+      overflow-x: auto;
+      background: var(--code);
+      color: #f6f8fb;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: "Cascadia Mono", "Consolas", monospace;
+      background: var(--code-soft);
+      color: var(--ink);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent-strong);
+      text-decoration: none;
+      font-weight: 650;
+      background: #ffffff;
+    }
+
+    .button.primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    footer {
+      padding: 26px 0 40px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 760px) {
+      nav {
+        align-items: flex-start;
+        flex-direction: column;
+        margin-bottom: 32px;
+      }
+
+      .links {
+        justify-content: flex-start;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav aria-label="Primary">
+      <div class="brand">JWW Gateway</div>
+      <div class="links">
+        <a href="README.ja.md">取扱説明</a>
+        <a href="README.md">README</a>
+        <a href="https://github.com/fdoyoshikazuhora-sys/jww-gateway">GitHub</a>
+        <a href="https://github.com/fdoyoshikazuhora-sys/jww-gateway/releases/tag/v0.1.0">Release</a>
+      </div>
+    </nav>
+
+    <h1>JWW読み込み・変換・診断用CLI</h1>
+    <p class="lead">Jw_cadの <code>.jww</code> ファイルを読み込み、JWW Gateway JSONと診断レポートを出力します。常駐サーバーや画面アプリへ直接接続するのではなく、生成したファイルを連携先のツールへ受け渡して使います。</p>
+    <p class="notice">JWW保存/書き出しには未対応です。元のJWWファイルは変更しません。</p>
+    <div class="actions">
+      <a class="button primary" href="README.ja.md">取扱説明を見る</a>
+      <a class="button" href="https://github.com/fdoyoshikazuhora-sys/jww-gateway">GitHubで開く</a>
+    </div>
+  </header>
+
+  <main>
+    <section aria-labelledby="workflow">
+      <h2 id="workflow">使い方の流れ</h2>
+      <ol>
+        <li><code>JWW_Gateway</code> フォルダをPowerShellで開く</li>
+        <li><code>npm run status</code> で配布物が揃っているか確認する</li>
+        <li><code>npm run convert</code> でJWWをJSONへ変換する</li>
+        <li>必要に応じて <code>npm run diagnose</code> で診断レポートを作る</li>
+        <li>連携先のツールで、生成されたJSONや診断レポートを読み込む</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="commands">
+      <h2 id="commands">基本コマンド</h2>
+      <pre><code>npm run status
+npm run convert -- "C:\path\to\file.jww" -o output.json
+npm run diagnose -- "C:\path\to\file.jww" --html -o diagnostics.html
+npm run validate -- output.json</code></pre>
+    </section>
+
+    <section aria-labelledby="features">
+      <h2 id="features">できること</h2>
+      <div class="grid">
+        <div class="item">
+          <h3>JWW読み込み</h3>
+          <p>Jw_cad <code>.jww</code> ファイルを読み込み、用紙、縮尺、レイヤ、色、線種、文字情報を抽出します。</p>
+        </div>
+        <div class="item">
+          <h3>JSON変換</h3>
+          <p>連携先のツールが読み込めるように、JWW Gateway JSONとして変換結果を出力します。</p>
+        </div>
+        <div class="item">
+          <h3>診断レポート</h3>
+          <p>読み込みログ、未対応クラス、色テーブル、弧/楕円診断、外れ要素候補などを確認できます。</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="limits">
+      <h2 id="limits">既知の制限</h2>
+      <p>JWW保存/書き出しには対応していません。Jw_cad完全互換ビューアでもありません。詳しい制限と未対応項目は <a href="README.ja.md#既知の制限">取扱説明の既知の制限</a> を参照してください。</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>JWW Gateway v0.1.0</p>
+  </footer>
+</body>
+</html>
