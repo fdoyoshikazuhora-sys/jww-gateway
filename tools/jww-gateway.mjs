@@ -278,7 +278,7 @@ export function convertJwwBytes(bytes, options = {}) {
   const jwwEnvironment = buildJwwEnvironment(doc);
 
   return {
-    format: "cadstudio-jww-json",
+    format: "jww-gateway-json",
     formatVersion: 1,
     sourceFormat: "JWW",
     encoding,

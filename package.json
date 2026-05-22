@@ -1,5 +1,5 @@
 {
-  "name": "@cadstudio/jww-gateway",
+  "name": "jww-gateway",
   "version": "0.1.0",
   "private": true,
   "type": "module",

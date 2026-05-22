@@ -1,7 +1,7 @@
 # JWW Gateway
 
 JWW Gateway is a standalone CLI for JWW import, conversion, and diagnostics.
-It reads Jw_cad `.jww` files, converts them into CAD Studio compatible JSON, and writes diagnostic reports.
+It reads Jw_cad `.jww` files, converts them into JWW Gateway JSON, and writes diagnostic reports.
 JWW save/write is not supported.
 
 日本語の取扱説明は [README.ja.md](README.ja.md) を参照してください。
@@ -53,7 +53,7 @@ npm run env:scan -- "C:\path\to\file.jww"
 npm run env:scan -- "C:\path\to\folder" --recursive --csv -o env-scan.csv
 ```
 
-Validate converted CAD Studio JWW JSON:
+Validate converted JWW Gateway JSON:
 
 ```powershell
 npm run validate -- output.json

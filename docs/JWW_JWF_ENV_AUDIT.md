@@ -212,7 +212,7 @@ UTF-16文字列には、JWF書出し用と思われるフォーマット列が�
 
 ### 出力契約・配布メタデータ
 
-JWW Gateway の変換JSONは `docs/cadstudio-jww-json.schema.json` と `tools/jww-schema-validate.mjs` で最低構造を固定する。現在の固定対象は、基本ヘッダ、`bounds`、代表エンティティ形状に加えて、JWW/JWF環境情報のうち `meta.colorSettings`、`meta.lineTypeSettings`、`meta.jwwEnvironment.coverage` である。
+JWW Gateway の変換JSONは `docs/jww-gateway-json.schema.json` と `tools/jww-schema-validate.mjs` で最低構造を固定する。現在の固定対象は、基本ヘッダ、`bounds`、代表エンティティ形状に加えて、JWW/JWF環境情報のうち `meta.colorSettings`、`meta.lineTypeSettings`、`meta.jwwEnvironment.coverage` である。
 
 固定している主なJWW環境メタデータ:
 

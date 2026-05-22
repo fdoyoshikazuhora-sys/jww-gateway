@@ -8,7 +8,7 @@ diagnostics, JWF comparison, and package handoff verification.
 ### Supported
 
 - JWW import, conversion, and diagnostics.
-- CAD Studio compatible JSON output.
+- JWW Gateway JSON output.
 - JWF-like environment coverage reports from JWW files.
 - Cross-file coverage summary reports with a drawing-scope missing gate.
 - Focused LAYCOL/LAYWID/LAYTYP layer defaults audit and summary reports.

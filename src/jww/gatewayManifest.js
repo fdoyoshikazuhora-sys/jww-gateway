@@ -1,13 +1,13 @@
 export const GATEWAY_MANIFEST_FORMAT = "jww-gateway-package-manifest";
 export const GATEWAY_MANIFEST_VERSION = 1;
 export const GATEWAY_MANIFEST_SCHEMA = "docs/jww-gateway-manifest.schema.json";
-export const GATEWAY_OUTPUT_SCHEMA = "docs/cadstudio-jww-json.schema.json";
+export const GATEWAY_OUTPUT_SCHEMA = "docs/jww-gateway-json.schema.json";
 export const GATEWAY_HANDOFF_ENTRY = "JWW_GATEWAY_HANDOFF.md";
 export const GATEWAY_SAMPLE_SETS_SCHEMA =
   "docs/jww-gateway-sample-sets.schema.json";
 export const GATEWAY_SAMPLE_SETS_EXAMPLE =
   "docs/JWW_GATEWAY_SAMPLE_SETS.example.json";
-export const GATEWAY_OUTPUT_FORMAT = "cadstudio-jww-json";
+export const GATEWAY_OUTPUT_FORMAT = "jww-gateway-json";
 export const GATEWAY_OUTPUT_FORMAT_VERSION = 1;
 export const SUPPORTED_JWW_ENCODINGS = [
   "shift_jis",
@@ -26,7 +26,7 @@ export const GATEWAY_OPEN_ITEMS = [
     releaseDecision: "not a release blocker for read-only Gateway",
     title: "JWW save/write",
     detail:
-      "Gateway is read/import only. Editing results are exported as CAD Studio JSON and do not update the source JWW file.",
+      "Gateway is read/import only. Editing results are exported as JWW Gateway JSON and do not update the source JWW file.",
     evidence:
       "capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.",
     nextAction:

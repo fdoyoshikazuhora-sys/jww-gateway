@@ -14,7 +14,7 @@
 </head>
 <body>
   <h1>JWW Gateway Open Items</h1>
-  <p class="meta">Package @cadstudio/jww-gateway 0.1.0 / 7 items</p>
+  <p class="meta">Package jww-gateway 0.1.0 / 7 items</p>
   <table>
     <thead>
       <tr><th>ID</th><th>Status</th><th>Category</th><th>Class</th><th>Impact</th><th>Decision</th><th>Title</th><th>Detail</th><th>Evidence</th><th>Next</th></tr>
@@ -28,7 +28,7 @@
         <td>none for import; required only for round-trip JWW editing</td>
         <td>not a release blocker for read-only Gateway</td>
         <td>JWW save/write</td>
-        <td>Gateway is read/import only. Editing results are exported as CAD Studio JSON and do not update the source JWW file.</td>
+        <td>Gateway is read/import only. Editing results are exported as JWW Gateway JSON and do not update the source JWW file.</td>
         <td>capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.</td>
         <td>Keep JWW write disabled until a separate writer format and round-trip test suite exist.</td>
       </tr>

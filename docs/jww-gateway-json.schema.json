@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cadstudio.local/schemas/cadstudio-jww-json.schema.json",
-  "title": "CAD Studio JWW Gateway JSON",
+  "$id": "https://fdoyoshikazuhora-sys.github.io/jww-gateway/schemas/jww-gateway-json.schema.json",
+  "title": "JWW Gateway JSON",
   "type": "object",
   "required": [
     "format",
@@ -13,7 +13,7 @@
   ],
   "properties": {
     "format": {
-      "const": "cadstudio-jww-json"
+      "const": "jww-gateway-json"
     },
     "formatVersion": {
       "const": 1

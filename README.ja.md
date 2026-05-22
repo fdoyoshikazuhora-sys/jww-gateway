@@ -2,14 +2,24 @@
 
 JWW Gateway は、JWW読み込み・変換・診断用の単体CLIです。
 
-Jw_cad `.jww` ファイルを読み込み、CAD Studio互換JSONへ変換し、診断レポートを出力します。JWW保存/書き出しには未対応です。
+Jw_cad `.jww` ファイルを読み込み、JWW Gateway JSONへ変換し、診断レポートを出力します。JWW保存/書き出しには未対応です。
 
 このフォルダは、コマンドラインから JWW ファイルを変換・診断するための配布用フォルダです。画面付きのCADアプリ本体ではありません。
+
+## 使い方の流れ
+
+JWW Gateway は、常駐サーバーや画面アプリへ直接接続するツールではありません。PowerShell などからコマンドを実行し、生成されたJSONファイルや診断レポートを他のツールへ渡して使います。
+
+1. `JWW_Gateway` フォルダをPowerShellで開く
+2. `npm run status` で配布物が揃っているか確認する
+3. `npm run convert -- "C:\path\to\file.jww" -o output.json` でJWWをJSONへ変換する
+4. 必要に応じて `npm run diagnose -- "C:\path\to\file.jww" --html -o diagnostics.html` で診断レポートを作る
+5. 連携先のツールでは、生成された `output.json` や診断レポートを読み込む
 
 ## できること
 
 - JWWファイルの読み込み
-- CAD Studio互換JSONへの変換
+- JWW Gateway JSONへの変換
 - JWW読み込み結果の診断レポート出力
 - `shift_jis`, `utf-8`, `utf-16le`, `utf-16be` の文字コード指定
 - 用紙、縮尺、レイヤ、基本線色、線種、文字情報の保持
@@ -86,7 +96,7 @@ npm run validate -- output.json
 npm run validate -- output.json --json
 ```
 
-変換JSONの最低構造は [docs/cadstudio-jww-json.schema.json](docs/cadstudio-jww-json.schema.json) で定義しています。
+変換JSONの最低構造は [docs/jww-gateway-json.schema.json](docs/jww-gateway-json.schema.json) で定義しています。
 
 ## Windows用ショートカット
 

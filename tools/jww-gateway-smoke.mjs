@@ -353,9 +353,9 @@ export async function main() {
       "tools/jww-special-color-summary.mjs does not export summarizeSpecialColorAudits()"
     );
   }
-  if (typeof validator.validateCadstudioJwwJson !== "function") {
+  if (typeof validator.validateJwwGatewayJson !== "function") {
     throw new Error(
-      "tools/jww-schema-validate.mjs does not export validateCadstudioJwwJson()"
+      "tools/jww-schema-validate.mjs does not export validateJwwGatewayJson()"
     );
   }
   if (typeof statusCli.formatGatewayStatusText !== "function") {
@@ -363,8 +363,8 @@ export async function main() {
       "tools/jww-gateway-status.mjs does not export formatGatewayStatusText()"
     );
   }
-  const validValidation = validator.validateCadstudioJwwJson({
-    format: "cadstudio-jww-json",
+  const validValidation = validator.validateJwwGatewayJson({
+    format: "jww-gateway-json",
     formatVersion: 1,
     sourceFormat: "JWW",
     encoding: "shift_jis",
@@ -408,8 +408,8 @@ export async function main() {
   if (!validValidation.valid) {
     throw new Error("schema validator rejects valid JWW metadata");
   }
-  const validation = validator.validateCadstudioJwwJson({
-    format: "cadstudio-jww-json",
+  const validation = validator.validateJwwGatewayJson({
+    format: "jww-gateway-json",
     formatVersion: 1,
     sourceFormat: "JWW",
     encoding: "shift_jis",

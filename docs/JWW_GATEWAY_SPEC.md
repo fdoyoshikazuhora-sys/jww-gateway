@@ -4,7 +4,7 @@ Last updated: 2026-05-11
 
 ## 目的
 
-JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、CAD Studio互換JSONへ変換するための読み込み・診断レイヤーです。
+JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、JWW Gateway JSONへ変換するための読み込み・診断レイヤーです。
 
 現時点では JWW の保存は対象外です。主目的は次の3つです。
 
@@ -20,7 +20,7 @@ JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、CAD Studio互換J
 | `src/jww/decoder.js`        | Shift_JIS 等の文字列変換、JWW 特殊文字の解釈         |
 | `src/jww/shared.js`         | 用紙名、線色、線種、縮尺、JWW レイヤ名などの共有処理 |
 | `src/jww/arcDiagnostics.js` | 弧・楕円の変換診断                                   |
-| `tools/jww-gateway.mjs`     | パーサー結果をCAD Studio互換JSONへ変換するCLI        |
+| `tools/jww-gateway.mjs`     | パーサー結果をJWW Gateway JSONへ変換するCLI        |
 | `tools/jww-diagnostics.mjs` | JWW 読み込み結果を診断する CLI                       |
 
 ## 対応入力
@@ -30,7 +30,7 @@ JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、CAD Studio互換J
 | 拡張子       | `.jww`                                       |
 | 文字コード   | `shift_jis`, `utf-8`, `utf-16le`, `utf-16be` |
 | 主な想定     | Jw_cad 7系相当のJWW                          |
-| 読み込み方向 | JWW からCAD Studio互換JSON                  |
+| 読み込み方向 | JWW からJWW Gateway JSON                  |
 | 書き出し方向 | JWW 保存は未対応                             |
 
 単体CLIでは `--encoding` で読み込み文字コードを指定します。ブラウザのローカル保存、ファイル名ごとのプリセット、`Open JWW` ダイアログは元アプリ側のUI機能であり、この配布フォルダには含めません。
@@ -234,7 +234,7 @@ JWWをアプリ向けJSONへ変換する場合:
 npm run convert -- "C:\path\to\file.jww" -o output.json
 ```
 
-変換JSONの基本スキーマは `docs/cadstudio-jww-json.schema.json` に固定しています。実ファイル変換後は `npm run validate -- output.json` で、アプリ接続前に構造崩れを検知できます。JWW固有メタデータでは、色テーブル、線種テーブル、JWF coverage の最低構造を固定対象に含めます。
+変換JSONの基本スキーマは `docs/jww-gateway-json.schema.json` に固定しています。実ファイル変換後は `npm run validate -- output.json` で、アプリ接続前に構造崩れを検知できます。JWW固有メタデータでは、色テーブル、線種テーブル、JWF coverage の最低構造を固定対象に含めます。
 
 JWF相当の環境情報については `docs/JWW_JWF_ENV_AUDIT.md` に、現在読めている項目・部分対応項目・未対応項目を棚卸ししています。
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cadstudio.local/schemas/jww-gateway-manifest.schema.json",
+  "$id": "https://fdoyoshikazuhora-sys.github.io/jww-gateway/schemas/jww-gateway-manifest.schema.json",
   "title": "JWW Gateway Package Manifest",
   "type": "object",
   "required": [
@@ -169,7 +169,7 @@
       "required": ["format", "formatVersion", "schema"],
       "properties": {
         "format": {
-          "const": "cadstudio-jww-json"
+          "const": "jww-gateway-json"
         },
         "formatVersion": {
           "const": 1

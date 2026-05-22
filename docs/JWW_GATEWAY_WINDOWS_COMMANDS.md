@@ -34,11 +34,11 @@ Run these from the standalone `JWW_Gateway` folder.
 
 | File                               | Purpose                                   |
 | ---------------------------------- | ----------------------------------------- |
-| `jww-gateway-convert.cmd`          | Convert JWW to CAD Studio JSON.           |
+| `jww-gateway-convert.cmd`          | Convert JWW to JWW Gateway JSON.           |
 | `jww-gateway-coverage.cmd`         | Report extracted/missing JWF-like keys.   |
 | `jww-gateway-coverage-summary.cmd` | Summarize multiple coverage JSON reports. |
 | `jww-gateway-diagnose.cmd`         | Generate diagnostics for one JWW file.    |
-| `jww-gateway-validate.cmd`         | Validate converted CAD Studio JWW JSON.   |
+| `jww-gateway-validate.cmd`         | Validate converted JWW Gateway JSON.   |
 | `jww-gateway-diff.cmd`             | Compare two diagnostics JSON reports.     |
 | `jww-gateway-env-scan.cmd`         | Scan JWW environment regions.             |
 

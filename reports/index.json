@@ -1,7 +1,7 @@
 {
   "format": "jww-gateway-report-index",
-  "generatedAt": "2026-05-22T07:37:45.566Z",
-  "packageName": "@cadstudio/jww-gateway",
+  "generatedAt": "2026-05-22T09:58:56.227Z",
+  "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestGeneratedAt": "2026-05-16T10:40:55.839Z",
   "reportsDir": "reports",

@@ -318,15 +318,15 @@ function validateEntityShape(errors, item, index) {
   }
 }
 
-export function validateCadstudioJwwJson(value) {
+export function validateJwwGatewayJson(value) {
   const errors = [];
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     addError(errors, "$", "must be an object", value);
     return { valid: false, errors };
   }
 
-  if (value.format !== "cadstudio-jww-json") {
-    addError(errors, "format", 'must be "cadstudio-jww-json"', value.format);
+  if (value.format !== "jww-gateway-json") {
+    addError(errors, "format", 'must be "jww-gateway-json"', value.format);
   }
   if (value.formatVersion !== 1) {
     addError(errors, "formatVersion", "must be 1", value.formatVersion);
@@ -463,7 +463,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.input) {
     console.error(
-      "Usage: node tools/jww-schema-validate.mjs <cadstudio-jww.json> [--json]"
+      "Usage: node tools/jww-schema-validate.mjs <jww-gateway.json> [--json]"
     );
     process.exitCode = 1;
     return;
@@ -471,16 +471,16 @@ async function main() {
 
   const inputPath = path.resolve(args.input);
   const input = JSON.parse(await readFile(inputPath, "utf8"));
-  const result = validateCadstudioJwwJson(input);
+  const result = validateJwwGatewayJson(input);
 
   if (args.json) {
     process.stdout.write(
       `${JSON.stringify({ file: inputPath, ...result }, null, 2)}\n`
     );
   } else if (result.valid) {
-    process.stdout.write(`Valid CAD Studio JWW JSON: ${inputPath}\n`);
+    process.stdout.write(`Valid JWW Gateway JSON: ${inputPath}\n`);
   } else {
-    process.stdout.write(`Invalid CAD Studio JWW JSON: ${inputPath}\n`);
+    process.stdout.write(`Invalid JWW Gateway JSON: ${inputPath}\n`);
     for (const error of result.errors) {
       process.stdout.write(
         `- ${error.path}: ${error.message} (${error.actualType})\n`

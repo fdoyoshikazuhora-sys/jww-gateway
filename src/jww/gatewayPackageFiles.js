@@ -59,7 +59,7 @@ export const GATEWAY_PACKAGE_TOOL_FILES = [
 ];
 
 export const GATEWAY_PACKAGE_DOC_FILES = [
-  "cadstudio-jww-json.schema.json",
+  "jww-gateway-json.schema.json",
   "jww-gateway-manifest.schema.json",
   "jww-gateway-sample-sets.schema.json",
   "JWW_GATEWAY_SPEC.md",

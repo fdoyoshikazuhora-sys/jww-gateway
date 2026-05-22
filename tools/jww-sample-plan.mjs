@@ -126,7 +126,7 @@ function commandSetForSample(sample, nameSlug, hasJwf) {
   const commands = [
     {
       purpose: "convert",
-      command: `npm run convert -- "${jww}" -o reports\\${nameSlug}.cadstudio.json`,
+      command: `npm run convert -- "${jww}" -o reports\\${nameSlug}.jww-gateway.json`,
     },
     {
       purpose: "diagnose",

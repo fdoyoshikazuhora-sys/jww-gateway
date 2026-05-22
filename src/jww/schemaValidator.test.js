@@ -11,7 +11,7 @@ const validatorScript = path.join(
 
 function baseDocument(overrides = {}) {
   return {
-    format: "cadstudio-jww-json",
+    format: "jww-gateway-json",
     formatVersion: 1,
     sourceFormat: "JWW",
     encoding: "shift_jis",
@@ -48,7 +48,7 @@ function runValidator(document) {
   };
 }
 
-describe("CAD Studio JWW JSON validator CLI", () => {
+describe("JWW Gateway JSON validator CLI", () => {
   it("accepts structured color, line type, and coverage metadata", () => {
     const result = runValidator(
       baseDocument({

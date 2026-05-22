@@ -2,7 +2,7 @@
   "format": "jww-gateway-package-manifest",
   "formatVersion": 1,
   "generatedAt": "2026-05-16T10:40:55.839Z",
-  "packageName": "@cadstudio/jww-gateway",
+  "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "commands": [
     "convert",
@@ -72,7 +72,7 @@
     "docs/JWW_GATEWAY_SPEC.md",
     "docs/JWW_GATEWAY_WINDOWS_COMMANDS.md",
     "docs/JWW_JWF_ENV_AUDIT.md",
-    "docs/cadstudio-jww-json.schema.json",
+    "docs/jww-gateway-json.schema.json",
     "docs/jww-gateway-manifest.schema.json",
     "docs/jww-gateway-sample-sets.schema.json",
     "jww-gateway-convert.cmd",
@@ -157,9 +157,9 @@
     "utf-16be"
   ],
   "outputFormat": {
-    "format": "cadstudio-jww-json",
+    "format": "jww-gateway-json",
     "formatVersion": 1,
-    "schema": "docs/cadstudio-jww-json.schema.json"
+    "schema": "docs/jww-gateway-json.schema.json"
   },
   "manifestSchema": "docs/jww-gateway-manifest.schema.json",
   "handoff": {
@@ -208,7 +208,7 @@
       "conversionImpact": "none for import; required only for round-trip JWW editing",
       "releaseDecision": "not a release blocker for read-only Gateway",
       "title": "JWW save/write",
-      "detail": "Gateway is read/import only. Editing results are exported as CAD Studio JSON and do not update the source JWW file.",
+      "detail": "Gateway is read/import only. Editing results are exported as JWW Gateway JSON and do not update the source JWW file.",
       "evidence": "capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.",
       "nextAction": "Keep JWW write disabled until a separate writer format and round-trip test suite exist."
     },

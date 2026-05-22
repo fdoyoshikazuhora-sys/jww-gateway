@@ -53,7 +53,7 @@ const manifestSchemaFile = path.join(
 
 function validManifest(overrides = {}) {
   return buildGatewayManifest({
-    packageName: "@cadstudio/jww-gateway",
+    packageName: "jww-gateway",
     packageVersion: "0.1.0",
     commands: REQUIRED_GATEWAY_COMMANDS,
     binaries: REQUIRED_GATEWAY_BINARIES,
@@ -99,7 +99,7 @@ function packageJsonForManifest({
   binaries = REQUIRED_GATEWAY_BINARIES,
 } = {}) {
   return {
-    name: "@cadstudio/jww-gateway",
+    name: "jww-gateway",
     version: "0.1.0",
     scripts: Object.fromEntries(commands.map((command) => [command, "echo"])),
     bin: Object.fromEntries(binaries.map((binary) => [binary, "echo"])),

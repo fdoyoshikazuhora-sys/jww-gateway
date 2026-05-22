@@ -195,7 +195,7 @@ function buildDiff(beforeJson, afterJson, beforePath, afterPath, options = {}) {
   );
 
   return {
-    format: "cadstudio-diagnostics-diff",
+    format: "jww-gateway-diagnostics-diff",
     formatVersion: 1,
     generatedAt: new Date().toISOString(),
     before: path.resolve(beforePath),
