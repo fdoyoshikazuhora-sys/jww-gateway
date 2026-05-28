@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fdoyoshikazuhora-sys.github.io/jww-gateway/schemas/jww-gateway-json.schema.json",
+  "title": "JWW Gateway JSON",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "sourceFormat",
+    "encoding",
+    "meta",
+    "entities"
+  ],
+  "properties": {
+    "format": {
+      "const": "jww-gateway-json"
+    },
+    "formatVersion": {
+      "const": 1
+    },
+    "sourceFormat": {
+      "const": "JWW"
+    },
+    "encoding": {
+      "type": "string",
+      "enum": ["shift_jis", "utf-8", "utf-16le", "utf-16be"]
+    },
+    "meta": {
+      "type": "object",
+      "required": ["jwwVersion", "paperCode", "paperSize"],
+      "properties": {
+        "jwwVersion": {
+          "type": ["number", "integer", "null"]
+        },
+        "paperCode": {
+          "type": ["number", "integer", "null"]
+        },
+        "paperSize": {
+          "type": ["string", "null"]
+        },
+        "colorSettings": {
+          "$ref": "#/$defs/colorSettings"
+        },
+        "lineTypeSettings": {
+          "anyOf": [{ "$ref": "#/$defs/lineTypeSettings" }, { "type": "null" }]
+        },
+        "layerNamesExtracted": {
+          "type": "boolean"
+        },
+        "layerNameFallbacks": {
+          "type": "array"
+        },
+        "jwwEnvironment": {
+          "$ref": "#/$defs/jwwEnvironment"
+        },
+        "environmentRegion": {
+          "type": ["object", "null"]
+        },
+        "colorDiagnostics": {
+          "type": "object"
+        },
+        "diagnostics": {
+          "type": "object"
+        },
+        "arcDiagnostics": {
+          "type": "object"
+        },
+        "memo": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "layerGroups": {
+      "type": "array"
+    },
+    "groupScaleState": {
+      "type": "object"
+    },
+    "bounds": {
+      "type": ["object", "null"],
+      "properties": {
+        "minX": { "type": "number" },
+        "maxX": { "type": "number" },
+        "minY": { "type": "number" },
+        "maxY": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "source", "entity"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "source": { "const": "jww" },
+          "layer": { "type": "string" },
+          "colorNumber": { "type": ["number", "integer"] },
+          "stroke": { "type": "string" },
+          "renderStroke": { "type": "string" },
+          "renderLineWidth": { "type": "number" },
+          "lineType": { "type": "string" },
+          "entity": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "$defs": {
+    "colorEntry": {
+      "type": "object",
+      "properties": {
+        "red": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "green": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "blue": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "width": { "type": "number" },
+        "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "pointRadius": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "colorTable": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/colorEntry"
+      }
+    },
+    "colorSettings": {
+      "type": "object",
+      "properties": {
+        "screenColors": { "$ref": "#/$defs/colorTable" },
+        "printColors": { "$ref": "#/$defs/colorTable" },
+        "backgroundColor": {
+          "anyOf": [{ "$ref": "#/$defs/colorEntry" }, { "type": "null" }]
+        },
+        "specialColors": {
+          "type": "object",
+          "properties": {
+            "S": {
+              "anyOf": [{ "$ref": "#/$defs/colorEntry" }, { "type": "null" }]
+            },
+            "K": {
+              "anyOf": [{ "$ref": "#/$defs/colorEntry" }, { "type": "null" }]
+            },
+            "Z": {
+              "anyOf": [{ "$ref": "#/$defs/colorEntry" }, { "type": "null" }]
+            },
+            "M": {
+              "anyOf": [{ "$ref": "#/$defs/colorEntry" }, { "type": "null" }]
+            }
+          },
+          "additionalProperties": true
+        },
+        "printColorTableKind": { "type": "string" },
+        "screenColorTableKind": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "lineTypeSettings": {
+      "type": "object",
+      "properties": {
+        "offset": { "type": "integer" },
+        "byteLength": { "type": "integer" },
+        "score": { "type": "number" },
+        "rows": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "pattern": { "type": "string" },
+              "params": { "type": "array" },
+              "values": { "type": "array" },
+              "offset": { "type": "integer" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "tailCandidate": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "jwwEnvironment": {
+      "type": "object",
+      "properties": {
+        "source": { "type": "string" },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "totalJwfKeysTracked": { "type": "integer" },
+            "supportedKeys": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "missingJwfKeys": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        },
+        "colors": { "type": "object" },
+        "lineTypes": { "type": "object" },
+        "layers": { "type": "object" },
+        "raw": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

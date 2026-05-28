@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>JWW Gateway Report Index</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 24px; color: #172033; }
+    h1 { font-size: 22px; margin: 0 0 16px; }
+    .meta { margin: 0 0 16px; color: #42526b; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { border: 1px solid #d8e0ea; padding: 7px 10px; text-align: left; vertical-align: top; }
+    th { background: #eef3f8; }
+    .yes { color: #136b2c; font-weight: 700; }
+    .no { color: #8a4b00; font-weight: 700; }
+    code { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>JWW Gateway Report Index</h1>
+  <p class="meta">Package jww-gateway 0.1.0 / available groups 2 of 8</p>
+  <table>
+    <thead>
+      <tr><th>Status</th><th>Report</th><th>Files</th><th>Purpose</th><th>Command</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="yes">available</td>
+        <td>Verify report</td>
+        <td><a href="verify-report.txt">verify-report.txt</a><br><a href="verify-report.json">verify-report.json</a><br><a href="verify-report.csv">verify-report.csv</a><br><a href="verify-report.html">verify-report.html</a></td>
+        <td>Package readiness, manifest validity, required files, unresolved keys, and SHA-256 inventory.</td>
+        <td><code>npm run verify:reports</code></td>
+      </tr>
+      <tr>
+        <td class="yes">available</td>
+        <td>Open items</td>
+        <td><a href="open-items.json">open-items.json</a><br><a href="open-items.html">open-items.html</a></td>
+        <td>Classified limitations and remaining JWW/JWF research items, including conversion impact and release decision.</td>
+        <td><code>npm run open-items -- --json -o reports\open-items.json &amp;&amp; npm run open-items -- --html -o reports\open-items.html</code></td>
+      </tr>
+      <tr>
+        <td class="no">missing</td>
+        <td>Sample plan</td>
+        <td>not generated</td>
+        <td>Repeatable command plan for local .jww + .jwf sample sets.</td>
+        <td><code>npm run sample:plan -- docs\JWW_GATEWAY_SAMPLE_SETS.example.json --html -o reports\sample-plan.html</code></td>
+      </tr>
+      <tr>
+        <td class="no">missing</td>
+        <td>Verify diff</td>
+        <td>not generated</td>
+        <td>Added, removed, and changed files between two verify-report JSON files.</td>
+        <td><code>npm run verify:diff -- reports\before-verify-report.json reports\verify-report.json --html --allow-differences -o reports\verify-diff.html</code></td>
+      </tr>
+      <tr>
+        <td class="no">missing</td>
+        <td>Coverage summary</td>
+        <td>not generated</td>
+        <td>Cross-sample JWF-like coverage summary.</td>
+        <td><code>npm run coverage:summary -- reports\*.coverage.json --html -o reports\sample-coverage-summary.html</code></td>
+      </tr>
+      <tr>
+        <td class="no">missing</td>
+        <td>Core open summary</td>
+        <td>not generated</td>
+        <td>Cross-sample LTYPE_HC and LCOLLOR_M direct-match review.</td>
+        <td><code>npm run core:summary -- reports\*.core-open.json --html -o reports\sample-core-open-summary.html</code></td>
+      </tr>
+      <tr>
+        <td class="no">missing</td>
+        <td>Special color summary</td>
+        <td>not generated</td>
+        <td>Cross-sample LCOLLOR_M nearby color candidate review.</td>
+        <td><code>npm run special-color:summary -- reports\*.special-color.json --html -o reports\sample-special-color-summary.html</code></td>
+      </tr>
+      <tr>
+        <td class="no">missing</td>
+        <td>Layer defaults summary</td>
+        <td>not generated</td>
+        <td>Cross-sample LAYCOL, LAYWID, and LAYTYP audit summary.</td>
+        <td><code>npm run layer-defaults:summary -- reports\*.layer-defaults.json --html -o reports\sample-layer-defaults-summary.html</code></td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

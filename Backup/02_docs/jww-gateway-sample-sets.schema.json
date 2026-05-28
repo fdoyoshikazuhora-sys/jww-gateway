@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fdoyoshikazuhora-sys.github.io/jww-gateway/schemas/jww-gateway-sample-sets.schema.json",
+  "title": "JWW Gateway Sample Sets",
+  "description": "Local JWW/JWF sample pairs used to generate repeatable JWW Gateway verification plans.",
+  "type": "object",
+  "required": ["samples"],
+  "properties": {
+    "format": {
+      "const": "jww-gateway-sample-sets"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["jww"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "jww": {
+            "type": "string",
+            "minLength": 1
+          },
+          "jwf": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
