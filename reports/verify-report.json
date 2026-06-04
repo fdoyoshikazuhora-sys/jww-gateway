@@ -1,10 +1,10 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-06-04T11:12:52.344Z",
+  "generatedAt": "2026-06-04T23:10:40.990Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
-  "manifestGeneratedAt": "2026-05-16T10:40:55.839Z",
+  "manifestGeneratedAt": "2026-06-04T23:08:20.848Z",
   "manifestSchema": "docs/jww-gateway-manifest.schema.json",
   "valid": true,
   "manifest": {
@@ -15,7 +15,7 @@
   "counts": {
     "commands": 28,
     "binaries": 23,
-    "packageFiles": 89,
+    "packageFiles": 95,
     "missingFiles": 0,
     "missingScripts": 0,
     "missingBins": 0,
@@ -34,8 +34,8 @@
     },
     {
       "file": "JWW_GATEWAY_MANIFEST.json",
-      "bytes": 11029,
-      "sha256": "d93934f8e09178b329531925bb18c80772150c2bc847864a4b068db85fb9a9f0"
+      "bytes": 11331,
+      "sha256": "7640481e87b007df9f5a87b1bf480e7efb9ebf86a0763cd91960e08b9df2885d"
     },
     {
       "file": "README.ja.md",
@@ -73,6 +73,11 @@
       "sha256": "c4de25e2d8ee81ff57c2487f69c8373dc53acff071be7a08486a03ea1bab7c51"
     },
     {
+      "file": "docs/JWW_GATEWAY_SAMPLE_SETS.local.json",
+      "bytes": 881,
+      "sha256": "dd30b642fd170294785581a8028a18384b16c491a9fa3ee9db9adcb617c0baea"
+    },
+    {
       "file": "docs/JWW_GATEWAY_SPEC.md",
       "bytes": 26743,
       "sha256": "411889302b426c1dd1a13bcd02122263c7d2659667870a6ae2c89ac9b7484933"
@@ -84,8 +89,8 @@
     },
     {
       "file": "docs/JWW_JWF_ENV_AUDIT.md",
-      "bytes": 50753,
-      "sha256": "4e102eae2ebdd392a18f779d7aacaf5276f24135316c22cf7bdff25ebeceb9b3"
+      "bytes": 52241,
+      "sha256": "56e0d3ddc57d8bdcba8ece9e5ab2abd9c085c808eea2c0edbc4c086a8b72fd7e"
     },
     {
       "file": "docs/jww-gateway-json.schema.json",
@@ -233,6 +238,26 @@
       "sha256": "21c26f34891503de77c22644fcdfa6ce07122a1f9b703e8fb6e47ebe5dcf7046"
     },
     {
+      "file": "samples/jwf-pairs/jwf-open-items-core.jwf",
+      "bytes": 177,
+      "sha256": "06fa5594d5a2dd49fe8ecc475514922fbf57f2a0e64de6e940db7418af81c79c"
+    },
+    {
+      "file": "samples/jwf-pairs/jwf-open-items-core.jww",
+      "bytes": 17435,
+      "sha256": "da3666b5616caf525e0931ac11548af1c57a2fea821c339239b48d6324fdfe7b"
+    },
+    {
+      "file": "samples/jwf-pairs/jwf-open-items-layer-defaults.jwf",
+      "bytes": 431,
+      "sha256": "db1bd96a4a1b562825cb1d10e3531f2972ce8b1cf14fcc2cfa3532ce921bf697"
+    },
+    {
+      "file": "samples/jwf-pairs/jwf-open-items-layer-defaults.jww",
+      "bytes": 17657,
+      "sha256": "c069d23142068604588f17a3e82c3858b0b4115faf14b1e4413e92f47d10d4b3"
+    },
+    {
       "file": "src/jww/BinaryReader.js",
       "bytes": 1285,
       "sha256": "ff1d1290811209f8f06ab320ed96f2d67537d384ac28aad37ac1538badbacec8"
@@ -279,13 +304,13 @@
     },
     {
       "file": "src/jww/gatewayManifest.test.js",
-      "bytes": 24238,
-      "sha256": "8b69142b8f0a950afdfa8c5b7b25162403f9cb3340793959bf7f0cc50bccaf90"
+      "bytes": 24448,
+      "sha256": "61145d06c0c2ec8da7eb55d69ff2f8498c8b6b2f2c7206d17cfff4b8ec08041d"
     },
     {
       "file": "src/jww/gatewayPackageFiles.js",
-      "bytes": 3049,
-      "sha256": "8053956bfca667f42213dfd12144ee6f974b0d9769d5eb4f130b62ce04d4fc24"
+      "bytes": 3384,
+      "sha256": "86bc81946a1cf25e0cdbc73195bca923f03c4266fe76567a63869a082c033676"
     },
     {
       "file": "src/jww/jwf.js",
@@ -296,6 +321,11 @@
       "file": "src/jww/jwf.test.js",
       "bytes": 7645,
       "sha256": "acfdb7f6319e397e7fa1a0a895e697b42bc074df1db57952de41460574a19e95"
+    },
+    {
+      "file": "src/jww/jwfFixturePairs.test.js",
+      "bytes": 3135,
+      "sha256": "d466216d0c64c8bb186287dcd8a948ebca84b276167d26a09a6e89f03721f052"
     },
     {
       "file": "src/jww/jwfValueScan.js",

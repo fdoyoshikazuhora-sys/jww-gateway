@@ -1,0 +1,6 @@
+# JWW Gateway test fixture.
+# Purpose: create a real JWW saved by Jw_cad after loading distinctive
+# LTYPE_HC and LCOLLOR_M values.
+
+LTYPE_HC = 2 3 1 4 5 2
+LCOLLOR_M = 12 34 56

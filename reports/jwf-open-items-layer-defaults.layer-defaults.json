@@ -1,0 +1,136 @@
+{
+  "format": "jww-layer-defaults-audit",
+  "generatedAt": "2026-06-04T22:21:56.736Z",
+  "sources": {
+    "jww": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww",
+    "jwf": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jwf"
+  },
+  "paperSize": "A2",
+  "entityCount": 6,
+  "counts": {
+    "rows": 3,
+    "missing": 3,
+    "directMatchCandidates": 0,
+    "promotionCandidates": 0
+  },
+  "conclusion": "No direct byte-sequence matches for LAYCOL/LAYWID/LAYTYP rows were found. Keep these layer defaults unpromoted.",
+  "familyStatusCounts": {
+    "layerColors": {
+      "missing": 1
+    },
+    "layerWidths": {
+      "missing": 1
+    },
+    "layerLineTypes": {
+      "missing": 1
+    }
+  },
+  "promotionCandidates": [],
+  "rows": [
+    {
+      "key": "LAYCOL_0",
+      "family": "layerColors",
+      "status": "missing",
+      "gatewayStatus": "missing",
+      "reason": "",
+      "values": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "testedPatterns": [
+        "u8-sequence",
+        "u16-sequence",
+        "i16-sequence",
+        "u32-sequence",
+        "i32-sequence",
+        "f64-sequence"
+      ],
+      "matchKinds": [],
+      "matchCount": 0
+    },
+    {
+      "key": "LAYWID_0",
+      "family": "layerWidths",
+      "status": "missing",
+      "gatewayStatus": "missing",
+      "reason": "",
+      "values": [
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        120,
+        130,
+        140,
+        150,
+        160
+      ],
+      "testedPatterns": [
+        "u8-sequence",
+        "u16-sequence",
+        "i16-sequence",
+        "u32-sequence",
+        "i32-sequence",
+        "f64-sequence"
+      ],
+      "matchKinds": [],
+      "matchCount": 0
+    },
+    {
+      "key": "LAYTYP_0",
+      "family": "layerLineTypes",
+      "status": "missing",
+      "gatewayStatus": "missing",
+      "reason": "",
+      "values": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "testedPatterns": [
+        "u8-sequence",
+        "u16-sequence",
+        "i16-sequence",
+        "u32-sequence",
+        "i32-sequence",
+        "f64-sequence"
+      ],
+      "matchKinds": [],
+      "matchCount": 0
+    }
+  ]
+}

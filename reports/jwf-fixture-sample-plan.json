@@ -1,0 +1,152 @@
+{
+  "format": "jww-gateway-sample-plan",
+  "generatedAt": "2026-06-04T22:22:03.707Z",
+  "manifestFile": "C:\\dev\\New project\\JWW Gateway\\docs\\JWW_GATEWAY_SAMPLE_SETS.local.json",
+  "baseDir": "C:\\dev\\New project\\JWW Gateway\\docs",
+  "valid": true,
+  "manifest": {
+    "valid": true,
+    "errors": []
+  },
+  "counts": {
+    "samples": 2,
+    "withJwf": 2,
+    "complete": 2,
+    "missingFiles": 0,
+    "plannedCommands": 18,
+    "aggregateCommands": 4,
+    "validationErrors": 0
+  },
+  "missingFiles": [],
+  "samples": [
+    {
+      "name": "JWF open items core",
+      "slug": "jwf-open-items-core",
+      "tags": [
+        "jwf",
+        "LTYPE_HC",
+        "LCOLLOR_M"
+      ],
+      "notes": "",
+      "jww": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww",
+      "jwf": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf",
+      "exists": {
+        "jww": true,
+        "jwf": true
+      },
+      "complete": true,
+      "commands": [
+        {
+          "purpose": "convert",
+          "command": "npm run convert -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" -o reports\\jwf-open-items-core.jww-gateway.json"
+        },
+        {
+          "purpose": "diagnose",
+          "command": "npm run diagnose -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" --html -o reports\\jwf-open-items-core.diagnostics.html"
+        },
+        {
+          "purpose": "coverage-json",
+          "command": "npm run coverage -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" --scope drawing --json -o reports\\jwf-open-items-core.coverage.json"
+        },
+        {
+          "purpose": "coverage-html",
+          "command": "npm run coverage -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" --scope drawing --html -o reports\\jwf-open-items-core.coverage.html"
+        },
+        {
+          "purpose": "jwf:compare",
+          "command": "npm run jwf:compare -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf\" --include-after-end --html -o reports\\jwf-open-items-core.jwf-compare.html"
+        },
+        {
+          "purpose": "jwf:value-scan",
+          "command": "npm run jwf:value-scan -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf\" --include-after-end --html -o reports\\jwf-open-items-core.value-scan.html"
+        },
+        {
+          "purpose": "core-open",
+          "command": "npm run jwf:value-scan -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf\" --include-after-end --key LTYPE_HC,LCOLLOR_M --json -o reports\\jwf-open-items-core.core-open.json"
+        },
+        {
+          "purpose": "special-color",
+          "command": "npm run special-color:audit -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf\" --include-after-end --json -o reports\\jwf-open-items-core.special-color.json"
+        },
+        {
+          "purpose": "layer-defaults",
+          "command": "npm run layer-defaults:audit -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf\" --include-after-end --json -o reports\\jwf-open-items-core.layer-defaults.json"
+        }
+      ]
+    },
+    {
+      "name": "JWF open items layer defaults",
+      "slug": "jwf-open-items-layer-defaults",
+      "tags": [
+        "jwf",
+        "LAYCOL",
+        "LAYWID",
+        "LAYTYP"
+      ],
+      "notes": "",
+      "jww": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww",
+      "jwf": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jwf",
+      "exists": {
+        "jww": true,
+        "jwf": true
+      },
+      "complete": true,
+      "commands": [
+        {
+          "purpose": "convert",
+          "command": "npm run convert -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" -o reports\\jwf-open-items-layer-defaults.jww-gateway.json"
+        },
+        {
+          "purpose": "diagnose",
+          "command": "npm run diagnose -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" --html -o reports\\jwf-open-items-layer-defaults.diagnostics.html"
+        },
+        {
+          "purpose": "coverage-json",
+          "command": "npm run coverage -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" --scope drawing --json -o reports\\jwf-open-items-layer-defaults.coverage.json"
+        },
+        {
+          "purpose": "coverage-html",
+          "command": "npm run coverage -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" --scope drawing --html -o reports\\jwf-open-items-layer-defaults.coverage.html"
+        },
+        {
+          "purpose": "jwf:compare",
+          "command": "npm run jwf:compare -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jwf\" --include-after-end --html -o reports\\jwf-open-items-layer-defaults.jwf-compare.html"
+        },
+        {
+          "purpose": "jwf:value-scan",
+          "command": "npm run jwf:value-scan -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jwf\" --include-after-end --html -o reports\\jwf-open-items-layer-defaults.value-scan.html"
+        },
+        {
+          "purpose": "core-open",
+          "command": "npm run jwf:value-scan -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jwf\" --include-after-end --key LTYPE_HC,LCOLLOR_M --json -o reports\\jwf-open-items-layer-defaults.core-open.json"
+        },
+        {
+          "purpose": "special-color",
+          "command": "npm run special-color:audit -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jwf\" --include-after-end --json -o reports\\jwf-open-items-layer-defaults.special-color.json"
+        },
+        {
+          "purpose": "layer-defaults",
+          "command": "npm run layer-defaults:audit -- \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww\" \"C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jwf\" --include-after-end --json -o reports\\jwf-open-items-layer-defaults.layer-defaults.json"
+        }
+      ]
+    }
+  ],
+  "aggregateCommands": [
+    {
+      "purpose": "coverage-summary",
+      "command": "npm run coverage:summary -- reports\\jwf-open-items-core.coverage.json reports\\jwf-open-items-layer-defaults.coverage.json --html -o reports\\sample-coverage-summary.html"
+    },
+    {
+      "purpose": "core-open-summary",
+      "command": "npm run core:summary -- reports\\jwf-open-items-core.core-open.json reports\\jwf-open-items-layer-defaults.core-open.json --html -o reports\\sample-core-open-summary.html"
+    },
+    {
+      "purpose": "special-color-summary",
+      "command": "npm run special-color:summary -- reports\\jwf-open-items-core.special-color.json reports\\jwf-open-items-layer-defaults.special-color.json --html -o reports\\sample-special-color-summary.html"
+    },
+    {
+      "purpose": "layer-defaults-summary",
+      "command": "npm run layer-defaults:summary -- reports\\jwf-open-items-core.layer-defaults.json reports\\jwf-open-items-layer-defaults.layer-defaults.json --html -o reports\\sample-layer-defaults-summary.html"
+    }
+  ]
+}

@@ -70,6 +70,14 @@ export const GATEWAY_PACKAGE_DOC_FILES = [
   "JWW_GATEWAY_HANDOFF.md",
   "JWW_GATEWAY_WINDOWS_COMMANDS.md",
   "JWW_GATEWAY_SAMPLE_SETS.example.json",
+  "JWW_GATEWAY_SAMPLE_SETS.local.json",
+];
+
+export const GATEWAY_PACKAGE_SAMPLE_FILES = [
+  "jwf-open-items-core.jwf",
+  "jwf-open-items-core.jww",
+  "jwf-open-items-layer-defaults.jwf",
+  "jwf-open-items-layer-defaults.jww",
 ];
 
 export const GATEWAY_PACKAGE_SRC_FILES = [
@@ -81,6 +89,7 @@ export const GATEWAY_PACKAGE_SRC_FILES = [
   "environment.test.js",
   "jwf.js",
   "jwf.test.js",
+  "jwfFixturePairs.test.js",
   "jwfValueScan.js",
   "jwfValueScan.test.js",
   "valueScanSummary.js",
@@ -104,6 +113,7 @@ export function packageRequiredFiles() {
     ...GATEWAY_PACKAGE_ROOT_FILES,
     ...GATEWAY_PACKAGE_TOOL_FILES.map((file) => `tools/${file}`),
     ...GATEWAY_PACKAGE_DOC_FILES.map((file) => `docs/${file}`),
+    ...GATEWAY_PACKAGE_SAMPLE_FILES.map((file) => `samples/jwf-pairs/${file}`),
     ...GATEWAY_PACKAGE_SRC_FILES.map((file) => `src/jww/${file}`),
   ];
 }

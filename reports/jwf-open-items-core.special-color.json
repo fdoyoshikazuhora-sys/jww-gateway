@@ -1,0 +1,305 @@
+{
+  "format": "jww-special-color-audit",
+  "generatedAt": "2026-06-04T22:21:58.975Z",
+  "sources": {
+    "jww": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww",
+    "jwf": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf"
+  },
+  "targetKey": "LCOLLOR_M",
+  "expected": {
+    "red": 12,
+    "green": 34,
+    "blue": 56,
+    "hex": "#0c2238"
+  },
+  "colorTableOffset": 4112,
+  "radius": 1024,
+  "counts": {
+    "candidates": 2049,
+    "directMatches": 0
+  },
+  "knownSpecialColors": {
+    "LCOLLOR_S": {
+      "hex": "#808000",
+      "offset": 4312,
+      "relativeOffset": 200
+    },
+    "LCOLLOR_K": {
+      "hex": "#ff8000",
+      "offset": 4868,
+      "relativeOffset": 756
+    },
+    "LCOLLOR_Z": {
+      "hex": "#808080",
+      "offset": 4328,
+      "relativeOffset": 216
+    }
+  },
+  "directMatches": [],
+  "nearestCandidates": [
+    {
+      "offset": 4207,
+      "relativeOffset": 95,
+      "distance": 21.400934559032695,
+      "knownKey": "",
+      "red": 0,
+      "green": 51,
+      "blue": 51,
+      "hex": "#003333",
+      "directMatch": false
+    },
+    {
+      "offset": 4223,
+      "relativeOffset": 111,
+      "distance": 21.400934559032695,
+      "knownKey": "",
+      "red": 0,
+      "green": 51,
+      "blue": 51,
+      "hex": "#003333",
+      "directMatch": false
+    },
+    {
+      "offset": 4239,
+      "relativeOffset": 127,
+      "distance": 21.400934559032695,
+      "knownKey": "",
+      "red": 0,
+      "green": 51,
+      "blue": 51,
+      "hex": "#003333",
+      "directMatch": false
+    },
+    {
+      "offset": 4045,
+      "relativeOffset": -67,
+      "distance": 23.065125189341593,
+      "knownKey": "",
+      "red": 0,
+      "green": 52,
+      "blue": 64,
+      "hex": "#003440",
+      "directMatch": false
+    },
+    {
+      "offset": 4455,
+      "relativeOffset": 343,
+      "distance": 25.059928172283335,
+      "knownKey": "",
+      "red": 0,
+      "green": 34,
+      "blue": 34,
+      "hex": "#002222",
+      "directMatch": false
+    },
+    {
+      "offset": 4456,
+      "relativeOffset": 344,
+      "distance": 31.11269837220809,
+      "knownKey": "",
+      "red": 34,
+      "green": 34,
+      "blue": 34,
+      "hex": "#222222",
+      "directMatch": false
+    },
+    {
+      "offset": 4457,
+      "relativeOffset": 345,
+      "distance": 31.11269837220809,
+      "knownKey": "",
+      "red": 34,
+      "green": 34,
+      "blue": 34,
+      "hex": "#222222",
+      "directMatch": false
+    },
+    {
+      "offset": 3653,
+      "relativeOffset": -459,
+      "distance": 35.09985754956849,
+      "knownKey": "",
+      "red": 0,
+      "green": 66,
+      "blue": 64,
+      "hex": "#004240",
+      "directMatch": false
+    },
+    {
+      "offset": 4044,
+      "relativeOffset": -68,
+      "distance": 36.27671429443411,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 52,
+      "hex": "#000034",
+      "directMatch": false
+    },
+    {
+      "offset": 4206,
+      "relativeOffset": 94,
+      "distance": 36.40054944640259,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 51,
+      "hex": "#000033",
+      "directMatch": false
+    },
+    {
+      "offset": 4222,
+      "relativeOffset": 110,
+      "distance": 36.40054944640259,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 51,
+      "hex": "#000033",
+      "directMatch": false
+    },
+    {
+      "offset": 4238,
+      "relativeOffset": 126,
+      "distance": 36.40054944640259,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 51,
+      "hex": "#000033",
+      "directMatch": false
+    },
+    {
+      "offset": 4642,
+      "relativeOffset": 530,
+      "distance": 36.40054944640259,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 61,
+      "hex": "#00003d",
+      "directMatch": false
+    },
+    {
+      "offset": 4051,
+      "relativeOffset": -61,
+      "distance": 36.932370625238775,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 64,
+      "hex": "#000040",
+      "directMatch": false
+    },
+    {
+      "offset": 4035,
+      "relativeOffset": -77,
+      "distance": 36.932370625238775,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 64,
+      "hex": "#000040",
+      "directMatch": false
+    },
+    {
+      "offset": 4703,
+      "relativeOffset": 591,
+      "distance": 36.932370625238775,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 64,
+      "hex": "#000040",
+      "directMatch": false
+    },
+    {
+      "offset": 3652,
+      "relativeOffset": -460,
+      "distance": 37.416573867739416,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 66,
+      "hex": "#000042",
+      "directMatch": false
+    },
+    {
+      "offset": 4470,
+      "relativeOffset": 358,
+      "distance": 38.67815921162743,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 42,
+      "hex": "#00002a",
+      "directMatch": false
+    },
+    {
+      "offset": 4490,
+      "relativeOffset": 378,
+      "distance": 38.67815921162743,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 42,
+      "hex": "#00002a",
+      "directMatch": false
+    },
+    {
+      "offset": 4510,
+      "relativeOffset": 398,
+      "distance": 38.67815921162743,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 42,
+      "hex": "#00002a",
+      "directMatch": false
+    },
+    {
+      "offset": 4530,
+      "relativeOffset": 418,
+      "distance": 38.67815921162743,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 42,
+      "hex": "#00002a",
+      "directMatch": false
+    },
+    {
+      "offset": 4550,
+      "relativeOffset": 438,
+      "distance": 38.67815921162743,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 42,
+      "hex": "#00002a",
+      "directMatch": false
+    },
+    {
+      "offset": 4630,
+      "relativeOffset": 518,
+      "distance": 39.44616584663204,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 40,
+      "hex": "#000028",
+      "directMatch": false
+    },
+    {
+      "offset": 3680,
+      "relativeOffset": -432,
+      "distance": 39.8622628559895,
+      "knownKey": "",
+      "red": 0,
+      "green": 0,
+      "blue": 73,
+      "hex": "#000049",
+      "directMatch": false
+    }
+  ]
+}

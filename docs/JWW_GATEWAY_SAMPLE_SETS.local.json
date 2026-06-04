@@ -1,0 +1,23 @@
+{
+  "format": "jww-gateway-sample-sets",
+  "notes": [
+    "Local generated fixtures used to confirm whether Jw_cad saves selected JWF environment rows into JWW files.",
+    "The paired JWW files must be saved by Jw_cad after the matching JWF is loaded; do not replace them with synthetic binaries."
+  ],
+  "samples": [
+    {
+      "name": "JWF open items core",
+      "slug": "jwf-open-items-core",
+      "jww": "../samples/jwf-pairs/jwf-open-items-core.jww",
+      "jwf": "../samples/jwf-pairs/jwf-open-items-core.jwf",
+      "tags": ["jwf", "LTYPE_HC", "LCOLLOR_M"]
+    },
+    {
+      "name": "JWF open items layer defaults",
+      "slug": "jwf-open-items-layer-defaults",
+      "jww": "../samples/jwf-pairs/jwf-open-items-layer-defaults.jww",
+      "jwf": "../samples/jwf-pairs/jwf-open-items-layer-defaults.jwf",
+      "tags": ["jwf", "LAYCOL", "LAYWID", "LAYTYP"]
+    }
+  ]
+}

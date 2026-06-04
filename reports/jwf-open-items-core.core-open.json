@@ -1,0 +1,244 @@
+{
+  "format": "jww-jwf-value-scan",
+  "sources": {
+    "jww": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww",
+    "jwf": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jwf"
+  },
+  "jwfEntryCount": 2,
+  "counts": {
+    "missing": 2
+  },
+  "scopeStatusCounts": {
+    "drawing": {
+      "missing": 2
+    }
+  },
+  "familyStatusCounts": {
+    "lineTypes": {
+      "missing": 1
+    },
+    "screenColors": {
+      "missing": 1
+    }
+  },
+  "rows": [
+    {
+      "key": "LTYPE_HC",
+      "family": "lineTypes",
+      "definition": {
+        "label": "line type helper / endpoint setting",
+        "valueSchema": [
+          "selectionTemporaryLineTypeNo",
+          "crosslineCursorLineTypeNo",
+          "dashPitchAutoAdjust",
+          "rightClickBaseLineColorNo",
+          "rightClickBaseLineTypeNo",
+          "lineEndStyle"
+        ],
+        "note": "JWF meaning is documented in Sample.jwf; JWW binary extraction remains candidate-only until real files direct-match.",
+        "scope": "drawing"
+      },
+      "gatewayStatus": "missing",
+      "status": "missing",
+      "values": [
+        2,
+        3,
+        1,
+        4,
+        5,
+        2
+      ],
+      "testedPatterns": [
+        {
+          "kind": "u16-sequence",
+          "byteLength": 12,
+          "signature": "02 00 03 00 01 00 04 00 05 00 02 00"
+        },
+        {
+          "kind": "i16-sequence",
+          "byteLength": 12,
+          "signature": "02 00 03 00 01 00 04 00 05 00 02 00"
+        },
+        {
+          "kind": "u32-sequence",
+          "byteLength": 24,
+          "signature": "02 00 00 00 03 00 00 00 01 00 00 00 04 00 00 00 05 00 00 00 02 00 00 00"
+        },
+        {
+          "kind": "i32-sequence",
+          "byteLength": 24,
+          "signature": "02 00 00 00 03 00 00 00 01 00 00 00 04 00 00 00 05 00 00 00 02 00 00 00"
+        },
+        {
+          "kind": "f64-sequence",
+          "byteLength": 48,
+          "signature": "00 00 00 00 00 00 00 40 00 00 00 00 00 00 08 40 00 00 00 00 00 00 f0 3f 00 00 00 00 00 00 10 40"
+        }
+      ],
+      "gatewayCandidate": {
+        "key": "LTYPE_HC",
+        "offset": 4636,
+        "byteLength": 24,
+        "u32": [
+          1,
+          1,
+          61,
+          0,
+          1,
+          0
+        ],
+        "u32Semantic": {
+          "selectionTemporaryLineTypeNo": 1,
+          "crosslineCursorLineTypeNo": 1,
+          "dashPitchAutoAdjust": 61,
+          "rightClickBaseLineColorNo": 0,
+          "rightClickBaseLineTypeNo": 1,
+          "lineEndStyle": 0,
+          "lineEndStyleName": "round"
+        },
+        "u16": [
+          1,
+          0,
+          1,
+          0,
+          61,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "valueSchema": [
+          "selectionTemporaryLineTypeNo",
+          "crosslineCursorLineTypeNo",
+          "dashPitchAutoAdjust",
+          "rightClickBaseLineColorNo",
+          "rightClickBaseLineTypeNo",
+          "lineEndStyle"
+        ],
+        "note": "candidate bytes after LTYPE_L4; public JWF docs define the six LTYPE_HC fields, but this candidate is not promoted because sample files do not match JWF LTYPE_HC values directly"
+      },
+      "gatewayCandidateComparison": {
+        "expectedValues": [
+          2,
+          3,
+          1,
+          4,
+          5,
+          2
+        ],
+        "candidateU32": [
+          1,
+          1,
+          61,
+          0,
+          1,
+          0
+        ],
+        "candidateU16": [
+          1,
+          0,
+          1,
+          0,
+          61,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "directU32Match": false,
+        "note": "directU32Match must be true before promoting this candidate to extracted"
+      },
+      "matches": []
+    },
+    {
+      "key": "LCOLLOR_M",
+      "family": "screenColors",
+      "definition": {
+        "label": "zoom text color",
+        "valueSchema": [
+          "red",
+          "green",
+          "blue"
+        ],
+        "scope": "drawing"
+      },
+      "gatewayStatus": "missing",
+      "status": "missing",
+      "values": [
+        12,
+        34,
+        56
+      ],
+      "testedPatterns": [
+        {
+          "kind": "rgb-triplet",
+          "byteLength": 3,
+          "signature": "0c 22 38"
+        },
+        {
+          "kind": "u32-sequence",
+          "byteLength": 12,
+          "signature": "0c 00 00 00 22 00 00 00 38 00 00 00"
+        },
+        {
+          "kind": "i32-sequence",
+          "byteLength": 12,
+          "signature": "0c 00 00 00 22 00 00 00 38 00 00 00"
+        },
+        {
+          "kind": "f64-sequence",
+          "byteLength": 24,
+          "signature": "00 00 00 00 00 00 28 40 00 00 00 00 00 00 41 40 00 00 00 00 00 00 4c 40"
+        }
+      ],
+      "gatewayCandidate": {
+        "LCOLLOR_S": {
+          "red": 128,
+          "green": 128,
+          "blue": 0,
+          "width": 0,
+          "hex": "#808000",
+          "source": "jww-special-screen-color-candidate"
+        },
+        "LCOLLOR_K": {
+          "red": 255,
+          "green": 128,
+          "blue": 0,
+          "width": 0,
+          "hex": "#ff8000",
+          "source": "jww-special-screen-color-candidate"
+        },
+        "LCOLLOR_Z": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "width": 0,
+          "hex": "#808080",
+          "source": "jww-special-screen-color-candidate"
+        },
+        "LCOLLOR_M": null
+      },
+      "gatewayCandidateComparison": {
+        "expectedHex": "#0c2238",
+        "specialHexes": {
+          "LCOLLOR_S": "#808000",
+          "LCOLLOR_K": "#ff8000",
+          "LCOLLOR_Z": "#808080",
+          "LCOLLOR_M": null
+        },
+        "directSpecialMatch": false,
+        "note": "directSpecialMatch must be true or a dedicated M offset must be identified before promoting"
+      },
+      "matches": []
+    }
+  ],
+  "filters": {
+    "key": "LTYPE_HC,LCOLLOR_M"
+  }
+}

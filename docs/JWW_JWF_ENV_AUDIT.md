@@ -373,6 +373,26 @@ For `M-07 1階平面図(衛生).jww` with `設備設計用.jwf`, the scan finds 
 `--scope operation --json` では `S_COMM_*`、クロックメニュー、コマンド、キー割当を4セット横断確認した。`operation-settings-cross-sample-summary.json/html/csv` は4レポート301行を集約し、低情報量判定を強めた後は `missing 197 / ambiguous 60 / not-scanned 44 / matched 0`。`KEY_*` や `LD2_AM` などは短い2値配列、または0が大半の疎な配列として偶然一致しやすいため、JWWバイナリ抽出へは昇格しない。一方、`.jwf` テキストファイルから読み込む operation scope は `normalizedSettings.operation` として正規化済みで、接続アプリが基本設定・クロックメニュー・キー割当へ反映するための入力として利用できる。
 フィルタなしの全項目スキャンも4セット横断で再生成した。`full-value-scan-cross-sample-summary.json/html/csv` は4レポート837行を集約し、現在の保守的判定では `missing 400 / ambiguous 286 / not-scanned 120 / matched 31`。`matched` が残るキーは10種類で、すべて Gateway が既に `gatewayExtracted` として扱う線種・色系だった。未抽出なのに `matched` になっているキーは0件。`ZF_SET` の `[-1,-1,0,0,0,0]` のような初期値らしい短い列は `ambiguous` に倒した。`value-scan:summary` は `promotionCandidates` も出力し、この総合サマリでは `promotionCandidates: 0` と確認できる。`--summary --fail-on-promotion-candidates` を付けると、短い確認レポートを出しつつ昇格候補が残る場合に終了コード2で失敗するため、今後の検証ゲートに使える。
 
+### Generated JWF/JWW fixture pairs
+
+2026-06-05 に、Jw_cad 10.02.1 で JWF を起動時読込みした状態から、次の実 JWW/JWF ペアを作成した。
+
+- `samples/jwf-pairs/jwf-open-items-core.jwf` / `.jww`
+  - `LTYPE_HC = 2 3 1 4 5 2`
+  - `LCOLLOR_M = 12 34 56`
+- `samples/jwf-pairs/jwf-open-items-layer-defaults.jwf` / `.jww`
+  - `LAYCOL_0`、`LAYWID_0`、`LAYTYP_0` に初期値へ埋もれにくい識別値を設定
+
+`docs/JWW_GATEWAY_SAMPLE_SETS.local.json` はこの2ペアを指すローカル検証 manifest として追加した。`sample:plan` では `samples: 2`、`complete: 2`、`missingFiles: 0` を確認済み。
+
+この実ペアで `jwf:value-scan --key LTYPE_HC,LCOLLOR_M`、`special-color:audit`、`layer-defaults:audit` を実行した結果、次の通りだった。
+
+- `LTYPE_HC`: JWF値 `2,3,1,4,5,2` に対し、JWW側候補は `1,1,61,0,1,0` で `directU32Match: false`
+- `LCOLLOR_M`: JWF値 `#0c2238` に対し、RGB triplet と特殊色候補の直接一致はなし。`directSpecialMatch: false`、`directMatches: 0`
+- `LAYCOL_0` / `LAYWID_0` / `LAYTYP_0`: `u8`、`u16`、`i16`、`u32`、`i32`、`f64` の各連続パターンで直接一致なし。`promotionCandidates: 0`
+
+したがって、今回の生成ペアでも `LTYPE_HC` と `LCOLLOR_M` は未解決、`LAYCOL_*` / `LAYWID_*` / `LAYTYP_*` は audit-only を維持する。推測で抽出済みに昇格せず、別構造や保存条件が確認できた場合のみ再評価する。
+
 ### LTYPE_HC candidate
 
 `LTYPE_L4` の直後24 bytesを `LTYPE_HC_candidate` として保持する。公開JWF資料では6項目の意味が確認できたため、候補JSONには `selectionTemporaryLineTypeNo`、`crosslineCursorLineTypeNo`、`dashPitchAutoAdjust`、`rightClickBaseLineColorNo`、`rightClickBaseLineTypeNo`、`lineEndStyle` の `valueSchema` と、`lineEndStyleName` を含む `u32Semantic` を出す。`A-00-3 平面図.jww` と `A-00 断面図.jww` では u32 候補が `0,1,2,1,0,0`、`A-11 仕上表.jww` では `0,1,1,0,0,0`、`M-08 事務所棟 1階平面図(衛生設備).jww` では `0,1,1,0,1,0` だった。一方、対応するJWFの `LTYPE_HC` は `1,1,0,2,1,0` で、現時点では順序・型・意味が一致しない。したがって `coverage.supportedKeys` には入れず、診断候補として比較用に残す。
