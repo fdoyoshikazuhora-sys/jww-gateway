@@ -1,4 +1,5 @@
 const DEFAULT_ENCODING = "shift_jis";
+const JWF_HEX_KEYS = "0123456789ABCDEF".split("");
 
 function decodeBytes(bytes, encoding = DEFAULT_ENCODING) {
   const data = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes || []);
@@ -394,6 +395,194 @@ function colorFromValues(values, hasPointRadius = false) {
   };
 }
 
+function numericValue(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function keyValues(entries, key) {
+  return Array.isArray(entries?.[key]?.values) ? entries[key].values : [];
+}
+
+function layerColorSetting(value) {
+  const colorNumber = numericValue(value, null);
+  return {
+    colorNumber,
+    switchesColor: colorNumber !== null && colorNumber !== 0,
+    isAuxiliary: colorNumber === 9,
+  };
+}
+
+function layerWidthSetting(value) {
+  const width = numericValue(value, null);
+  const mode =
+    width === -2
+      ? "keep"
+      : width === -1
+        ? "currentColorWidth"
+        : width !== null && width >= 0
+          ? "fixed"
+          : "unknown";
+  return {
+    width,
+    mode,
+  };
+}
+
+function layerLineTypeSetting(value) {
+  const lineTypeNumber = numericValue(value, null);
+  return {
+    lineTypeNumber,
+    switchesLineType: lineTypeNumber !== null && lineTypeNumber !== 0,
+    valid:
+      lineTypeNumber !== null &&
+      lineTypeNumber >= 0 &&
+      lineTypeNumber <= 19 &&
+      lineTypeNumber !== 10,
+  };
+}
+
+function buildLayerDefaults(entries) {
+  const groups = {};
+  let groupCount = 0;
+  let presentKeyCount = 0;
+  for (const groupKey of JWF_HEX_KEYS) {
+    const colorValues = keyValues(entries, `LAYCOL_${groupKey}`);
+    const widthValues = keyValues(entries, `LAYWID_${groupKey}`);
+    const lineTypeValues = keyValues(entries, `LAYTYP_${groupKey}`);
+    if (!colorValues.length && !widthValues.length && !lineTypeValues.length) {
+      continue;
+    }
+    presentKeyCount += [colorValues, widthValues, lineTypeValues].filter(
+      (values) => values.length
+    ).length;
+    groupCount += 1;
+    groups[groupKey] = {
+      groupKey,
+      layers: Object.fromEntries(
+        JWF_HEX_KEYS.map((layerKey, layerIndex) => [
+          layerKey,
+          {
+            layerKey,
+            ...layerColorSetting(colorValues[layerIndex]),
+            ...layerWidthSetting(widthValues[layerIndex]),
+            ...layerLineTypeSetting(lineTypeValues[layerIndex]),
+          },
+        ])
+      ),
+    };
+  }
+  if (!presentKeyCount) return null;
+  return {
+    source: "jwf",
+    note:
+      "JWF layer defaults apply when the write layer changes; they do not rewrite existing entity attributes.",
+    groupCount,
+    presentKeyCount,
+    groups,
+  };
+}
+
+function buildTextSettings(entries) {
+  const widths = keyValues(entries, "MWIDE");
+  const heights = keyValues(entries, "MHIGH");
+  const spacings = keyValues(entries, "MDIST");
+  const pens = keyValues(entries, "MPEN");
+  const mset = keyValues(entries, "MSET");
+  const mhen = keyValues(entries, "MHEN");
+  const mofst = keyValues(entries, "MOFST");
+  const present = [widths, heights, spacings, pens, mset, mhen, mofst].some(
+    (values) => values.length
+  );
+  if (!present) return null;
+  return {
+    source: "jwf",
+    command: mset.length
+      ? {
+          textType: numericValue(mset[0]),
+          direction: numericValue(mset[1]),
+          alignment: numericValue(mset[2]),
+          textDisplayLimit: numericValue(mset[3]),
+          fontDisplayRatio: numericValue(mset[4]),
+          inputBoxSize: numericValue(mset[5]),
+          wordWrap: numericValue(mset[6]),
+          lineSpacing: numericValue(mset[7]),
+          keepAngle: numericValue(mset[8]),
+          raw: mset,
+        }
+      : null,
+    conversion: mhen.length
+      ? {
+          resizeAnchor: numericValue(mhen[0]),
+          fontFamily: typeof mhen[1] === "string" ? mhen[1] : "",
+          raw: mhen,
+        }
+      : null,
+    offset: mofst.length ? { raw: mofst } : null,
+    textTypes: Array.from({ length: 10 }, (_, index) => ({
+      type: index + 1,
+      width: numericValue(widths[index]),
+      height: numericValue(heights[index]),
+      spacing: numericValue(spacings[index]),
+      colorNumber: numericValue(pens[index]),
+    })).filter((row) =>
+      ["width", "height", "spacing", "colorNumber"].some(
+        (field) => row[field] !== null
+      )
+    ),
+  };
+}
+
+function buildColorSettings(entries, screenColors, printColors) {
+  const background = screenColors.B || null;
+  const zoomFrame = screenColors.Z || null;
+  const zoomText = screenColors.M || null;
+  const selection = screenColors.S || null;
+  const temporary = screenColors.K || null;
+  const auxiliary = screenColors.H || null;
+  const gray = screenColors.G || null;
+  const present = [
+    background,
+    zoomFrame,
+    zoomText,
+    selection,
+    temporary,
+    auxiliary,
+    gray,
+  ].some(Boolean);
+  const hasColorTables =
+    Object.keys(screenColors || {}).length || Object.keys(printColors || {}).length;
+  if (!present && !hasColorTables) return null;
+  return {
+    source: "jwf",
+    screenColors,
+    printColors,
+    background,
+    zoomFrame,
+    zoomText,
+    selection,
+    temporary,
+    auxiliary,
+    gray,
+    parsedKeys: Object.keys(entries || {}).filter((key) =>
+      /^(LCOLLOR_|PCOLLOR_)/.test(key)
+    ),
+  };
+}
+
+function buildLineTypeSettings(entries) {
+  const rows = {};
+  for (const key of Object.keys(entries || {})) {
+    if (/^LTYPE_/.test(key)) rows[key] = keyValues(entries, key);
+  }
+  if (!Object.keys(rows).length) return null;
+  return {
+    source: "jwf",
+    rows,
+    hatchCandidate: rows.LTYPE_HC || null,
+  };
+}
+
 export function parseJwfText(text, options = {}) {
   const includeAfterEnd = !!options.includeAfterEnd;
   const entries = {};
@@ -448,6 +637,12 @@ export function parseJwfText(text, options = {}) {
       printColors[printMatch[1]] = colorFromValues(entry.values, /^PCOLLOR_[1-8]$/.test(key));
     }
   }
+  const normalizedSettings = {
+    colors: buildColorSettings(entries, screenColors, printColors),
+    lineTypes: buildLineTypeSettings(entries),
+    layerDefaults: buildLayerDefaults(entries),
+    text: buildTextSettings(entries),
+  };
 
   return {
     format: "jwf-environment",
@@ -461,6 +656,7 @@ export function parseJwfText(text, options = {}) {
       screenColors,
       printColors,
     },
+    normalizedSettings,
     comments,
   };
 }
