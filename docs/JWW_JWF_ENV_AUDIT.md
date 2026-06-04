@@ -77,7 +77,7 @@ JWFについては、環境設定ファイルが `.JWF` のテキストファイ
 | `audit-only` | `LAYCOL_*`、`LAYWID_*`、`LAYTYP_*` | エンティティ側の色・線幅・線種は読めているため、表示変換のブロッカーにはしない。レイヤ既定値としては監査継続。 |
 | `metadata-ready` | JWW文字装飾の重ね描画 | `jwwSpecialRuns` / `jwwTextSegments` は出力済み。見た目の完全再現は下流レンダラ側の課題。 |
 | `sample-comparison` | 傾き弧、楕円弧系の稀なケース | 元角度と変換後角度の診断は保持済み。確定例が増えた時に比較する。 |
-| `out-of-scope-for-conversion` | `KEY_*`、クロックメニュー、操作コマンド等 | 図面変換には通常不要。完全なJw_cad環境保存が必要になった時だけ昇格検討。 |
+| `jwf-parse-ready` | `KEY_*`、クロックメニュー、操作コマンド等 | `.jwf` テキストファイルからは `normalizedSettings.operation` として正規化済み。JWWバイナリ内の保存位置抽出は、図面変換外の監査項目として継続。 |
 | `separate-project` | JWW保存/書き戻し | 読み込みGatewayとは別プロジェクト。round-trip用仕様とテストができるまで非対応を明示する。 |
 
 この分類は `JWW_GATEWAY_MANIFEST.json` の `openItems` と、`npm run open-items -- --html -o reports\open-items.html` の出力に反映する。未対応の数を減らすより、誤読して対応済みに見せないことを優先する。
@@ -137,9 +137,9 @@ UTF-16文字列には、JWF書出し用と思われるフォーマット列が�
 | `CU_SET`                                 | 曲線設定                           |         未対応 | 曲線クラスは未対応が多い。                                                                                                                                        |
 | `MS_SET`                                 | 測定設定                           |         未対応 | 未抽出。                                                                                                                                                          |
 | `HATCH_0..5`                             | ハッチ設定                         |         未対応 | ハッチ由来の線は読める場合があるが、設定としては未抽出。                                                                                                          |
-| `KEY*`                                   | キー割当                           |         未対応 | CAD操作環境。Gateway変換には通常不要だが、全環境保存なら対象。                                                                                                    |
-| `LD_*` / `RD_*`                          | クロックメニュー                   |         未対応 | 操作環境。                                                                                                                                                        |
-| `COM_*` / `GCOM_*` / `AC_COM` / `WD_COM` | コマンド環境                       |         未対応 | 操作環境。                                                                                                                                                        |
+| `KEY*`                                   | キー割当                           | JWFパース対応 | `.jwf` では `normalizedSettings.operation.keyboard` に正規化する。JWWバイナリ抽出は未昇格。                                                                      |
+| `LD_*` / `RD_*`                          | AUTOクロックメニュー               | JWFパース対応 | `.jwf` では `normalizedSettings.operation.clockMenus` にAUTOクロックメニュー(1)/(2)、左右、AM/PM、12方向の割当として正規化する。JWWバイナリ抽出は未昇格。        |
+| `COM_*` / `GCOM_*` / `AC_COM` / `WD_COM` | コマンド環境                       | JWFパース対応 | `.jwf` では `normalizedSettings.operation` に raw 値を保持し、アプリ側の環境反映に渡せる形にする。JWWバイナリ抽出は未昇格。                                      |
 
 ## JWW Gateway の現状マッピング
 
@@ -277,7 +277,7 @@ manifest validator は必須 `commands` / `binaries` も検査する。capabilit
 
 1. `KEY*`、`LD_*`、`RD_*`、`COM_*`、`GCOM_*`。
 2. `ZOOM`、`S_MESH_*`、`R_CROSS_SET`。
-3. AUTO モード、クロックメニュー、コマンド別環境。
+3. JWWバイナリ内の AUTO モード、クロックメニュー、コマンド別環境の保存位置確認。`.jwf` テキストの読込は `normalizedSettings.operation` に昇格済み。
 
 ## 次の実装候補
 
@@ -370,7 +370,7 @@ For `M-07 1階平面図(衛生).jww` with `設備設計用.jwf`, the scan finds 
 `--family dimensions,hatch --json` でも同じ4セットを横断確認した。低情報量判定を強めた後は、`S_STR2`、`S_STR3`、`HATCH_4` は `ambiguous` になり、抽出候補としては残るが昇格対象ではない。`S_STR3` は全0、`S_STR2` は短い0/1列、`HATCH_4` は候補一致数が多すぎるため、寸法・ハッチ設定表としては未確定扱いを維持する。寸法エンティティの線・文字そのものは既存パーサで個別実体として扱う。
 複数の value-scan JSON は `value-scan:summary` で横断集計できる。文字、寸法、ハッチのようにファミリ単位で調べる項目は、`core:summary` よりこちらを使い、status/family/key ごとの傾向を見てから抽出へ昇格する。`text-preset-cross-sample-summary.json/html/csv` は4レポート28行を集約し、`missing 24 / not-scanned 4`。`document-settings-cross-sample-summary.json/html/csv` は4レポート56行を集約し、`missing 44 / ambiguous 8 / not-scanned 4`。
 `--family general --json` では `S_COMM_0..9` を4セット横断確認した。`general-settings-cross-sample-summary.json/html/csv` は4レポート40行を集約し、`missing 37 / ambiguous 3`。`S_COMM_8` だけ一部ファイルで短い `u8` 列に一致したが、同じ列が複数箇所に出るため `ambiguous` に倒した。`S_COMM_*` は現時点では専用構造として抽出へ昇格しない。
-`--scope operation --json` では `S_COMM_*`、クロックメニュー、コマンド、キー割当を4セット横断確認した。`operation-settings-cross-sample-summary.json/html/csv` は4レポート301行を集約し、低情報量判定を強めた後は `missing 197 / ambiguous 60 / not-scanned 44 / matched 0`。`KEY_*` や `LD2_AM` などは短い2値配列、または0が大半の疎な配列として偶然一致しやすいため、抽出へ昇格しない。operation scope は Gateway の図面変換には通常不要だが、JWF環境保存の完全性を確認するために未対応として棚卸しを続ける。
+`--scope operation --json` では `S_COMM_*`、クロックメニュー、コマンド、キー割当を4セット横断確認した。`operation-settings-cross-sample-summary.json/html/csv` は4レポート301行を集約し、低情報量判定を強めた後は `missing 197 / ambiguous 60 / not-scanned 44 / matched 0`。`KEY_*` や `LD2_AM` などは短い2値配列、または0が大半の疎な配列として偶然一致しやすいため、JWWバイナリ抽出へは昇格しない。一方、`.jwf` テキストファイルから読み込む operation scope は `normalizedSettings.operation` として正規化済みで、接続アプリが基本設定・クロックメニュー・キー割当へ反映するための入力として利用できる。
 フィルタなしの全項目スキャンも4セット横断で再生成した。`full-value-scan-cross-sample-summary.json/html/csv` は4レポート837行を集約し、現在の保守的判定では `missing 400 / ambiguous 286 / not-scanned 120 / matched 31`。`matched` が残るキーは10種類で、すべて Gateway が既に `gatewayExtracted` として扱う線種・色系だった。未抽出なのに `matched` になっているキーは0件。`ZF_SET` の `[-1,-1,0,0,0,0]` のような初期値らしい短い列は `ambiguous` に倒した。`value-scan:summary` は `promotionCandidates` も出力し、この総合サマリでは `promotionCandidates: 0` と確認できる。`--summary --fail-on-promotion-candidates` を付けると、短い確認レポートを出しつつ昇格候補が残る場合に終了コード2で失敗するため、今後の検証ゲートに使える。
 
 ### LTYPE_HC candidate

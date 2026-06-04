@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-05-28T23:17:43.584Z",
+  "generatedAt": "2026-06-04T11:12:52.344Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -22,7 +22,7 @@
     "unresolvedEnvironmentKeys": 2,
     "unexpectedUnresolvedEnvironmentKeys": 0,
     "missingExpectedUnresolvedEnvironmentKeys": 0,
-    "openItems": 7
+    "openItems": 6
   },
   "missingScripts": [],
   "missingBins": [],
@@ -34,8 +34,8 @@
     },
     {
       "file": "JWW_GATEWAY_MANIFEST.json",
-      "bytes": 11859,
-      "sha256": "416b13a2ae34d8b8816459f41c430b5b018a876de0e79187f9b139f5e5ca1f04"
+      "bytes": 11029,
+      "sha256": "d93934f8e09178b329531925bb18c80772150c2bc847864a4b068db85fb9a9f0"
     },
     {
       "file": "README.ja.md",
@@ -84,8 +84,8 @@
     },
     {
       "file": "docs/JWW_JWF_ENV_AUDIT.md",
-      "bytes": 50367,
-      "sha256": "08da3e2e80115bc88bce7f72ea774eb112c4f7cbe5a090b5a9ba54da980fdd3f"
+      "bytes": 50753,
+      "sha256": "4e102eae2ebdd392a18f779d7aacaf5276f24135316c22cf7bdff25ebeceb9b3"
     },
     {
       "file": "docs/jww-gateway-json.schema.json",
@@ -274,8 +274,8 @@
     },
     {
       "file": "src/jww/gatewayManifest.js",
-      "bytes": 15397,
-      "sha256": "33b9a3b2295b7cdda8bf34b592d41e10fab6fe0168199ac866b77849e499c63e"
+      "bytes": 14586,
+      "sha256": "f04bbcd8f0b8d0317323a328540ec76849031585baa2f38359725334b8b22cdd"
     },
     {
       "file": "src/jww/gatewayManifest.test.js",
@@ -289,13 +289,13 @@
     },
     {
       "file": "src/jww/jwf.js",
-      "bytes": 14244,
-      "sha256": "1ccddfc2d1376aad99fe93a9e884106f4065bf5bd715fc574fc659f6b07b35d4"
+      "bytes": 22831,
+      "sha256": "1ecc9655233bc355b21ffc01c5585630ff737d1acb87ed5ecc3db377cacbdcb0"
     },
     {
       "file": "src/jww/jwf.test.js",
-      "bytes": 3726,
-      "sha256": "defa5f47dff68bdcd0144bf200c4cfa6f4566431d1923d35e4741bd415be1c3f"
+      "bytes": 7645,
+      "sha256": "acfdb7f6319e397e7fa1a0a895e697b42bc074df1db57952de41460574a19e95"
     },
     {
       "file": "src/jww/jwfValueScan.js",
@@ -589,18 +589,6 @@
       "detail": "Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.",
       "evidence": "Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.",
       "nextAction": "Add targeted before/after diagnostics when more confirmed JWW examples are available."
-    },
-    {
-      "id": "jwf-operation-settings",
-      "status": "not-required-for-conversion",
-      "category": "environment",
-      "classification": "out-of-scope-for-conversion",
-      "conversionImpact": "none for drawing import; useful only for complete Jw_cad environment persistence",
-      "releaseDecision": "track in audits but do not block Gateway release",
-      "title": "Operation-only JWF settings",
-      "detail": "Command, key assignment, clock menu, and other operation settings are tracked in audits but are outside drawing conversion.",
-      "evidence": "operation-scope value scans show no stable extraction candidates and these settings do not affect converted geometry.",
-      "nextAction": "Keep them visible in coverage reports; promote only if a connected app needs full environment persistence."
     }
   ],
   "notes": [

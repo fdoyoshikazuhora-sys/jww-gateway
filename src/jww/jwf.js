@@ -583,6 +583,104 @@ function buildLineTypeSettings(entries) {
   };
 }
 
+function commandNumber(value) {
+  const number = numericValue(value, null);
+  return number === null ? null : number;
+}
+
+function clockMenu(values) {
+  return Array.from({ length: 12 }, (_, hour) => ({
+    hour,
+    commandNumber: commandNumber(values[hour]),
+  }));
+}
+
+function keyedRows(entries, pattern) {
+  return Object.fromEntries(
+    Object.keys(entries || {})
+      .filter((key) => pattern.test(key))
+      .sort()
+      .map((key) => [key, keyValues(entries, key)])
+  );
+}
+
+function buildKeyboardSettings(entries) {
+  const rows = keyedRows(entries, /^(KEY|N_KEY)/);
+  if (!Object.keys(rows).length) return null;
+  return {
+    mode: rows.N_KEY?.[0] ?? null,
+    shortcuts: Object.fromEntries(
+      Object.entries(rows)
+        .filter(([key]) => key !== "N_KEY")
+        .map(([key, values]) => [
+          key.replace(/^KEY_?/, "") || key,
+          {
+            key,
+            commandNumbers: values.map(commandNumber),
+            raw: values,
+          },
+        ])
+    ),
+    raw: rows,
+  };
+}
+
+function buildOperationSettings(entries) {
+  const clockRows = keyedRows(entries, /^(LD|RD|LD2|RD2)_(AM|PM)$/);
+  const commandLayerRows = keyedRows(entries, /^COM_LAY/);
+  const groupCommandRows = keyedRows(entries, /^GCOM_/);
+  const generalRows = keyedRows(entries, /^S_COMM_/);
+  const keyboard = buildKeyboardSettings(entries);
+  const autoMode = keyValues(entries, "AC_COM");
+  const windowCommands = keyValues(entries, "WD_COM");
+  const mesh = keyValues(entries, "S_MESH_0");
+  const zoom = keyValues(entries, "ZOOM");
+  const crossline = keyValues(entries, "R_CROSS_SET");
+  const present = [
+    clockRows,
+    commandLayerRows,
+    groupCommandRows,
+    generalRows,
+  ].some((rows) => Object.keys(rows).length) ||
+    !!keyboard ||
+    autoMode.length ||
+    windowCommands.length ||
+    mesh.length ||
+    zoom.length ||
+    crossline.length;
+  if (!present) return null;
+  return {
+    source: "jwf",
+    note:
+      "JWF operation settings are parsed from the environment file for connected app persistence; JWW binary extraction remains separate.",
+    general: {
+      rows: generalRows,
+      mesh: mesh.length ? { raw: mesh } : null,
+      zoom: zoom.length ? { raw: zoom } : null,
+      crossline: crossline.length ? { raw: crossline } : null,
+    },
+    clockMenus: Object.fromEntries(
+      Object.entries(clockRows).map(([key, values]) => [
+        key,
+        {
+          key,
+          side: key.startsWith("L") ? "left" : "right",
+          mode: "auto",
+          page: key.startsWith("LD2") || key.startsWith("RD2") ? 2 : 1,
+          meridiem: key.endsWith("_AM") ? "AM" : "PM",
+          assignments: clockMenu(values),
+          raw: values,
+        },
+      ])
+    ),
+    commandLayers: commandLayerRows,
+    commandGroups: groupCommandRows,
+    autoMode: autoMode.length ? { raw: autoMode } : null,
+    windowCommands: windowCommands.length ? { raw: windowCommands } : null,
+    keyboard,
+  };
+}
+
 export function parseJwfText(text, options = {}) {
   const includeAfterEnd = !!options.includeAfterEnd;
   const entries = {};
@@ -642,6 +740,7 @@ export function parseJwfText(text, options = {}) {
     lineTypes: buildLineTypeSettings(entries),
     layerDefaults: buildLayerDefaults(entries),
     text: buildTextSettings(entries),
+    operation: buildOperationSettings(entries),
   };
 
   return {

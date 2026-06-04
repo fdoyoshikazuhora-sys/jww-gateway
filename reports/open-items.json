@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-open-items",
-  "generatedAt": "2026-05-28T23:17:50.237Z",
+  "generatedAt": "2026-06-04T11:13:00.340Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -10,29 +10,26 @@
     "LCOLLOR_M"
   ],
   "counts": {
-    "total": 7,
+    "total": 6,
     "byStatus": {
       "not-supported": 1,
       "sample-blocked": 2,
       "audit-only": 1,
       "downstream-renderer": 1,
-      "needs-samples": 1,
-      "not-required-for-conversion": 1
+      "needs-samples": 1
     },
     "byCategory": {
       "output": 1,
       "jwf-environment": 3,
       "renderer": 1,
-      "geometry": 1,
-      "environment": 1
+      "geometry": 1
     },
     "byClassification": {
       "separate-project": 1,
       "sample-blocked": 2,
       "audit-only": 1,
       "metadata-ready": 1,
-      "sample-comparison": 1,
-      "out-of-scope-for-conversion": 1
+      "sample-comparison": 1
     },
     "byReleaseDecision": {
       "not a release blocker for read-only Gateway": 1,
@@ -40,8 +37,7 @@
       "keep open until exact RGB matches repeat in real files": 1,
       "not promoted until a stable storage pattern is found": 1,
       "not a parser blocker because decoration metadata is exported": 1,
-      "not promoted further without confirmed before/after examples": 1,
-      "track in audits but do not block Gateway release": 1
+      "not promoted further without confirmed before/after examples": 1
     }
   },
   "openItems": [
@@ -116,18 +112,6 @@
       "detail": "Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.",
       "evidence": "Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.",
       "nextAction": "Add targeted before/after diagnostics when more confirmed JWW examples are available."
-    },
-    {
-      "id": "jwf-operation-settings",
-      "status": "not-required-for-conversion",
-      "category": "environment",
-      "classification": "out-of-scope-for-conversion",
-      "conversionImpact": "none for drawing import; useful only for complete Jw_cad environment persistence",
-      "releaseDecision": "track in audits but do not block Gateway release",
-      "title": "Operation-only JWF settings",
-      "detail": "Command, key assignment, clock menu, and other operation settings are tracked in audits but are outside drawing conversion.",
-      "evidence": "operation-scope value scans show no stable extraction candidates and these settings do not affect converted geometry.",
-      "nextAction": "Keep them visible in coverage reports; promote only if a connected app needs full environment persistence."
     }
   ]
 }

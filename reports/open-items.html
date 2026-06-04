@@ -14,7 +14,7 @@
 </head>
 <body>
   <h1>JWW Gateway Open Items</h1>
-  <p class="meta">Package jww-gateway 0.1.0 / 7 items</p>
+  <p class="meta">Package jww-gateway 0.1.0 / 6 items</p>
   <table>
     <thead>
       <tr><th>ID</th><th>Status</th><th>Category</th><th>Class</th><th>Impact</th><th>Decision</th><th>Title</th><th>Detail</th><th>Evidence</th><th>Next</th></tr>
@@ -91,18 +91,6 @@
         <td>Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.</td>
         <td>Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.</td>
         <td>Add targeted before/after diagnostics when more confirmed JWW examples are available.</td>
-      </tr>
-      <tr>
-        <td>jwf-operation-settings</td>
-        <td>not-required-for-conversion</td>
-        <td>environment</td>
-        <td>out-of-scope-for-conversion</td>
-        <td>none for drawing import; useful only for complete Jw_cad environment persistence</td>
-        <td>track in audits but do not block Gateway release</td>
-        <td>Operation-only JWF settings</td>
-        <td>Command, key assignment, clock menu, and other operation settings are tracked in audits but are outside drawing conversion.</td>
-        <td>operation-scope value scans show no stable extraction candidates and these settings do not affect converted geometry.</td>
-        <td>Keep them visible in coverage reports; promote only if a connected app needs full environment persistence.</td>
       </tr>
     </tbody>
   </table>

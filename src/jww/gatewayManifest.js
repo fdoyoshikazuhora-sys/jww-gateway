@@ -112,22 +112,6 @@ export const GATEWAY_OPEN_ITEMS = [
     nextAction:
       "Add targeted before/after diagnostics when more confirmed JWW examples are available.",
   },
-  {
-    id: "jwf-operation-settings",
-    status: "not-required-for-conversion",
-    category: "environment",
-    classification: "out-of-scope-for-conversion",
-    conversionImpact:
-      "none for drawing import; useful only for complete Jw_cad environment persistence",
-    releaseDecision: "track in audits but do not block Gateway release",
-    title: "Operation-only JWF settings",
-    detail:
-      "Command, key assignment, clock menu, and other operation settings are tracked in audits but are outside drawing conversion.",
-    evidence:
-      "operation-scope value scans show no stable extraction candidates and these settings do not affect converted geometry.",
-    nextAction:
-      "Keep them visible in coverage reports; promote only if a connected app needs full environment persistence.",
-  },
 ];
 export const REQUIRED_PACKAGE_FILE_MARKERS = [
   "JWW_GATEWAY_MANIFEST.json",

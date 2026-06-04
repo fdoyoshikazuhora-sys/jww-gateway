@@ -169,4 +169,84 @@ LTYPE_HC = 1 1 0 2 1 0
       0,
     ]);
   });
+
+  it("normalizes operation-only JWF settings for connected app persistence", () => {
+    const parsed = parseJwfText(`
+S_COMM_0 = 1 2 3
+S_MESH_0 = 1 0 455 455 5 0
+ZOOM = 0 1 2 3 4 5 6 7 8
+R_CROSS_SET = 1 2 3
+LD_AM = 26 4 1 0 11 30 20 0 21 48 47 45
+LD_PM = 25 22 6 0 5 66 10 0 27 24 10 10
+RD_AM = 31 64 14 0 59 75 28 0 7 0 29 0
+RD_PM = 48 63 50 0 54 51 53 0 52 65 49 62
+LD2_AM = 1 2 3 4 5 6 7 8 9 10 11 12
+RD2_PM = 12 11 10 9 8 7 6 5 4 3 2 1
+COM_LAY01 = 0 1 2
+GCOM_100 = LINE RECT CIRCLE
+AC_COM = 1 2 3
+WD_COM = 4 5 6
+N_KEY = 1
+KEY_A = 1 2 3
+KEYF2 = 39 40
+`);
+
+    expect(parsed.entries.LD_AM.definition.scope).toBe("operation");
+    expect(parsed.normalizedSettings.operation).toMatchObject({
+      source: "jwf",
+      clockMenus: {
+        LD_AM: {
+          side: "left",
+          mode: "auto",
+          page: 1,
+          meridiem: "AM",
+        },
+        LD2_AM: {
+          side: "left",
+          mode: "auto",
+          page: 2,
+          meridiem: "AM",
+        },
+        RD2_PM: {
+          side: "right",
+          mode: "auto",
+          page: 2,
+          meridiem: "PM",
+        },
+      },
+      commandLayers: {
+        COM_LAY01: [0, 1, 2],
+      },
+      commandGroups: {
+        GCOM_100: ["LINE", "RECT", "CIRCLE"],
+      },
+      autoMode: {
+        raw: [1, 2, 3],
+      },
+      windowCommands: {
+        raw: [4, 5, 6],
+      },
+      keyboard: {
+        mode: 1,
+      },
+    });
+    expect(parsed.normalizedSettings.operation.clockMenus.LD_AM.assignments.length).toBe(12);
+    expect(parsed.normalizedSettings.operation.clockMenus.LD_AM.assignments[0]).toEqual({
+      hour: 0,
+      commandNumber: 26,
+    });
+    expect(parsed.normalizedSettings.operation.clockMenus.LD_AM.assignments[11]).toEqual({
+      hour: 11,
+      commandNumber: 45,
+    });
+    expect(parsed.normalizedSettings.operation.keyboard.shortcuts.A).toEqual({
+      key: "KEY_A",
+      commandNumbers: [1, 2, 3],
+      raw: [1, 2, 3],
+    });
+    expect(parsed.normalizedSettings.operation.keyboard.shortcuts.F2).toMatchObject({
+      key: "KEYF2",
+      commandNumbers: [39, 40],
+    });
+  });
 });
