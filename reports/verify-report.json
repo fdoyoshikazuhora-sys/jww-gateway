@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-06-04T23:10:40.990Z",
+  "generatedAt": "2026-08-27T02:26:38.109Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -15,7 +15,7 @@
   "counts": {
     "commands": 28,
     "binaries": 23,
-    "packageFiles": 95,
+    "packageFiles": 96,
     "missingFiles": 0,
     "missingScripts": 0,
     "missingBins": 0,
@@ -34,8 +34,8 @@
     },
     {
       "file": "JWW_GATEWAY_MANIFEST.json",
-      "bytes": 11331,
-      "sha256": "7640481e87b007df9f5a87b1bf480e7efb9ebf86a0763cd91960e08b9df2885d"
+      "bytes": 11361,
+      "sha256": "487159d6e8dcef21ace72021e9e08bd2a3f4bdbc6ac91fea8b90eb54616d715a"
     },
     {
       "file": "README.ja.md",
@@ -279,13 +279,13 @@
     },
     {
       "file": "src/jww/decoder.js",
-      "bytes": 16131,
-      "sha256": "45baa39732f8c2365b1777ed515ff437e7bf3b294d0bf51088be298113ca7be4"
+      "bytes": 18852,
+      "sha256": "dc467691e64965f6a56d325f0b5cc932e82676f200e7bcd35d839d0369fd421a"
     },
     {
       "file": "src/jww/decoder.test.js",
-      "bytes": 5391,
-      "sha256": "b6370b6c1979ae0a2db3833d28018f94bfd2513a4a678dd6458d869b7b317dd3"
+      "bytes": 7379,
+      "sha256": "58ebc89fe92c49bbede50e9f7a5348364cb1d93776b6aff7955f12d9b17e2d86"
     },
     {
       "file": "src/jww/environment.js",
@@ -309,8 +309,8 @@
     },
     {
       "file": "src/jww/gatewayPackageFiles.js",
-      "bytes": 3384,
-      "sha256": "86bc81946a1cf25e0cdbc73195bca923f03c4266fe76567a63869a082c033676"
+      "bytes": 3404,
+      "sha256": "95094941dc09fe007c6c01a4f61c7564648795be6e59ff43aea8f3c62f2e90f6"
     },
     {
       "file": "src/jww/jwf.js",
@@ -319,8 +319,8 @@
     },
     {
       "file": "src/jww/jwf.test.js",
-      "bytes": 7645,
-      "sha256": "acfdb7f6319e397e7fa1a0a895e697b42bc074df1db57952de41460574a19e95"
+      "bytes": 7423,
+      "sha256": "a50c3301860047ba5397f3e880717e60f9bc04f93e3104b2994515097e5396f7"
     },
     {
       "file": "src/jww/jwfFixturePairs.test.js",
@@ -349,8 +349,8 @@
     },
     {
       "file": "src/jww/parser.js",
-      "bytes": 32374,
-      "sha256": "63ebc66a016fc316cfc2ce2e3b20c20a3d492b68698310994044431d846c83da"
+      "bytes": 32660,
+      "sha256": "e51e7d7c204048ffb1015a38787aac5b465888f2f641bde79f9fb59560e62f89"
     },
     {
       "file": "src/jww/parser.test.js",
@@ -364,8 +364,13 @@
     },
     {
       "file": "src/jww/shared.js",
-      "bytes": 5639,
-      "sha256": "bfead85abfa13f4a65981dce06715baa335af826a0e2a09522fbee805918e451"
+      "bytes": 9127,
+      "sha256": "d593ec0fe726178173b2deab7de57e3bb8d88ad3b0da8ce9d56587585345e522"
+    },
+    {
+      "file": "src/jww/shared.test.js",
+      "bytes": 1012,
+      "sha256": "4db0927a9af8211ac5d21a26551910c33a1173e12741b7d90c131e77da1c67c4"
     },
     {
       "file": "src/jww/testHarness.js",
@@ -449,8 +454,8 @@
     },
     {
       "file": "tools/jww-gateway.mjs",
-      "bytes": 11099,
-      "sha256": "33f1b7abbd92d5f836b3750745b106198de131d8008143c03c0cb1b9e8f9a402"
+      "bytes": 11718,
+      "sha256": "17abb1527b1c88af13e05483bf61cd9e93beb2cfd317ef6447eaa6d902a9f696"
     },
     {
       "file": "tools/jww-jwf-compare.mjs",

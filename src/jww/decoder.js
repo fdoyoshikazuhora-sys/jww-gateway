@@ -167,6 +167,22 @@ function overlayKind(marker) {
   }
 }
 
+const DXF_SPECIAL_TEXT_MAP = new Map([
+  ["c", "\u03C6"],
+  ["C", "\u03C6"],
+  ["d", "\u00B0"],
+  ["D", "\u00B0"],
+  ["p", "\u00B1"],
+  ["P", "\u00B1"],
+]);
+
+function normalizeDxfControlText(text) {
+  return String(text || "").replace(/%%(.)/g, (match, marker) => {
+    if (marker === "%") return "%";
+    return DXF_SPECIAL_TEXT_MAP.get(marker) || match;
+  });
+}
+
 function normalizeJwwControlText(text) {
   let output = "";
   const specialRuns = [];
@@ -177,6 +193,7 @@ function normalizeJwwControlText(text) {
     "_",
     "-",
     "\u0023",
+    "\\",
     "\u00A5",
     "\uFFE5",
     "&",
@@ -428,19 +445,53 @@ function replaceEraLongTokens(value, prefix, date) {
   const era = eraInfo(date);
   const yearText = padJwwNumber(eraYearText(date), prefix);
   return value
-    .replaceAll(`${prefix}G\uFF27\uFF25\uFF25`, `${era.name}${yearText}\u5E74`)
-    .replaceAll(`${prefix}G\uFF27\uFF25`, `${era.name}${yearText}`)
-    .replaceAll(`${prefix}G\uFF27`, era.name);
+    .replace(new RegExp(`\\${prefix}G\uFF27\uFF25\uFF25`, "g"), (match, offset) =>
+      value[offset - 1] === "^" ? match : `${era.name}${yearText}\u5E74`
+    )
+    .replace(new RegExp(`\\${prefix}G\uFF27\uFF25`, "g"), (match, offset) =>
+      value[offset - 1] === "^" ? match : `${era.name}${yearText}`
+    )
+    .replace(new RegExp(`\\${prefix}G\uFF27`, "g"), (match, offset) =>
+      value[offset - 1] === "^" ? match : era.name
+    );
 }
 
 function replaceQuotedListToken(value, prefix, marker, index, fallback) {
   const pattern = new RegExp(`\\${prefix}${marker}((?:"[^"]*")+|"(?:[^"]*)"(?:\\s*"[^"]*")*)`, "g");
-  return value.replace(pattern, (_, list) => {
+  return value.replace(pattern, (match, list, offset) => {
+    if (value[offset - 1] === "^") return match;
     const items = Array.from(String(list).matchAll(/"([^"]*)"/g)).map(
       (match) => match[1]
     );
     return items[index] || fallback;
   });
+}
+
+function replaceEmbeddedToken(value, pattern, replacement) {
+  return value.replace(pattern, (match, ...args) => {
+    const offset = args[args.length - 2];
+    if (value[offset - 1] === "^") return match;
+    return typeof replacement === "function"
+      ? replacement(match, ...args)
+      : replacement;
+  });
+}
+
+function collectJwwEqualSpacingControls(text) {
+  const controls = [];
+  String(text || "").replace(/&J([1-9])/g, (match, count, offset) => {
+    if (String(text || "")[offset - 1] === "^") return match;
+    controls.push({
+      kind: "equalSpacing",
+      marker: "&J",
+      count: Number(count),
+      sourceText: match,
+      start: offset,
+      end: offset + match.length,
+    });
+    return match;
+  });
+  return controls;
 }
 
 export function resolveJwwEmbeddedText(text, context = {}) {
@@ -452,24 +503,57 @@ export function resolveJwwEmbeddedText(text, context = {}) {
   const scaleDenominator = Number(context.scaleDenominator || 0);
 
   value = value
-    .replace(/[&]F([1-9])/g, (_, depth) => sourceParentFolder(context, Number(depth)))
-    .replace(/&fs([1-9])/g, (_, index) => {
+    .replace(/[&]F([1-9])/g, (match, depth, offset) =>
+      value[offset - 1] === "^" ? match : sourceParentFolder(context, Number(depth))
+    )
+    .replace(/&fs([1-9])/g, (match, index, offset) => {
+      if (value[offset - 1] === "^") return match;
       const tokens = nameWithoutExtension.split(/\s+/).filter(Boolean);
       return tokens[Number(index) - 1] || "";
     })
-    .replace(/&F/g, sourceFullPath(context))
-    .replace(/&f/g, nameWithoutExtension)
-    .replace(/%f([1-9])/g, (_, length) => fileName.slice(0, Number(length)))
-    .replace(/%f/g, fileName)
-    .replace(/\$F/g, sourceFullPath(context))
-    .replace(/\$f/g, nameWithoutExtension)
-    .replace(/%mm/g, String(context.memo || ""))
-    .replace(/%m1/g, memoLines[0] || "")
-    .replace(/%m2/g, memoLines[1] || "")
-    .replace(/%SS/g, scaleLabel)
-    .replace(/%ss/g, scaleDenominator > 0 ? String(Math.round(scaleDenominator)) : "")
-    .replace(/%SP|%sp/g, scaleLabel)
-    .replace(/%T/g, String(context.drawingTime || ""));
+    .replace(/&F/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : sourceFullPath(context)
+    )
+    .replace(/&f/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : nameWithoutExtension
+    )
+    .replace(/%f([1-9][0-9]*)/g, (match, length, offset) =>
+      value[offset - 1] === "^" ? match : fileName.slice(0, Number(length))
+    )
+    .replace(/%f/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : fileName
+    )
+    .replace(/\$F/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : sourceFullPath(context)
+    )
+    .replace(/\$f/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : nameWithoutExtension
+    )
+    .replace(/%mm/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : String(context.memo || "")
+    )
+    .replace(/%m1/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : memoLines[0] || ""
+    )
+    .replace(/%m2/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : memoLines[1] || ""
+    )
+    .replace(/%SS/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : scaleLabel
+    )
+    .replace(/%ss/g, (match, offset) =>
+      value[offset - 1] === "^"
+        ? match
+        : scaleDenominator > 0
+          ? String(Math.round(scaleDenominator))
+          : ""
+    )
+    .replace(/%SP|%sp/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : scaleLabel
+    )
+    .replace(/%T/g, (match, offset) =>
+      value[offset - 1] === "^" ? match : String(context.drawingTime || "")
+    );
 
   for (const prefix of ["=", "_", "&", "%", "$"]) {
     const date = dateContext(context, prefix);
@@ -488,12 +572,18 @@ export function resolveJwwEmbeddedText(text, context = {}) {
       date.getDay(),
       String(date.getDay())
     );
-    value = value.replace(
+    if (prefix === "&") {
+      value = replaceEmbeddedToken(value, /&J[1-9]/g, "");
+    }
+    value = replaceEmbeddedToken(
+      value,
       new RegExp(`\\${prefix}([FfyYEmdhHMSnNJw])`, "g"),
       (_, token) => formatDateToken(date, token, prefix)
     );
-    value = value.replace(new RegExp(`\\${prefix}J[1-9]`, "g"), () =>
-      formatDateToken(date, "J", prefix)
+    value = replaceEmbeddedToken(
+      value,
+      new RegExp(`\\${prefix}J[1-9]`, "g"),
+      () => formatDateToken(date, "J", prefix)
     );
   }
 
@@ -501,21 +591,24 @@ export function resolveJwwEmbeddedText(text, context = {}) {
 }
 
 export function normalizeJwwSpecialText(text, context = {}) {
-  let value = String(text || "");
-
+  let value = normalizeDxfControlText(text);
   value = resolveJwwEmbeddedText(value, context);
   return normalizeJwwControlText(value).text;
 }
 
 export function analyzeJwwSpecialText(text, context = {}) {
   const rawText = String(text || "");
-  const resolvedText = resolveJwwEmbeddedText(rawText, context);
+  const resolvedText = resolveJwwEmbeddedText(
+    normalizeDxfControlText(rawText),
+    context
+  );
   const normalized = normalizeJwwControlText(resolvedText);
   return {
     rawText,
     resolvedText,
     text: normalized.text,
     specialRuns: normalized.specialRuns,
+    equalSpacingControls: collectJwwEqualSpacingControls(rawText),
     textSegments: buildJwwTextSegments(
       normalized.text,
       normalized.specialRuns
@@ -527,28 +620,32 @@ export function decodeJwwString(bytes, encoding = "shift_jis", context = {}) {
   return decodeJwwStringWithMetadata(bytes, encoding, context).text;
 }
 
-export function decodeJwwStringWithMetadata(
-  bytes,
-  encoding = "shift_jis",
-  context = {}
-) {
+export function decodeJwwRawString(bytes, encoding = "shift_jis") {
   const data = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes || []);
   const jwwMapped = decodeShiftJisWithJwwMap(data, encoding);
-  if (jwwMapped !== null) return analyzeJwwSpecialText(jwwMapped, context);
+  if (jwwMapped !== null) return jwwMapped;
   const utf16Fallback = decodeUtf16Fallback(data, encoding);
   if (utf16Fallback !== null) {
-    return analyzeJwwSpecialText(utf16Fallback, context);
+    return utf16Fallback;
   }
   if (typeof TextDecoder === "function") {
     for (const label of buildJwwDecoderLabels(encoding)) {
       try {
-        return analyzeJwwSpecialText(decodeWithLabel(data, label), context);
+        return decodeWithLabel(data, label);
       } catch (_) {
         // Try the next label. Browser support differs by runtime.
       }
     }
   }
-  return analyzeJwwSpecialText(bytesToStringFallback(data), context);
+  return bytesToStringFallback(data);
+}
+
+export function decodeJwwStringWithMetadata(
+  bytes,
+  encoding = "shift_jis",
+  context = {}
+) {
+  return analyzeJwwSpecialText(decodeJwwRawString(bytes, encoding), context);
 }
 
 export function decodeAsciiClassName(bytes) {

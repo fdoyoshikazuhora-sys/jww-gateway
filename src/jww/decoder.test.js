@@ -2,6 +2,7 @@ import {
   analyzeJwwSpecialText,
   buildJwwTextSegments,
   buildJwwDecoderLabels,
+  decodeJwwRawString,
   decodeJwwString,
   decodeJwwStringWithMetadata,
   normalizeJwwSpecialText,
@@ -28,13 +29,63 @@ describe("JWW decoder", () => {
     expect(decodeJwwString(bytes, "utf-8")).not.toBe("20\u339C");
   });
 
+  it("keeps raw JWW strings available for non-text fields", () => {
+    const bytes = Uint8Array.from(
+      Array.from("Layer ^bA %f4", (char) => char.charCodeAt(0))
+    );
+
+    expect(decodeJwwRawString(bytes, "shift_jis")).toBe("Layer ^bA %f4");
+    expect(
+      decodeJwwString(bytes, "shift_jis", {
+        sourcePath: "C:\\work\\plans\\Sample.jww",
+      })
+    ).toBe("Layer A Samp");
+  });
+
   it("normalizes JWW superscript and subscript markers for display", () => {
     expect(normalizeJwwSpecialText("m^u2 O^d2")).toBe("m\u00B2 O\u2082");
+  });
+
+  it("normalizes DXF-style symbols in JWW text during import", () => {
+    expect(normalizeJwwSpecialText("%%c100 %%d90 %%p5 %%%%")).toBe(
+      "\u03C6100 \u00B090 \u00B15 %%"
+    );
   });
 
   it("removes JWW text style and overlay markers while keeping readable text", () => {
     expect(normalizeJwwSpecialText("^!太字^% □^w99 P^bL")).toBe(
       "太字 □99 PL"
+    );
+  });
+
+  it("does not resolve embedded text tokens inside JWW style controls", () => {
+    const context = {
+      scaleLabel: "1/100",
+      scaleDenominator: 100,
+      sourcePath: "C:\\work\\wide.jww",
+      now: new Date("2026-06-21T13:29:13"),
+    };
+
+    expect(
+      normalizeJwwSpecialText("^&wide ^%space ^$1skip ^_mark", context)
+    ).toBe("wide space skip mark");
+  });
+
+  it("normalizes JWW manual style controls without leaking control markers", () => {
+    expect(
+      normalizeJwwSpecialText(
+        "^!bold ^/italic ^_under ^-strike ^#plain ^\\ms ^\u00A5gothic ^&back ^%reset ^3fit"
+      )
+    ).toBe("bold italic under strike plain ms gothic back reset fit");
+  });
+
+  it("keeps ampersand J equal-spacing controls from resolving as dates", () => {
+    const context = {
+      now: new Date("2026-06-21T13:29:13"),
+    };
+
+    expect(normalizeJwwSpecialText("A&J1B &J9 &J", context)).toBe(
+      "AB  \u4EE4\u548C8\u5E746\u670821\u65E5"
     );
   });
 
@@ -201,8 +252,24 @@ describe("JWW decoder", () => {
       sourcePath: "C:\\work\\plans\\A-01 sample.jww",
     };
 
-    expect(normalizeJwwSpecialText("%f / %f4 / $f / $F", context)).toBe(
-      "A-01 sample.jww / A-01 / A-01 sample / C:\\work\\plans\\A-01 sample.jww"
+    expect(normalizeJwwSpecialText("%f / %f4 / %f10 / $f / $F", context)).toBe(
+      "A-01 sample.jww / A-01 / A-01 sampl / A-01 sample / C:\\work\\plans\\A-01 sample.jww"
     );
+  });
+
+  it("keeps JWW equal-spacing embedded controls as metadata", () => {
+    const result = analyzeJwwSpecialText("器具表&J9", {});
+
+    expect(result.text).toBe("器具表");
+    expect(result.equalSpacingControls).toEqual([
+      {
+        kind: "equalSpacing",
+        marker: "&J",
+        count: 9,
+        sourceText: "&J9",
+        start: 3,
+        end: 6,
+      },
+    ]);
   });
 });

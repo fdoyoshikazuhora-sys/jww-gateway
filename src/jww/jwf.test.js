@@ -195,40 +195,15 @@ KEYF2 = 39 40
     expect(parsed.normalizedSettings.operation).toMatchObject({
       source: "jwf",
       clockMenus: {
-        LD_AM: {
-          side: "left",
-          mode: "auto",
-          page: 1,
-          meridiem: "AM",
-        },
-        LD2_AM: {
-          side: "left",
-          mode: "auto",
-          page: 2,
-          meridiem: "AM",
-        },
-        RD2_PM: {
-          side: "right",
-          mode: "auto",
-          page: 2,
-          meridiem: "PM",
-        },
+        LD_AM: { side: "left", mode: "auto", page: 1, meridiem: "AM" },
+        LD2_AM: { side: "left", mode: "auto", page: 2, meridiem: "AM" },
+        RD2_PM: { side: "right", mode: "auto", page: 2, meridiem: "PM" },
       },
-      commandLayers: {
-        COM_LAY01: [0, 1, 2],
-      },
-      commandGroups: {
-        GCOM_100: ["LINE", "RECT", "CIRCLE"],
-      },
-      autoMode: {
-        raw: [1, 2, 3],
-      },
-      windowCommands: {
-        raw: [4, 5, 6],
-      },
-      keyboard: {
-        mode: 1,
-      },
+      commandLayers: { COM_LAY01: [0, 1, 2] },
+      commandGroups: { GCOM_100: ["LINE", "RECT", "CIRCLE"] },
+      autoMode: { raw: [1, 2, 3] },
+      windowCommands: { raw: [4, 5, 6] },
+      keyboard: { mode: 1 },
     });
     expect(parsed.normalizedSettings.operation.clockMenus.LD_AM.assignments.length).toBe(12);
     expect(parsed.normalizedSettings.operation.clockMenus.LD_AM.assignments[0]).toEqual({

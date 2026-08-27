@@ -21,6 +21,28 @@ function point(x, y) {
   return { x: Number(x), y: Number(y) };
 }
 
+function normalizeSolidVertexOrder(points = []) {
+  const valid = points.filter(
+    (item) => Number.isFinite(item?.x) && Number.isFinite(item?.y)
+  );
+  if (valid.length < 4) return valid;
+  const center = valid.reduce(
+    (acc, item) => ({
+      x: acc.x + item.x / valid.length,
+      y: acc.y + item.y / valid.length,
+    }),
+    { x: 0, y: 0 }
+  );
+  return valid
+    .map((item, index) => ({
+      item,
+      index,
+      angle: Math.atan2(item.y - center.y, item.x - center.x),
+    }))
+    .sort((a, b) => a.angle - b.angle || a.index - b.index)
+    .map((entry) => entry.item);
+}
+
 function numberOrZero(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
@@ -188,12 +210,12 @@ function convertEntity(doc, source, index) {
   if ("point1_x" in value) {
     converted.push(
       makeEntity(doc, value, index, "SOLID", {
-        vertices: [
+        vertices: normalizeSolidVertexOrder([
           point(value.point1_x, value.point1_y),
           point(value.point2_x, value.point2_y),
           point(value.point3_x, value.point3_y),
           point(value.point4_x, value.point4_y),
-        ],
+        ]),
       })
     );
     return converted;

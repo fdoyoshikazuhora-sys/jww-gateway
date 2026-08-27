@@ -102,6 +102,7 @@ export const GATEWAY_PACKAGE_SRC_FILES = [
   "gatewayManifest.test.js",
   "gatewayPackageFiles.js",
   "shared.js",
+  "shared.test.js",
   "schemaValidator.test.js",
   "testHarness.js",
   "arcDiagnostics.js",

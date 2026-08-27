@@ -1,7 +1,7 @@
 import { BinaryReader } from "./BinaryReader.js";
 import {
   decodeAsciiClassName,
-  decodeJwwString,
+  decodeJwwRawString,
   decodeJwwStringWithMetadata,
 } from "./decoder.js";
 import { rgbToHex } from "./shared.js";
@@ -62,10 +62,10 @@ function hasHeader(data) {
   return HEADER.every((byte, index) => data[index] === byte);
 }
 
-function readCString(reader, encoding, textContext = {}) {
+function readCString(reader, encoding) {
   const { length, stringEncoding } = readJwwStringLength(reader, encoding);
   if (length <= 0 || length > 1000000) return "";
-  return decodeJwwString(reader.readBytes(length), stringEncoding, textContext);
+  return decodeJwwRawString(reader.readBytes(length), stringEncoding);
 }
 
 function readCStringWithMetadata(reader, encoding, textContext = {}) {
@@ -474,11 +474,7 @@ function lineTypeHcSemantic(values = []) {
   ) {
     return null;
   }
-  const lineEndStyleNames = {
-    0: "round",
-    1: "square",
-    2: "flat",
-  };
+  const lineEndStyleNames = { 0: "round", 1: "square", 2: "flat" };
   return {
     selectionTemporaryLineTypeNo,
     crosslineCursorLineTypeNo,
@@ -785,6 +781,7 @@ function parseTextPayload(reader, encoding, textContext = {}) {
     resolved_content: contentResult.resolvedText,
     jww_special_runs: contentResult.specialRuns,
     jww_text_segments: contentResult.textSegments,
+    jww_equal_spacing_controls: contentResult.equalSpacingControls,
   };
 }
 
@@ -1051,7 +1048,16 @@ function parseEntityList(
 
 export function parse(input, options = {}) {
   const encoding = options.encoding || "shift_jis";
-  const baseTextContext = options.textContext || {};
+  const baseTextContext = {
+    sourceName: options.sourceName,
+    fileName: options.fileName,
+    sourcePath: options.sourcePath,
+    filePath: options.filePath,
+    lastModified: options.lastModified,
+    fileModifiedAt: options.fileModifiedAt,
+    now: options.now,
+    ...(options.textContext || {}),
+  };
   const data = input instanceof Uint8Array ? input : Uint8Array.from(input || []);
   if (data.length < HEADER.length || !hasHeader(data)) return emptyDocument();
 

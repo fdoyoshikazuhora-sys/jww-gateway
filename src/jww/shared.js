@@ -1,13 +1,24 @@
 export const JWW_LINE_TYPE_NAMES = {
   1: "CONTINUOUS",
-  2: "DASHED",
-  3: "DASHED",
-  4: "CENTER",
-  5: "DASHDOT",
-  6: "DOT",
-  7: "DASHDOT",
-  8: "PHANTOM",
-  9: "CENTER",
+  2: "LTYPE_02",
+  3: "LTYPE_03",
+  4: "LTYPE_04",
+  5: "LTYPE_05",
+  6: "LTYPE_06",
+  7: "LTYPE_07",
+  8: "LTYPE_08",
+  9: "LTYPE_09",
+};
+
+const JWW_BASIC_LINE_TYPE_FALLBACKS = {
+  LTYPE_02: "DASHED",
+  LTYPE_03: "DASHED",
+  LTYPE_04: "CENTER",
+  LTYPE_05: "DASHDOT",
+  LTYPE_06: "DOT",
+  LTYPE_07: "DASHDOT",
+  LTYPE_08: "PHANTOM",
+  LTYPE_09: "CENTER",
 };
 
 export const JWW_PAPER_SIZE_NAMES = {
@@ -88,11 +99,29 @@ function hexToColorEntry(hex, extra = {}) {
   };
 }
 
-function getColorLuminance(color = {}) {
-  if (!color || typeof color !== "object") return null;
+function normalizeColorEntry(color = null) {
+  if (!color) return null;
+  if (typeof color === "string") return hexToColorEntry(color);
+  if (typeof color !== "object") return null;
   const red = Number(color.red);
   const green = Number(color.green);
   const blue = Number(color.blue);
+  if ([red, green, blue].every(Number.isFinite)) {
+    return { ...color, red, green, blue };
+  }
+  if (color.hex) {
+    const parsed = hexToColorEntry(color.hex);
+    return parsed ? { ...color, ...parsed } : null;
+  }
+  return null;
+}
+
+function getColorLuminance(color = {}) {
+  const normalized = normalizeColorEntry(color);
+  if (!normalized) return null;
+  const red = Number(normalized.red);
+  const green = Number(normalized.green);
+  const blue = Number(normalized.blue);
   if (![red, green, blue].every(Number.isFinite)) return null;
   return 0.299 * red + 0.587 * green + 0.114 * blue;
 }
@@ -106,6 +135,24 @@ function shouldInvertBlackWhite(color = {}, backgroundColor = null) {
   return null;
 }
 
+export function getBlackWhiteInvertedHex(color = null, backgroundColor = null) {
+  return shouldInvertBlackWhite(color, backgroundColor);
+}
+
+export function resolveColorHexForBackground(
+  color = null,
+  backgroundColor = null,
+  fallback = null
+) {
+  const inverted = getBlackWhiteInvertedHex(color, backgroundColor);
+  if (inverted) return inverted;
+  if (typeof color === "string") {
+    const parsed = hexToColorEntry(color);
+    return parsed?.hex || fallback;
+  }
+  return color?.hex || fallback;
+}
+
 export function getJwwScreenColorHex(
   penColor,
   screenColors = null,
@@ -114,10 +161,8 @@ export function getJwwScreenColorHex(
 ) {
   const color = Math.abs(Number(penColor) || 0);
   const fileColor = screenColors?.[color];
-  const inverted = shouldInvertBlackWhite(fileColor, backgroundColor);
-  if (inverted) return inverted;
-  if (fileColor?.hex) return fileColor.hex;
-  return JWW_SCREEN_COLOR_HEX[color] || fallback;
+  const sourceColor = fileColor || JWW_SCREEN_COLOR_HEX[color] || fallback;
+  return resolveColorHexForBackground(sourceColor, backgroundColor, fallback);
 }
 
 export function resolveJwwColorEntry(value = {}, colorSettings = {}) {
@@ -139,6 +184,76 @@ export function getJwwScreenLineWidth(penColor, screenColors = null, fallback = 
   const color = Math.abs(Number(penColor) || 0);
   const width = Number(screenColors?.[color]?.width);
   return Number.isFinite(width) && width > 0 ? width : fallback;
+}
+
+function jwwPatternBits(row = {}) {
+  const pattern = String(row.pattern || row.values?.[0] || "").trim();
+  if (!/^[0-9a-f]{1,8}$/i.test(pattern)) return null;
+  const dotCount = Math.max(1, Math.min(32, Number(row.params?.[0]) || 32));
+  return parseInt(pattern, 16)
+    .toString(2)
+    .padStart(32, "0")
+    .slice(0, dotCount)
+    .split("")
+    .map((bit) => bit === "1");
+}
+
+function isJwwDashPatternLineTypeKey(key) {
+  return /^LTYPE_(0[2-9]|L[1-4])$/.test(String(key || "").toUpperCase());
+}
+
+function rotatePatternToVisibleStart(bits) {
+  const firstOn = bits.findIndex(Boolean);
+  if (firstOn <= 0) return bits;
+  return [...bits.slice(firstOn), ...bits.slice(0, firstOn)];
+}
+
+function jwwBitsToDashPattern(bits, pitch) {
+  const rotated = rotatePatternToVisibleStart(bits);
+  if (!rotated.some(Boolean) || rotated.every(Boolean)) return null;
+  const dotPitch = Math.max(1, Math.min(16, Number(pitch) || 1));
+  const runs = [];
+  let current = rotated[0];
+  let count = 0;
+  for (const bit of rotated) {
+    if (bit === current) {
+      count += 1;
+      continue;
+    }
+    runs.push({ visible: current, count });
+    current = bit;
+    count = 1;
+  }
+  runs.push({ visible: current, count });
+
+  if (runs.length > 1 && runs[0].visible === runs[runs.length - 1].visible) {
+    runs[0] = {
+      visible: runs[0].visible,
+      count: runs[0].count + runs[runs.length - 1].count,
+    };
+    runs.pop();
+  }
+
+  const normalizedRuns = runs[0]?.visible ? runs : [...runs.slice(1), runs[0]];
+  return normalizedRuns.map((run) => run.count * dotPitch);
+}
+
+export function buildJwwLineTypePatternMap(lineTypeSettings = null) {
+  const rows = lineTypeSettings?.rows || {};
+  return Object.fromEntries(
+    Object.entries(rows)
+      // Sample.jwf defines LTYPE_R* as random-line amplitude/pitch rows.
+      .filter(([key]) => isJwwDashPatternLineTypeKey(key))
+      .map(([key, row]) => [
+        key,
+        jwwBitsToDashPattern(jwwPatternBits(row) || [], row?.params?.[1]),
+      ])
+      .filter(([, pattern]) => Array.isArray(pattern) && pattern.length > 0)
+  );
+}
+
+export function getJwwBasicLineTypeFallback(lineType) {
+  return JWW_BASIC_LINE_TYPE_FALLBACKS[String(lineType || "").toUpperCase()] || null;
 }
 
 export function unwrapJwwEntity(entity) {
