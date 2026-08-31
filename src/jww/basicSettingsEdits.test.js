@@ -165,6 +165,29 @@ describe("JWW Basic Settings native edits", () => {
     expect(reopened.nativeEntities.length).toBe(document.nativeEntities.length);
   });
 
+  it("edits and reparses a variable-length memo by prefix splice", async () => {
+    const document = await openNativeJww(fixture());
+    const prefixEnd = document.preservedRegions.prefix.end;
+    const memo = "MEP Draft memo\r\n日本語";
+    const preflight = preflightJwwBasicSettingsSave(document, { memo });
+    const saved = saveJwwBasicSettings(document, { memo });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      patchCount: 1,
+      preservesUnsupportedBytes: true,
+    });
+    expect(reopened.header.memo).toBe(memo);
+    expect(reopened.nativeEntities.map((record) => record.value)).toEqual(
+      document.nativeEntities.map((record) => record.value)
+    );
+    expect(saved.bytes.slice(reopened.preservedRegions.prefix.end)).toEqual(
+      document.originalBytes.slice(prefixEnd)
+    );
+  });
+
   it("edits official non-current group and layer state codes by prefix splice", async () => {
     const document = await openNativeJww(fixture());
     const prefixEnd = document.preservedRegions.prefix.end;
@@ -299,10 +322,10 @@ describe("JWW Basic Settings native edits", () => {
     })).toMatchObject({ ok: false, willWriteBytes: false });
   });
 
-  it("rejects unproven fields and invalid native metadata before save", async () => {
+  it("rejects unsupported fields and invalid native metadata before save", async () => {
     const document = await openNativeJww(fixture());
 
-    expect(preflightJwwBasicSettingsSave(document, { memo: "not allowed" })).toMatchObject({
+    expect(preflightJwwBasicSettingsSave(document, { lineTypes: {} })).toMatchObject({
       ok: false,
       code: "JWW_BASIC_SETTINGS_EDIT_UNSUPPORTED",
       willWriteBytes: false,

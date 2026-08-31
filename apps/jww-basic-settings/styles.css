@@ -95,6 +95,7 @@ h1 { margin-bottom: 0; font-size: 21px; line-height: 1.1; letter-spacing: -.02em
 .native-editable-badge { display:inline-flex; min-height:23px; align-items:center; padding:4px 8px; color:#08746e; font-size:9px; font-weight:850; white-space:nowrap; border-radius:6px; background:var(--cyan-soft); }
 .native-edit-control { width:100%; min-width:110px; min-height:36px; padding:7px 9px; color:#173846; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; font-weight:700; border:1px solid #9bcac8; border-radius:7px; background:#f8fffe; box-shadow:inset 0 1px 2px rgba(18,58,75,.05); }
 .native-edit-control:focus { outline:3px solid rgba(21,166,166,.2); border-color:var(--cyan); }
+.memo-edit-control { min-height:72px; resize:vertical; }
 .color-swatch { width: 22px; height: 22px; display: inline-block; flex: 0 0 auto; border: 1px solid rgba(18,37,53,.22); border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.38); }
 .color-swatch.small { width: 15px; height: 15px; margin-right: 8px; vertical-align: -3px; border-radius: 4px; }
 .table-scroll { overflow: auto; }

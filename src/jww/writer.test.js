@@ -419,6 +419,40 @@ describe("JWW writer", () => {
     expect(parse(rewritten, { encoding: "shift_jis" }).paper_size).toBe(4);
   });
 
+  it("patches a variable-length UTF-16 memo without changing later source bytes", () => {
+    const source = buildJwwBytes({
+      version: 700,
+      entities: [{
+        type: "LINE",
+        entity: { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } },
+      }],
+    });
+    const before = parse(source);
+    const prefixEnd = before.entity_list_offset;
+    const memo = "Gateway memo\r\n日本語";
+    const prefix = patchJwwTemplatePrefixMetadata(
+      source.slice(0, prefixEnd),
+      { memo }
+    );
+    const bytes = new Uint8Array(prefix.length + source.length - prefixEnd);
+    bytes.set(prefix, 0);
+    bytes.set(source.slice(prefixEnd), prefix.length);
+    const after = parse(bytes);
+
+    expect(after.memo).toBe(memo);
+    expect(after.paper_size).toBe(before.paper_size);
+    expect(after.write_layer_group).toBe(before.write_layer_group);
+    expect(after.layer_groups).toEqual(before.layer_groups);
+    expect(after.entities).toEqual(before.entities);
+    expect(bytes.slice(after.entity_list_offset)).toEqual(
+      source.slice(prefixEnd)
+    );
+
+    const direct = buildJwwBytes({ memo, entities: [] });
+    expect(parse(direct).memo).toBe(memo);
+    expect(parse(buildJwwBytes({ memo: "", entities: [] })).memo).toBe("");
+  });
+
   it("applies explicit layer group scales to a source template", () => {
     const source = buildJwwBytes({
       version: 700,

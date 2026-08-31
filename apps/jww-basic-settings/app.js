@@ -152,6 +152,12 @@ function renderEditControl(edit) {
       item.value = String(option.value);
       control.append(item);
     }
+  } else if (edit.control === "textarea") {
+    control = createElement(
+      "textarea",
+      "native-edit-control memo-edit-control"
+    );
+    control.rows = Number(edit.rows || 3);
   } else {
     control = createElement("input", "native-edit-control");
     control.type = "number";
@@ -162,10 +168,12 @@ function renderEditControl(edit) {
   control.dataset.editKey = edit.key;
   control.setAttribute("aria-label", edit.key);
   control.addEventListener("change", () => setDraftValue(edit, control.value));
-  if (edit.control === "number") {
+  if (edit.control === "number" || edit.control === "textarea") {
     control.addEventListener("input", () =>
       setDraftValue(edit, control.value, { rerender: false })
     );
+  }
+  if (edit.control === "number") {
     control.addEventListener("keydown", (event) => {
       if (event.key === "Enter") control.blur();
     });

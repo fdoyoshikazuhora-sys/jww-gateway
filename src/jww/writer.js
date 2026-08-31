@@ -287,6 +287,32 @@ function serializedStringEnd(bytes, offset) {
   return offset + 7 + readDwordAt(bytes, offset + 3);
 }
 
+function serializedUtf16String(value) {
+  const writer = new BinaryWriter();
+  writer.utf16String(value);
+  return writer.toUint8Array();
+}
+
+function patchTemplateMemo(templatePrefix, memo) {
+  if (memo === null || memo === undefined) return templatePrefix;
+  if (typeof memo !== "string") {
+    throw new Error("JWW memo must be a string");
+  }
+  const memoOffset = JWW_HEADER.length + 4;
+  const memoEnd = serializedStringEnd(templatePrefix, memoOffset);
+  if (memoEnd > templatePrefix.length) {
+    throw new Error("JWW template prefix ended inside the memo field");
+  }
+  const encoded = serializedUtf16String(memo);
+  const bytes = new Uint8Array(
+    templatePrefix.length - (memoEnd - memoOffset) + encoded.length
+  );
+  bytes.set(templatePrefix.slice(0, memoOffset), 0);
+  bytes.set(encoded, memoOffset);
+  bytes.set(templatePrefix.slice(memoEnd), memoOffset + encoded.length);
+  return bytes;
+}
+
 function normalizePaperCode(value) {
   if (value === null || value === undefined || value === "") return null;
   const code = Number(value);
@@ -753,6 +779,7 @@ function patchTemplateLayerStates(templatePrefix, layerStates) {
 export function patchJwwTemplatePrefixMetadata(
   templatePrefix,
   {
+    memo = null,
     paperSize = null,
     writeLayerGroup = null,
     layerGroupScales = null,
@@ -764,6 +791,7 @@ export function patchJwwTemplatePrefixMetadata(
   } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
+  bytes = patchTemplateMemo(bytes, memo);
   bytes = patchTemplatePaperSize(bytes, paperSize);
   bytes = patchTemplateWriteLayerGroup(bytes, writeLayerGroup);
   bytes = patchTemplateLayerGroupScales(bytes, layerGroupScales);
@@ -2120,7 +2148,7 @@ export function preflightJwwWrite({
 
 export function buildJwwWriteResult({
   entities,
-  memo = JWW_DEFAULT_MEMO,
+  memo = null,
   paperSize = null,
   layerGroupScales = null,
   layerGroupWriteLayers = null,
@@ -2176,6 +2204,7 @@ export function buildJwwWriteResult({
               writeLayer,
             }),
         {
+          memo,
           paperSize,
           writeLayerGroup,
           layerGroupScales,
@@ -2190,7 +2219,7 @@ export function buildJwwWriteResult({
   const writer = new BinaryWriter(templateBytes || []);
   if (!templateBytes) {
     writePreamble(writer, {
-      memo,
+      memo: memo ?? JWW_DEFAULT_MEMO,
       paperSize: normalizePaperCode(paperSize) ?? 3,
       writeLayerGroup,
       layerGroupScales,

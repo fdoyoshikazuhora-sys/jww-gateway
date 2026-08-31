@@ -1,6 +1,6 @@
 import { preflightNativeJwwSave, saveNativeJww } from "./native.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 3;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 4;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -21,6 +21,7 @@ const PAPER_CODES = new Set(
   JWW_BASIC_SETTINGS_PAPER_OPTIONS.map((option) => option.value)
 );
 const EDIT_KEYS = new Set([
+  "memo",
   "paperSize",
   "writeLayerGroup",
   "layerGroupScales",
@@ -30,6 +31,16 @@ const EDIT_KEYS = new Set([
   "layerGroupProtections",
   "layerProtections",
 ]);
+
+function normalizedMemo(value) {
+  if (typeof value !== "string" || value.length > 500000) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      "JWW memo must be a string no longer than 500000 UTF-16 code units"
+    );
+  }
+  return value;
+}
 
 function editError(code, message) {
   const error = new Error(message);
@@ -440,14 +451,18 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
   const writeLayerGroup = Object.hasOwn(edits, "writeLayerGroup")
     ? normalizedWriteLayerGroup(edits.writeLayerGroup)
     : Number(header.writeLayerGroup);
+  const memo = Object.hasOwn(edits, "memo")
+    ? normalizedMemo(edits.memo)
+    : String(header.memo || "");
   if (
+    memo !== String(header.memo || "") ||
     paperSize !== Number(header.paperSize) ||
     writeLayerGroup !== Number(header.writeLayerGroup)
   ) {
     patches.push({
       op: "replace",
       targetId: header.id,
-      record: { ...header, paperSize, writeLayerGroup },
+      record: { ...header, memo, paperSize, writeLayerGroup },
     });
   }
 

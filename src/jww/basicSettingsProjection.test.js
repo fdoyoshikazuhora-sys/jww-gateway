@@ -107,13 +107,14 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 5,
+      formatVersion: 6,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
-        version: 3,
+        version: 4,
         mode: "native-metadata-safe",
         writablePaths: [
+          "header.memo",
           "header.paperSize",
           "header.writeLayerGroup",
           "layerGroups[].scale",
@@ -152,6 +153,12 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(byId.background.value).toContain("#FFFFFF");
     expect(byId["text-fonts"].value).toBe("MS Gothic");
     expect(byId["dimension-count"].value).toBe("1");
+    expect(byId.memo.edit).toMatchObject({
+      key: "memo",
+      control: "textarea",
+      value: "Fixture memo",
+      rows: 3,
+    });
     expect(byId["write-group"].edit).toMatchObject({
       key: "writeLayerGroup",
       control: "select",

@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-08-31T08:15:48.646Z",
+  "generatedAt": "2026-08-31T09:02:06.621Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -89,8 +89,8 @@
     },
     {
       "file": "docs/JWW_NATIVE_API.md",
-      "bytes": 13324,
-      "sha256": "c90f6c00ef44055b5d71e465d0d02c6fbac43d56c8c0e99c8474effb0147bcca"
+      "bytes": 13729,
+      "sha256": "dce8d63de35ff584b67c8ce0adc33a74618f9b0d6334e844c9de267ed1316df6"
     },
     {
       "file": "docs/JWW_GATEWAY_SAMPLE_SETS.example.json",
@@ -439,13 +439,13 @@
     },
     {
       "file": "src/jww/native.js",
-      "bytes": 81886,
-      "sha256": "a195b2cb9544445256bd0573dbc01ef87a874d0cce16453c02ca9fdb84a95c74"
+      "bytes": 85033,
+      "sha256": "9015c5124e33e1cf8f8165e887b06a305c02bb4998fa68d9d003bd4b46c98399"
     },
     {
       "file": "src/jww/native.test.js",
-      "bytes": 89689,
-      "sha256": "3b5a7df8e66133b11f0a5faf0b705f8a067add0eccdaa5d3307066c664d8d540"
+      "bytes": 95735,
+      "sha256": "ba1ead31a0d6613c3cd4370911da59d5fb8e6dcc842ecf7a9a322552db69d180"
     },
     {
       "file": "src/jww/parser.js",
@@ -499,13 +499,13 @@
     },
     {
       "file": "src/jww/writer.js",
-      "bytes": 76152,
-      "sha256": "d19615cecca5e077db1b1d6b29a4ba6147e5417d5909658562ce2ec85598b5f7"
+      "bytes": 78742,
+      "sha256": "58438bb248d5258ac9b9c1776cba4912eeec75b91d98813104644131c98dfa38"
     },
     {
       "file": "src/jww/writer.test.js",
-      "bytes": 43316,
-      "sha256": "367b42a651a7e3eb5f0e9d2b209a7077e0d450d5eb6564c688952a4b6d6fcaf8"
+      "bytes": 45769,
+      "sha256": "c16a221f5d52adb34af452aed324fa44b7b85e829cacdce685c9f9f2b4502e5b"
     },
     {
       "file": "tools/jwf-parse.mjs",

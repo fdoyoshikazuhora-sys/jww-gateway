@@ -5,7 +5,7 @@ import {
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 5;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 6;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -278,6 +278,12 @@ function buildGeneralTab(document, fileName) {
         label: "Memo",
         value: header.memo || "(empty)",
         source: "header.memo",
+        edit: {
+          key: "memo",
+          control: "textarea",
+          value: String(header.memo || ""),
+          rows: 3,
+        },
       }),
       field({
         id: "paper-summary",
@@ -768,6 +774,7 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
       version: JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION,
       mode: "native-metadata-safe",
       writablePaths: [
+        "header.memo",
         "header.paperSize",
         "header.writeLayerGroup",
         "layerGroups[].scale",

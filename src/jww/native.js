@@ -496,9 +496,16 @@ function replaceNativeHeader(next, patch) {
   rejectChangedMetadataFields(
     previous,
     value,
-    new Set(["paperSize", "writeLayerGroup"]),
+    new Set(["memo", "paperSize", "writeLayerGroup"]),
     previous.id
   );
+  if (typeof value.memo !== "string" || value.memo.length > 500000) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW native memo must be a string no longer than 500000 UTF-16 code units"
+    );
+  }
+  const memo = value.memo;
   const paperSize = Number(value.paperSize);
   const writeLayerGroup = Number(value.writeLayerGroup);
   if (!JWW_NATIVE_PAPER_CODES.has(paperSize)) {
@@ -550,7 +557,7 @@ function replaceNativeHeader(next, patch) {
       state: 3,
     };
   }
-  next.header = { ...previous, paperSize, writeLayerGroup };
+  next.header = { ...previous, memo, paperSize, writeLayerGroup };
 }
 
 function replaceNativeLayerGroup(next, index, patch) {
@@ -1301,6 +1308,9 @@ export function applyNativeJwwPatches(document, patches = []) {
   const pendingPrefixMetadataTargetIds = new Set(
     document.pendingPrefixMetadataTargetIds || []
   );
+  const pendingPrefixMetadataFields = new Set(
+    document.pendingPrefixMetadataFields || []
+  );
   let pendingRequiresRebuild = Boolean(document.pendingRequiresRebuild);
   const deletedBlockDefinitions = [];
   const deletedEmbeddedImages = [];
@@ -1379,8 +1389,12 @@ export function applyNativeJwwPatches(document, patches = []) {
     }
     if (patch.op === "replace") {
       if (headerTarget) {
+        const previousMemo = next.header.memo;
         replaceNativeHeader(next, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
+        if (next.header.memo !== previousMemo) {
+          pendingPrefixMetadataFields.add("header.memo");
+        }
       } else if (layerGroupIndex >= 0) {
         replaceNativeLayerGroup(next, layerGroupIndex, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
@@ -1507,6 +1521,7 @@ export function applyNativeJwwPatches(document, patches = []) {
   next.pendingImageRotationRecordIds = [...pendingImageRotationRecordIds];
   next.pendingReplacementRecordIds = [...pendingReplacementRecordIds];
   next.pendingPrefixMetadataTargetIds = [...pendingPrefixMetadataTargetIds];
+  next.pendingPrefixMetadataFields = [...pendingPrefixMetadataFields];
   next.pendingRequiresRebuild = pendingRequiresRebuild;
   return next;
 }
@@ -1812,6 +1827,9 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
   const layerProtections = Array.from({ length: 16 }, () =>
     Array(16).fill(null)
   );
+  const pendingFields = new Set(
+    revised.pendingPrefixMetadataFields || []
+  );
   for (let index = 0; index < revised.layerGroups.length; index += 1) {
     const group = revised.layerGroups[index];
     if (targetIdSet.has(group.id)) {
@@ -1830,6 +1848,10 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
     bytes = patchJwwTemplatePrefixMetadata(
       document.originalBytes.slice(0, prefixEnd),
       {
+        memo:
+          targetIdSet.has(revised.header.id) && pendingFields.has("header.memo")
+            ? revised.header.memo
+            : null,
         paperSize: targetIdSet.has(revised.header.id)
           ? revised.header.paperSize
           : null,
@@ -1846,12 +1868,6 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
     );
   } catch (error) {
     return { ok: false, reason: error.message };
-  }
-  if (bytes.length !== prefixEnd) {
-    return {
-      ok: false,
-      reason: `JWW native prefix metadata changed byte length: ${prefixEnd} -> ${bytes.length}`,
-    };
   }
   return {
     ok: true,
@@ -1934,6 +1950,7 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
   const targetIdSet = new Set(targetIds);
   if (targetIdSet.has(revisedDocument.header.id)) {
     if (
+      savedDocument.header.memo !== revisedDocument.header.memo ||
       savedDocument.header.paperSize !== revisedDocument.header.paperSize ||
       savedDocument.header.writeLayerGroup !== revisedDocument.header.writeLayerGroup ||
       !sameNativeMetadataValue(

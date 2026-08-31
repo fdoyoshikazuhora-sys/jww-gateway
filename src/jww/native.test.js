@@ -326,6 +326,61 @@ describe("JWW native document API", () => {
     expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
   });
 
+  it("source-splices a variable-length memo while preserving every later source byte", async () => {
+    const document = await openNativeJww(fixture(700));
+    const originalPrefixEnd = document.preservedRegions.prefix.end;
+    const memo = "Gateway native memo\r\n日本語";
+    const patches = [{
+      op: "replace",
+      targetId: document.header.id,
+      record: { ...document.header, memo },
+    }];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+    const savedPrefixEnd = reopened.preservedRegions.prefix.end;
+
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      prefixMetadataUpdated: true,
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    expect(saved.bytes.length).toBeGreaterThan(0);
+    expect(saved.document.header.memo).toBe(memo);
+    expect(reopened.header.memo).toBe(memo);
+    expect(reopened.header.paperSize).toBe(document.header.paperSize);
+    expect(reopened.layerGroups).toEqual(document.layerGroups);
+    expect(reopened.nativeEntities.map((record) => record.value)).toEqual(
+      document.nativeEntities.map((record) => record.value)
+    );
+    expect(saved.bytes.slice(savedPrefixEnd)).toEqual(
+      document.originalBytes.slice(originalPrefixEnd)
+    );
+  });
+
+  it("keeps a pre-applied dirty memo patch source-spliceable", async () => {
+    const document = await openNativeJww(fixture(700));
+    const memo = "Pending native memo 日本語";
+    const dirty = applyNativeJwwPatches(document, [{
+      op: "replace",
+      targetId: document.header.id,
+      record: { ...document.header, memo },
+    }]);
+    const preflight = preflightNativeJwwSave(dirty);
+    const saved = saveNativeJww(dirty);
+
+    expect(dirty.pendingPrefixMetadataFields).toEqual(["header.memo"]);
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      preservesUnsupportedBytes: true,
+    });
+    expect(saved.document.header.memo).toBe(memo);
+    expect(saved.document.pendingPrefixMetadataFields).toBe(undefined);
+  });
+
   it("source-splices official non-current group and layer state codes", async () => {
     const document = await openNativeJww(fixture(700));
     const layers = document.layerGroups[0].layers.map((layer) => ({ ...layer }));
@@ -780,9 +835,9 @@ describe("JWW native document API", () => {
     expect(reopened.nativeEntities[0].value.end_x).toBe(77);
   });
 
-  it("rejects unsupported native header and layer-group metadata changes", async () => {
+  it("accepts memo changes and rejects unsupported native metadata changes", async () => {
     const document = await openNativeJww(fixture(700));
-    const memoPreflight = preflightNativeJwwSave(document, {
+    const memoSaved = saveNativeJww(document, {
       patches: [
         {
           op: "replace",
@@ -801,11 +856,9 @@ describe("JWW native document API", () => {
       ],
     });
 
-    expect(memoPreflight).toMatchObject({
-      ok: false,
-      code: "JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED",
-      willWriteBytes: false,
-    });
+    expect(memoSaved.strategy).toBe("prefix-splice");
+    expect(memoSaved.document.header.memo).toBe("changed");
+    expect(memoSaved.bytes.length).toBeGreaterThan(0);
     expect(namePreflight).toMatchObject({
       ok: false,
       code: "JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED",
@@ -2107,6 +2160,35 @@ describe("JWW native document API", () => {
       strategy: "blocked",
       willWriteBytes: false,
     });
+  });
+
+  it("moves a preserved trailing region without changing its bytes during memo edit", async () => {
+    const source = fixture(700);
+    const trailing = Uint8Array.from([0xde, 0xad, 0xbe, 0xef]);
+    const bytes = new Uint8Array(source.length + trailing.length);
+    bytes.set(source);
+    bytes.set(trailing, source.length);
+    const document = await openNativeJww(bytes);
+    const patches = [{
+      op: "replace",
+      targetId: document.header.id,
+      record: { ...document.header, memo: "Longer Gateway memo" },
+    }];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    expect(saved.bytes.length).toBeGreaterThan(0);
+    expect(saved.bytes.slice(-trailing.length)).toEqual(trailing);
+    expect(reopened.header.memo).toBe("Longer Gateway memo");
+    expect(reopened.diagnostics.trailingByteLength).toBe(trailing.length);
+    expect(reopened.preservedRegions.trailing.start).not.toBe(source.length);
   });
 
   it("preserves a truncated embedded image only through byte-identical or record-splice save", async () => {
