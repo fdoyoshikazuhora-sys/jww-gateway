@@ -11,6 +11,7 @@ import {
 export const JWW_NATIVE_DOCUMENT_KIND = "jww-native";
 export const JWW_NATIVE_CONTRACT_VERSION = 1;
 export const JWW_NATIVE_HEADER_ID = "jww:header";
+export const JWW_NATIVE_PRINT_SETTINGS_ID = "jww:print-settings";
 
 export function jwwNativeLayerGroupId(index) {
   return `jww:layer-group:${Number(index)}`;
@@ -386,7 +387,13 @@ function buildNativeDocument(
     settings: {
       color: parsed.color_settings || { screenColors: {} },
       lineType: parsed.line_type_settings || null,
-      print: parsed.print_settings || null,
+      print: parsed.print_settings
+        ? {
+            ...parsed.print_settings,
+            id: JWW_NATIVE_PRINT_SETTINGS_ID,
+            sourceSpan: parsed.print_settings_source_span || null,
+          }
+        : null,
       dimension: parsed.sunpou_settings || null,
       environmentRegion: parsed.environment_region || null,
       layerNamesExtracted: parsed.layer_names_extracted !== false,
@@ -450,6 +457,7 @@ function nativeRecordById(document, targetId) {
 function nativeTargetIdExists(document, targetId) {
   return Boolean(
     targetId === document.header?.id ||
+      targetId === document.settings?.print?.id ||
       (document.layerGroups || []).some((item) => item.id === targetId) ||
       nativeRecordById(document, targetId) ||
       (document.blockDefinitions || []).some((item) => item.id === targetId) ||
@@ -558,6 +566,58 @@ function replaceNativeHeader(next, patch) {
     };
   }
   next.header = { ...previous, memo, paperSize, writeLayerGroup };
+}
+
+function replaceNativePrintSettings(next, patch) {
+  const previous = next.settings?.print;
+  const value = cloneValue(unwrap(patch.record));
+  if (!previous || !value || typeof value !== "object") {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW native print settings replacement requires a metadata object"
+    );
+  }
+  rejectChangedMetadataFields(
+    previous,
+    value,
+    new Set(["origin_x", "origin_y", "scale", "rotation_setting"]),
+    previous.id
+  );
+  const originX = Number(value.origin_x);
+  const originY = Number(value.origin_y);
+  const scale = Number(value.scale);
+  const rotationSetting = Number(value.rotation_setting);
+  if (!Number.isFinite(originX) || !Number.isFinite(originY)) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW print origin must use finite X and Y values"
+    );
+  }
+  if (!Number.isFinite(scale) || scale <= 0) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `JWW print scale must be greater than zero: ${value.scale}`
+    );
+  }
+  const rotation = rotationSetting % 10;
+  const referencePosition = Math.floor(rotationSetting / 10);
+  if (
+    !Number.isInteger(rotationSetting) ||
+    rotationSetting < 0 ||
+    rotationSetting > 91 ||
+    ![0, 1].includes(rotation) ||
+    referencePosition < 0 ||
+    referencePosition > 9
+  ) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `Unsupported JWW print rotation/reference setting: ${value.rotation_setting}`
+    );
+  }
+  next.settings = {
+    ...next.settings,
+    print: { ...previous, origin_x: originX, origin_y: originY, scale, rotation_setting: rotationSetting },
+  };
 }
 
 function replaceNativeLayerGroup(next, index, patch) {
@@ -1327,11 +1387,12 @@ export function applyNativeJwwPatches(document, patches = []) {
     );
     const nestedLocation = nestedBlockRecordLocation(next, patch.targetId);
     const headerTarget = patch.targetId === next.header?.id;
+    const printSettingsTarget = patch.targetId === next.settings?.print?.id;
     const layerGroupIndex = next.layerGroups.findIndex(
       (item) => item.id === patch.targetId
     );
     if (patch.op === "delete") {
-      if (headerTarget || layerGroupIndex >= 0) {
+      if (headerTarget || printSettingsTarget || layerGroupIndex >= 0) {
         throw nativePatchError(
           "JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED",
           `JWW native fixed metadata cannot be deleted: ${patch.targetId}`
@@ -1395,6 +1456,9 @@ export function applyNativeJwwPatches(document, patches = []) {
         if (next.header.memo !== previousMemo) {
           pendingPrefixMetadataFields.add("header.memo");
         }
+      } else if (printSettingsTarget) {
+        replaceNativePrintSettings(next, patch);
+        pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (layerGroupIndex >= 0) {
         replaceNativeLayerGroup(next, layerGroupIndex, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
@@ -1702,6 +1766,7 @@ function nativeRebuildWriteOptions(
           : Number(layer?.protect)
       )
     ),
+    printSettings: revised.settings?.print || null,
     templatePrefix: document.originalBytes.slice(0, prefixEnd),
     meta: {
       jwwBlockDefinitions: revised.blockDefinitions.map((definition) =>
@@ -1806,6 +1871,7 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
   const targetIdSet = new Set(targetIds);
   const allowedIds = new Set([
     document.header?.id,
+    document.settings?.print?.id,
     ...(document.layerGroups || []).map((group) => group.id),
   ]);
   const invalidTargetId = targetIds.find((targetId) => !allowedIds.has(targetId));
@@ -1864,6 +1930,9 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
         layerStates,
         layerGroupProtections,
         layerProtections,
+        printSettings: targetIdSet.has(revised.settings?.print?.id)
+          ? revised.settings.print
+          : null,
       }
     );
   } catch (error) {
@@ -1960,6 +2029,22 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
     ) {
       const error = new Error(
         "Saved JWW header metadata was not retained after reparse"
+      );
+      error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
+      throw error;
+    }
+  }
+  if (targetIdSet.has(revisedDocument.settings?.print?.id)) {
+    const saved = savedDocument.settings?.print;
+    const revised = revisedDocument.settings?.print;
+    const retained =
+      saved?.origin_x === revised?.origin_x &&
+      saved?.origin_y === revised?.origin_y &&
+      saved?.scale === revised?.scale &&
+      saved?.rotation_setting === revised?.rotation_setting;
+    if (!retained) {
+      const error = new Error(
+        "Saved JWW print settings were not retained after reparse"
       );
       error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
       throw error;

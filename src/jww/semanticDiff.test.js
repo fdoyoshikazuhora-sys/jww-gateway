@@ -76,6 +76,34 @@ describe("JWW semantic diff", () => {
     expect(result.roundTripCompatible).toBe(false);
   });
 
+  it("reports print placement metadata changes without reporting drawing changes", () => {
+    const before = document([lineA], {
+      printSettings: {
+        origin_x: 0,
+        origin_y: 0,
+        scale: 0.70710678,
+        rotation_setting: 40,
+      },
+    });
+    const after = document([lineB], {
+      printSettings: {
+        origin_x: 12.5,
+        origin_y: -8.25,
+        scale: 1,
+        rotation_setting: 51,
+      },
+    });
+
+    const result = buildJwwSemanticDiff(before, after);
+
+    expect(result.drawingSemanticEqual).toBe(true);
+    expect(result.drawingRoundTripCompatible).toBe(true);
+    expect(result.documentMetadataEqual).toBe(false);
+    expect(result.roundTripCompatible).toBe(false);
+    expect(result.metadata.before.printSettings.rotation_setting).toBe(40);
+    expect(result.metadata.after.printSettings.rotation_setting).toBe(51);
+  });
+
   it("ignores parser byte offsets while comparing metadata values", () => {
     const before = document([lineA], {
       colorSettings: {

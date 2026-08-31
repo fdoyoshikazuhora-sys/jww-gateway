@@ -2655,4 +2655,49 @@ describe("JWW native document API", () => {
     expect(saved.document.nativeEntities[1].value.end_x).toBe(30);
     expect(saved.document.nativeEntities[2].value.end_x).toBe(50);
   });
+
+  it("source-splices stable native print settings and retains a pre-applied edit", async () => {
+    const document = await openNativeJww(fixture(700));
+    const print = document.settings.print;
+    const revisedPrint = {
+      ...print,
+      origin_x: 14.25,
+      origin_y: -3.5,
+      scale: 0.8,
+      rotation_setting: 81,
+    };
+    const patches = [{
+      op: "replace",
+      targetId: print.id,
+      record: revisedPrint,
+    }];
+    const dirty = applyNativeJwwPatches(document, patches);
+    const preflight = preflightNativeJwwSave(dirty);
+    const saved = saveNativeJww(dirty);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(print).toMatchObject({
+      id: "jww:print-settings",
+      sourceSpan: { byteLength: 28 },
+    });
+    expect(dirty.pendingPrefixMetadataTargetIds).toContain(print.id);
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    expect(reopened.settings.print).toMatchObject({
+      origin_x: 14.25,
+      origin_y: -3.5,
+      scale: 0.8,
+      rotation_setting: 81,
+    });
+    expect(saved.bytes.slice(0, print.sourceSpan.start)).toEqual(
+      document.originalBytes.slice(0, print.sourceSpan.start)
+    );
+    expect(saved.bytes.slice(print.sourceSpan.end)).toEqual(
+      document.originalBytes.slice(print.sourceSpan.end)
+    );
+  });
 });

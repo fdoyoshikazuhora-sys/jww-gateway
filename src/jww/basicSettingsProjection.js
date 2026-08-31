@@ -5,7 +5,7 @@ import {
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 6;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 7;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -31,6 +31,26 @@ const LAYER_PROTECTION_OPTIONS = Object.freeze([
   { value: 1, label: LAYER_PROTECTION_LABELS[1] },
   { value: 2, label: LAYER_PROTECTION_LABELS[2] },
 ]);
+
+const PRINT_REFERENCE_POSITIONS = Object.freeze([
+  "Unspecified",
+  "Bottom left",
+  "Bottom center",
+  "Bottom right",
+  "Middle left",
+  "Center",
+  "Middle right",
+  "Top left",
+  "Top center",
+  "Top right",
+]);
+
+const PRINT_ROTATION_OPTIONS = Object.freeze(
+  PRINT_REFERENCE_POSITIONS.flatMap((label, position) => [
+    { value: position * 10, label: `${label} · 0° (${position * 10})` },
+    { value: position * 10 + 1, label: `${label} · 90° (${position * 10 + 1})` },
+  ])
+);
 
 const PAPER_NAMES = Object.freeze({
   0: "A0",
@@ -693,10 +713,38 @@ function buildPrintTab(document) {
   const settings = document.settings?.print || {};
   return tab("print", "Print Settings", [
     fieldsSection("print-origin", "Print placement", [
-      field({ id: "print-origin-x", label: "Origin X", value: displayNumber(settings.origin_x), source: "settings.print.origin_x" }),
-      field({ id: "print-origin-y", label: "Origin Y", value: displayNumber(settings.origin_y), source: "settings.print.origin_y" }),
-      field({ id: "print-scale", label: "Print scale", value: displayNumber(settings.scale), source: "settings.print.scale" }),
-      field({ id: "print-rotation", label: "Rotation setting", value: displayNumber(settings.rotation_setting), source: "settings.print.rotation_setting" }),
+      field({ id: "print-origin-x", label: "Origin X", value: displayNumber(settings.origin_x), source: "settings.print.origin_x", edit: {
+        key: "printOriginX",
+        control: "number",
+        value: finiteNumber(settings.origin_x, 0),
+        step: "any",
+      } }),
+      field({ id: "print-origin-y", label: "Origin Y", value: displayNumber(settings.origin_y), source: "settings.print.origin_y", edit: {
+        key: "printOriginY",
+        control: "number",
+        value: finiteNumber(settings.origin_y, 0),
+        step: "any",
+      } }),
+      field({ id: "print-scale", label: "Print scale", value: displayNumber(settings.scale), source: "settings.print.scale", edit: {
+        key: "printScale",
+        control: "number",
+        value: finiteNumber(settings.scale, 1),
+        min: Number.MIN_VALUE,
+        step: "any",
+      } }),
+      field({
+        id: "print-rotation",
+        label: "Rotation / reference position",
+        value: displayNumber(settings.rotation_setting),
+        source: "settings.print.rotation_setting",
+        note: "Ones digit: 0° or 90°. Tens digit: output reference position.",
+        edit: {
+          key: "printRotationSetting",
+          control: "select",
+          value: finiteNumber(settings.rotation_setting, 0),
+          options: PRINT_ROTATION_OPTIONS,
+        },
+      }),
     ]),
   ]);
 }
@@ -783,6 +831,10 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
         "layerGroups[].protect",
         "layerGroups[].layers[].state",
         "layerGroups[].layers[].protect",
+        "settings.print.origin_x",
+        "settings.print.origin_y",
+        "settings.print.scale",
+        "settings.print.rotation_setting",
       ],
       managedInvariantPaths: ["layerGroups[].layers[].state"],
     },

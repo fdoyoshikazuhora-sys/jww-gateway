@@ -31,11 +31,15 @@ length changes. JWW has no persistent per-record UUID, so create/delete rebuilds
 may renumber records that move to a different serialized-list position.
 
 Fixed prefix metadata also has stable patch targets: `header.id` is
-`jww:header`, and each layer group has `id: jww:layer-group:<index>`. A
+`jww:header`, print placement has `id: jww:print-settings`, and each layer group
+has `id: jww:layer-group:<index>`. A
 `replace` patch may change `header.memo`, `header.paperSize`,
 `header.writeLayerGroup`, a layer group's `scale`, its `write_layer`,
-group/layer state codes, or group/layer protection codes together with the
-required current-row invariants. Official
+group/layer state codes, group/layer protection codes, or the printer output
+origin, scale, and rotation/reference code together with the required
+current-row invariants. Printer placement is the official fixed 28-byte region:
+two origin `double` values, one scale `double`, and one `DWORD` whose ones digit
+selects 0°/90° and tens digit selects the output reference position. Official
 JWW 7.02 state codes are `0` hidden, `1` visible only, `2` editable, and `3`
 current. Direct state edits accept only `0..2` on non-current rows; current rows
 remain `3`, and protection code `2` (display state fixed) rejects the edit.
@@ -51,7 +55,8 @@ Changing
 selected group state from `0`, `1`, or `2` to `3`. Changing `write_layer` sets the
 previous write layer state from `3` to `2` and the selected layer state from
 `0`, `1`, or `2` to `3`. Other source states are rejected before writing.
-Paper and layer metadata use fixed-length `prefix-splice`. The official header
+Paper, layer, and print-placement metadata use fixed-length `prefix-splice`.
+The official header
 memo is an MFC `CString`; changing its length replaces only that serialized
 string and moves the untouched remainder of the source prefix and all entity,
 block, embedded-image, unknown, and trailing bytes to their reparsed positions.

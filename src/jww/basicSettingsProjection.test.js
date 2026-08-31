@@ -69,7 +69,13 @@ function nativeDocument() {
           LTYPE_02: { pattern: "00ff00ff", params: [1, 2, 3] },
         },
       },
-      print: { origin_x: 1, origin_y: 2, scale: 0.5, rotation_setting: 1 },
+      print: {
+        id: "jww:print-settings",
+        origin_x: 1,
+        origin_y: 2,
+        scale: 0.5,
+        rotation_setting: 1,
+      },
       dimension: {
         sunpou1: 1,
         sunpou2: 2,
@@ -107,11 +113,11 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 6,
+      formatVersion: 7,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
-        version: 4,
+        version: 5,
         mode: "native-metadata-safe",
         writablePaths: [
           "header.memo",
@@ -123,6 +129,10 @@ describe("buildJwwBasicSettingsProjection", () => {
           "layerGroups[].protect",
           "layerGroups[].layers[].state",
           "layerGroups[].layers[].protect",
+          "settings.print.origin_x",
+          "settings.print.origin_y",
+          "settings.print.scale",
+          "settings.print.rotation_setting",
         ],
         managedInvariantPaths: ["layerGroups[].layers[].state"],
       },
@@ -190,6 +200,21 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(layerGroupRow.edits[5]).toMatchObject({
       key: "layerGroupWriteLayers.1",
       value: 3,
+    });
+    expect(byId["print-origin-x"].edit).toMatchObject({
+      key: "printOriginX",
+      control: "number",
+      value: 1,
+    });
+    expect(byId["print-scale"].edit).toMatchObject({
+      key: "printScale",
+      control: "number",
+      value: 0.5,
+    });
+    expect(byId["print-rotation"].edit).toMatchObject({
+      key: "printRotationSetting",
+      control: "select",
+      value: 1,
     });
     expect(layerGroupRow.cells[2]).toBe("Visible only (1)");
     expect(layerGroupRow.cells[3]).toBe("None (0)");

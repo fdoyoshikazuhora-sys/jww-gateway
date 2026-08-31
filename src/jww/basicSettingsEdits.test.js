@@ -503,4 +503,52 @@ describe("JWW Basic Settings native edits", () => {
       willWriteBytes: false,
     });
   });
+
+  it("edits and reparses the official print placement fields", async () => {
+    const document = await openNativeJww(fixture());
+    const prefixEnd = document.preservedRegions.prefix.end;
+    const edits = {
+      printOriginX: 25.5,
+      printOriginY: -10.25,
+      printScale: 0.5,
+      printRotationSetting: 71,
+    };
+
+    expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      patchCount: 1,
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(document, edits);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.settings.print).toMatchObject({
+      id: "jww:print-settings",
+      origin_x: 25.5,
+      origin_y: -10.25,
+      scale: 0.5,
+      rotation_setting: 71,
+      sourceSpan: { byteLength: 28 },
+    });
+    expect(saved.bytes.slice(prefixEnd)).toEqual(
+      document.originalBytes.slice(prefixEnd)
+    );
+  });
+
+  it("rejects invalid print scale and rotation/reference codes before writing", async () => {
+    const document = await openNativeJww(fixture());
+    for (const edits of [
+      { printScale: 0 },
+      { printOriginX: Number.NaN },
+      { printRotationSetting: 92 },
+    ]) {
+      expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+        ok: false,
+        code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        willWriteBytes: false,
+      });
+    }
+  });
 });

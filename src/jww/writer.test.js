@@ -1367,4 +1367,45 @@ describe("JWW writer", () => {
     });
     expect(result.reasons[0]).toContain("Unsupported JWW write entity types: MESH");
   });
+
+  it("patches only the official fixed-width print settings span", () => {
+    const source = buildJwwBytes({ version: 700, entities: [] });
+    const before = parse(source);
+    const span = before.print_settings_source_span;
+    const prefixEnd = before.entity_list_offset;
+    const patchedPrefix = patchJwwTemplatePrefixMetadata(
+      source.slice(0, prefixEnd),
+      {
+        printSettings: {
+          origin_x: 12.5,
+          origin_y: -8.25,
+          scale: 0.75,
+          rotation_setting: 91,
+        },
+      }
+    );
+    const bytes = new Uint8Array(patchedPrefix.length + source.length - prefixEnd);
+    bytes.set(patchedPrefix);
+    bytes.set(source.slice(prefixEnd), patchedPrefix.length);
+    const after = parse(bytes);
+
+    expect(span).toMatchObject({ byteLength: 28 });
+    expect(after.print_settings).toEqual({
+      origin_x: 12.5,
+      origin_y: -8.25,
+      scale: 0.75,
+      rotation_setting: 91,
+    });
+    expect(bytes.slice(0, span.start)).toEqual(source.slice(0, span.start));
+    expect(bytes.slice(span.end)).toEqual(source.slice(span.end));
+    let invalidMessage = "";
+    try {
+      patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+        printSettings: { ...before.print_settings, rotation_setting: 92 },
+      });
+    } catch (error) {
+      invalidMessage = error.message;
+    }
+    expect(invalidMessage).toContain("rotation/reference");
+  });
 });

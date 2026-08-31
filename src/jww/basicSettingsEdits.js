@@ -1,6 +1,6 @@
 import { preflightNativeJwwSave, saveNativeJww } from "./native.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 4;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 5;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -30,6 +30,10 @@ const EDIT_KEYS = new Set([
   "layerStates",
   "layerGroupProtections",
   "layerProtections",
+  "printOriginX",
+  "printOriginY",
+  "printScale",
+  "printRotationSetting",
 ]);
 
 function normalizedMemo(value) {
@@ -95,6 +99,39 @@ function normalizedWriteLayerGroup(value) {
     );
   }
   return writeLayerGroup;
+}
+
+function normalizedPrintNumber(value, label, { positive = false } = {}) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || (positive && number <= 0)) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      positive
+        ? `JWW ${label} must be greater than zero: ${value}`
+        : `JWW ${label} must be finite: ${value}`
+    );
+  }
+  return number;
+}
+
+function normalizedPrintRotationSetting(value) {
+  const setting = Number(value);
+  const rotation = setting % 10;
+  const referencePosition = Math.floor(setting / 10);
+  if (
+    !Number.isInteger(setting) ||
+    setting < 0 ||
+    setting > 91 ||
+    ![0, 1].includes(rotation) ||
+    referencePosition < 0 ||
+    referencePosition > 9
+  ) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      `Unsupported JWW print rotation/reference setting: ${value}`
+    );
+  }
+  return setting;
 }
 
 function normalizedLayerGroupScales(document, value) {
@@ -464,6 +501,46 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
       targetId: header.id,
       record: { ...header, memo, paperSize, writeLayerGroup },
     });
+  }
+
+  const printEditRequested = [
+    "printOriginX",
+    "printOriginY",
+    "printScale",
+    "printRotationSetting",
+  ].some((key) => Object.hasOwn(edits, key));
+  if (printEditRequested) {
+    const print = document.settings?.print;
+    if (!print?.id) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        "JWW native print settings patch target is unavailable"
+      );
+    }
+    const originX = Object.hasOwn(edits, "printOriginX")
+      ? normalizedPrintNumber(edits.printOriginX, "print origin X")
+      : Number(print.origin_x);
+    const originY = Object.hasOwn(edits, "printOriginY")
+      ? normalizedPrintNumber(edits.printOriginY, "print origin Y")
+      : Number(print.origin_y);
+    const scale = Object.hasOwn(edits, "printScale")
+      ? normalizedPrintNumber(edits.printScale, "print scale", { positive: true })
+      : Number(print.scale);
+    const rotationSetting = Object.hasOwn(edits, "printRotationSetting")
+      ? normalizedPrintRotationSetting(edits.printRotationSetting)
+      : Number(print.rotation_setting);
+    if (
+      originX !== Number(print.origin_x) ||
+      originY !== Number(print.origin_y) ||
+      scale !== Number(print.scale) ||
+      rotationSetting !== Number(print.rotation_setting)
+    ) {
+      patches.push({
+        op: "replace",
+        targetId: print.id,
+        record: { ...print, origin_x: originX, origin_y: originY, scale, rotation_setting: rotationSetting },
+      });
+    }
   }
 
   const layerGroupUpdates = new Map();

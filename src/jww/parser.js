@@ -1487,7 +1487,13 @@ export function parse(input, options = {}) {
   const write_layer_group = reader.readDword();
   let layer_groups = parseLayerGroups(reader);
   const sunpou_settings = parseSunpouSettings(reader);
+  const printSettingsStart = reader.pos;
   const print_settings = parsePrintSettings(reader);
+  const print_settings_source_span = {
+    start: printSettingsStart,
+    end: reader.pos,
+    byteLength: reader.pos - printSettingsStart,
+  };
   const grid_settings = parseGridSettings(reader);
   const textContext = {
     ...baseTextContext,
@@ -1617,6 +1623,7 @@ export function parse(input, options = {}) {
     line_type_settings,
     environment_region,
     print_settings,
+    print_settings_source_span,
     grid_settings,
     sunpou_settings,
     diagnostics,

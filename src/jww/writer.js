@@ -776,6 +776,65 @@ function patchTemplateLayerStates(templatePrefix, layerStates) {
   return bytes;
 }
 
+function normalizePrintSettings(value) {
+  if (value === null || value === undefined) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("JWW print settings must be an object");
+  }
+  const originX = Number(value.origin_x);
+  const originY = Number(value.origin_y);
+  const scale = Number(value.scale);
+  const rotationSetting = Number(value.rotation_setting);
+  if (!Number.isFinite(originX) || !Number.isFinite(originY)) {
+    throw new Error("JWW print origin must use finite X and Y values");
+  }
+  if (!Number.isFinite(scale) || scale <= 0) {
+    throw new Error(`JWW print scale must be greater than zero: ${value.scale}`);
+  }
+  const rotation = rotationSetting % 10;
+  const referencePosition = Math.floor(rotationSetting / 10);
+  if (
+    !Number.isInteger(rotationSetting) ||
+    rotationSetting < 0 ||
+    rotationSetting > 91 ||
+    ![0, 1].includes(rotation) ||
+    referencePosition < 0 ||
+    referencePosition > 9
+  ) {
+    throw new Error(
+      `Unsupported JWW print rotation/reference setting: ${value.rotation_setting}`
+    );
+  }
+  return {
+    origin_x: originX,
+    origin_y: originY,
+    scale,
+    rotation_setting: rotationSetting,
+  };
+}
+
+function patchTemplatePrintSettings(templatePrefix, printSettings) {
+  const settings = normalizePrintSettings(printSettings);
+  if (!settings) return templatePrefix;
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const sunpouSettingsByteLength = (14 + 7) * 4;
+  const printSettingsOffset =
+    layerGroupsOffset + 16 * layerGroupStride + sunpouSettingsByteLength;
+  const printSettingsByteLength = 8 + 8 + 8 + 4;
+  if (printSettingsOffset + printSettingsByteLength > bytes.length) {
+    throw new Error("JWW template prefix ended before the print settings fields");
+  }
+  writeDoubleAt(bytes, printSettingsOffset, settings.origin_x);
+  writeDoubleAt(bytes, printSettingsOffset + 8, settings.origin_y);
+  writeDoubleAt(bytes, printSettingsOffset + 16, settings.scale);
+  writeDwordAt(bytes, printSettingsOffset + 24, settings.rotation_setting);
+  return bytes;
+}
+
 export function patchJwwTemplatePrefixMetadata(
   templatePrefix,
   {
@@ -788,6 +847,7 @@ export function patchJwwTemplatePrefixMetadata(
     layerStates = null,
     layerGroupProtections = null,
     layerProtections = null,
+    printSettings = null,
   } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
@@ -800,6 +860,7 @@ export function patchJwwTemplatePrefixMetadata(
   bytes = patchTemplateLayerProtections(bytes, layerProtections);
   bytes = patchTemplateLayerGroupStates(bytes, layerGroupStates);
   bytes = patchTemplateLayerStates(bytes, layerStates);
+  bytes = patchTemplatePrintSettings(bytes, printSettings);
   return bytes;
 }
 
@@ -2156,6 +2217,7 @@ export function buildJwwWriteResult({
   layerStates = null,
   layerGroupProtections = null,
   layerProtections = null,
+  printSettings = null,
   templatePrefix = null,
   dxfMeta = {},
   meta = {},
@@ -2213,6 +2275,7 @@ export function buildJwwWriteResult({
           layerStates,
           layerGroupProtections,
           layerProtections,
+          printSettings,
         }
       )
     : null;
