@@ -34,13 +34,16 @@ Fixed prefix metadata also has stable patch targets: `header.id` is
 `jww:header`, and each layer group has `id: jww:layer-group:<index>`. A
 `replace` patch may change `header.paperSize`, `header.writeLayerGroup`, a
 layer group's `scale`, or its `write_layer` together with the required layer
-state transition. Jw_cad 10.02.1 evidence shows that changing `write_layer`
-sets the previous write layer state to `2` and the selected layer state to `3`.
+state transition. Jw_cad 10.02.1 evidence shows that changing
+`writeLayerGroup` sets the previous write group state from `3` to `2` and the
+selected group state from `0`, `1`, or `2` to `3`. Changing `write_layer` sets the
+previous write layer state to `2` and the selected layer state to `3`.
 These fields use a fixed-length `prefix-splice`; entity, block, embedded-image,
 unknown, and trailing byte regions remain unchanged. Protected groups/layers
 are rejected. Header version/memo and other layer-group fields return
 `JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED` instead of being silently
-rebuilt.
+rebuilt. The `state: 0` transition was verified by selecting a hidden group in
+Jw_cad 10.02.1, saving under a new name, and reparsing the result.
 
 The native document is the save authority. A renderer may derive a view scene,
 but that scene must not replace the native records. `saveNativeJww()` returns

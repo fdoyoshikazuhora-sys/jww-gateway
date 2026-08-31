@@ -15,6 +15,21 @@ function value(entity) {
   return entity?.value || entity;
 }
 
+function withLayerGroupState(bytes, groupIndex, state) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoOffset = 12;
+  const memoLength = output[memoOffset];
+  if (memoLength === 0xff) {
+    throw new Error("Expected a compact memo in the test fixture");
+  }
+  const paperOffset = memoOffset + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  view.setUint32(layerGroupsOffset + groupIndex * layerGroupStride, state, true);
+  return output;
+}
+
 describe("JWW writer", () => {
   it("writes and reparses an empty drawing with complete native list boundaries", () => {
     for (const version of JWW_WRITE_VERSIONS) {
@@ -438,11 +453,41 @@ describe("JWW writer", () => {
     expect(prefix.length).toBe(prefixEnd);
     expect(after.paper_size).toBe(3);
     expect(after.write_layer_group).toBe(2);
+    expect(before.layer_groups[before.write_layer_group].state).toBe(3);
+    expect(after.layer_groups[before.write_layer_group].state).toBe(2);
+    expect(after.layer_groups[2].state).toBe(3);
     expect(after.layer_groups[0].scale).toBe(20);
     expect(after.layer_groups[1].scale).toBe(50);
     expect(after.layer_groups[0].write_layer).toBe(6);
     expect(after.layer_groups[0].layers[0].state).toBe(2);
     expect(after.layer_groups[0].layers[6].state).toBe(3);
+    expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
+  });
+
+  it("patches a hidden target group to the write group without touching entity bytes", () => {
+    const source = withLayerGroupState(buildJwwBytes({
+      version: 700,
+      entities: [
+        {
+          type: "LINE",
+          entity: { start: { x: 1, y: 2 }, end: { x: 3, y: 4 } },
+        },
+      ],
+    }), 8, 0);
+    const before = parse(source);
+    const prefixEnd = before.entity_list_offset;
+    const prefix = patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+      writeLayerGroup: 8,
+    });
+    const bytes = new Uint8Array(prefix.length + source.length - prefixEnd);
+    bytes.set(prefix, 0);
+    bytes.set(source.slice(prefixEnd), prefix.length);
+    const after = parse(bytes);
+
+    expect(before.layer_groups[8].state).toBe(0);
+    expect(after.write_layer_group).toBe(8);
+    expect(after.layer_groups[before.write_layer_group].state).toBe(2);
+    expect(after.layer_groups[8].state).toBe(3);
     expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
   });
 

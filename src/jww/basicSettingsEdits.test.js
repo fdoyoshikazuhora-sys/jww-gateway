@@ -32,6 +32,21 @@ const fixture = () =>
     ],
   });
 
+function withLayerGroupState(bytes, groupIndex, state) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoOffset = 12;
+  const memoLength = output[memoOffset];
+  if (memoLength === 0xff) {
+    throw new Error("Expected a compact memo in the test fixture");
+  }
+  const paperOffset = memoOffset + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  view.setUint32(layerGroupsOffset + groupIndex * layerGroupStride, state, true);
+  return output;
+}
+
 describe("JWW Basic Settings native edits", () => {
   it("returns no patches when editable values are unchanged", async () => {
     const document = await openNativeJww(fixture());
@@ -90,6 +105,8 @@ describe("JWW Basic Settings native edits", () => {
     expect(saved.bytes.length).toBeGreaterThan(0);
     expect(saved.strategy).toBe("prefix-splice");
     expect(reopened.header).toMatchObject({ paperSize: 3, writeLayerGroup: 10 });
+    expect(reopened.layerGroups[document.header.writeLayerGroup].state).toBe(2);
+    expect(reopened.layerGroups[10].state).toBe(3);
     expect(reopened.layerGroups[0].scale).toBe(50);
     expect(reopened.layerGroups[10].scale).toBe(30);
     expect(reopened.layerGroups[0].write_layer).toBe(6);
@@ -141,5 +158,39 @@ describe("JWW Basic Settings native edits", () => {
       code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
       willWriteBytes: false,
     });
+  });
+
+  it("rejects protected write-group transitions", async () => {
+    const protectedDocument = await openNativeJww(fixture());
+    protectedDocument.layerGroups[10].protect = 1;
+    expect(preflightJwwBasicSettingsSave(protectedDocument, {
+      writeLayerGroup: 10,
+    })).toMatchObject({
+      ok: false,
+      code: "JWW_NATIVE_METADATA_PATCH_INVALID",
+      willWriteBytes: false,
+    });
+  });
+
+  it("allows the Jw_cad-proven hidden write-group transition", async () => {
+    const hiddenDocument = await openNativeJww(withLayerGroupState(fixture(), 10, 0));
+    const previousWriteLayerGroup = hiddenDocument.header.writeLayerGroup;
+    const prefixEnd = hiddenDocument.preservedRegions.prefix.end;
+
+    expect(hiddenDocument.layerGroups[10].state).toBe(0);
+    expect(preflightJwwBasicSettingsSave(hiddenDocument, {
+      writeLayerGroup: 10,
+    })).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(hiddenDocument, { writeLayerGroup: 10 });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.header.writeLayerGroup).toBe(10);
+    expect(reopened.layerGroups[previousWriteLayerGroup].state).toBe(2);
+    expect(reopened.layerGroups[10].state).toBe(3);
+    expect(saved.bytes.slice(prefixEnd)).toEqual(hiddenDocument.originalBytes.slice(prefixEnd));
   });
 });

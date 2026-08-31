@@ -325,8 +325,39 @@ function patchTemplateWriteLayerGroup(templatePrefix, writeLayerGroup) {
   const memoOffset = JWW_HEADER.length + 4;
   const paperOffset = serializedStringEnd(bytes, memoOffset);
   const writeLayerGroupOffset = paperOffset + 4;
-  if (writeLayerGroupOffset + 4 > bytes.length) {
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  if (
+    writeLayerGroupOffset + 4 > bytes.length ||
+    layerGroupsOffset + 16 * layerGroupStride > bytes.length
+  ) {
     throw new Error("JWW template prefix ended before the write layer group field");
+  }
+  const previousGroup = readDwordAt(bytes, writeLayerGroupOffset);
+  if (!Number.isInteger(previousGroup) || previousGroup < 0 || previousGroup > 15) {
+    throw new Error(`Unsupported existing JWW write layer group: ${previousGroup}`);
+  }
+  if (previousGroup !== group) {
+    const previousGroupOffset = layerGroupsOffset + previousGroup * layerGroupStride;
+    const selectedGroupOffset = layerGroupsOffset + group * layerGroupStride;
+    const previousState = readDwordAt(bytes, previousGroupOffset);
+    const selectedState = readDwordAt(bytes, selectedGroupOffset);
+    const selectedProtect = readDwordAt(bytes, selectedGroupOffset + 16);
+    if (previousState !== 3) {
+      throw new Error(
+        `Existing JWW write layer group ${previousGroup} must have state 3; received ${previousState}`
+      );
+    }
+    if (![0, 1, 2, 3].includes(selectedState)) {
+      throw new Error(
+        `JWW write layer group transition from state ${selectedState} is not verified: ${group}`
+      );
+    }
+    if (selectedProtect !== 0) {
+      throw new Error(`Protected JWW layer group cannot become the write group: ${group}`);
+    }
+    writeDwordAt(bytes, previousGroupOffset, 2);
+    writeDwordAt(bytes, selectedGroupOffset, 3);
   }
   writeDwordAt(bytes, writeLayerGroupOffset, group);
   return bytes;

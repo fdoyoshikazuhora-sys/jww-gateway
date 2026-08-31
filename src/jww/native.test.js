@@ -40,6 +40,21 @@ const fixture = (version) =>
     entities: [line()],
   });
 
+function withLayerGroupState(bytes, groupIndex, state) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoOffset = 12;
+  const memoLength = output[memoOffset];
+  if (memoLength === 0xff) {
+    throw new Error("Expected a compact memo in the test fixture");
+  }
+  const paperOffset = memoOffset + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  view.setUint32(layerGroupsOffset + groupIndex * layerGroupStride, state, true);
+  return output;
+}
+
 const fullFixture = () => {
   const base = { penColor: 3, penStyle: 2, penWidth: 4, layerGroup: 1, layer: 2 };
   return buildJwwBytes({
@@ -221,6 +236,7 @@ describe("JWW native document API", () => {
   it("source-splices native paper, write-group, scale, and current-layer metadata", async () => {
     const document = await openNativeJww(fixture(700));
     const header = { ...document.header, paperSize: 3, writeLayerGroup: 2 };
+    const previousWriteLayerGroup = Number(document.header.writeLayerGroup);
     const previousWriteLayer = Number(document.layerGroups[10].write_layer);
     const writeLayer = (previousWriteLayer + 6) % 16;
     const layers = document.layerGroups[10].layers.map((layer) => ({ ...layer }));
@@ -256,11 +272,37 @@ describe("JWW native document API", () => {
       prefixMetadataUpdated: true,
     });
     expect(reopened.header).toMatchObject({ paperSize: 3, writeLayerGroup: 2 });
+    expect(reopened.layerGroups[previousWriteLayerGroup].state).toBe(2);
+    expect(reopened.layerGroups[2].state).toBe(3);
     expect(reopened.layerGroups[10].scale).toBe(20);
     expect(reopened.layerGroups[10].write_layer).toBe(writeLayer);
     expect(reopened.layerGroups[10].layers[previousWriteLayer].state).toBe(2);
     expect(reopened.layerGroups[10].layers[writeLayer].state).toBe(3);
     expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
+  });
+
+  it("source-splices the Jw_cad-proven hidden write-group transition", async () => {
+    const bytes = withLayerGroupState(fixture(700), 8, 0);
+    const document = await openNativeJww(bytes);
+    const previousWriteLayerGroup = document.header.writeLayerGroup;
+    const patches = [
+      {
+        op: "replace",
+        targetId: document.header.id,
+        record: { ...document.header, writeLayerGroup: 8 },
+      },
+    ];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+    const prefixEnd = document.preservedRegions.prefix.end;
+
+    expect(document.layerGroups[8].state).toBe(0);
+    expect(preflight).toMatchObject({ ok: true, strategy: "prefix-splice" });
+    expect(reopened.header.writeLayerGroup).toBe(8);
+    expect(reopened.layerGroups[previousWriteLayerGroup].state).toBe(2);
+    expect(reopened.layerGroups[8].state).toBe(3);
+    expect(saved.bytes.slice(prefixEnd)).toEqual(bytes.slice(prefixEnd));
   });
 
   it("applies native prefix metadata during a required structural rebuild", async () => {
@@ -274,7 +316,7 @@ describe("JWW native document API", () => {
       {
         op: "replace",
         targetId: document.layerGroups[10].id,
-        record: { ...document.layerGroups[10], scale: 30 },
+        record: { ...document.layerGroups[10], state: 3, scale: 30 },
       },
       {
         op: "create",
@@ -294,6 +336,8 @@ describe("JWW native document API", () => {
 
     expect(preflight).toMatchObject({ ok: true, strategy: "rebuild" });
     expect(reopened.header).toMatchObject({ paperSize: 4, writeLayerGroup: 10 });
+    expect(reopened.layerGroups[document.header.writeLayerGroup].state).toBe(2);
+    expect(reopened.layerGroups[10].state).toBe(3);
     expect(reopened.layerGroups[10].scale).toBe(30);
     expect(reopened.nativeEntities.length).toBe(document.nativeEntities.length + 1);
   });

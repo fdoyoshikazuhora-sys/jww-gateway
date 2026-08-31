@@ -513,6 +513,43 @@ function replaceNativeHeader(next, patch) {
       `Unsupported JWW write layer group: ${value.writeLayerGroup}`
     );
   }
+  const previousWriteLayerGroup = Number(previous.writeLayerGroup);
+  if (writeLayerGroup !== previousWriteLayerGroup) {
+    const previousGroup = next.layerGroups[previousWriteLayerGroup];
+    const selectedGroup = next.layerGroups[writeLayerGroup];
+    if (!previousGroup || !selectedGroup) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `JWW write layer group metadata is unavailable: ${previousWriteLayerGroup} -> ${writeLayerGroup}`
+      );
+    }
+    if (Number(previousGroup.state) !== 3) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Existing JWW write layer group must have state 3: ${previousWriteLayerGroup}`
+      );
+    }
+    if (![0, 1, 2, 3].includes(Number(selectedGroup.state))) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `JWW write layer group transition from state ${selectedGroup.state} is not verified: ${writeLayerGroup}`
+      );
+    }
+    if (Number(selectedGroup.protect || 0) !== 0) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Protected JWW layer group cannot become the write group: ${writeLayerGroup}`
+      );
+    }
+    next.layerGroups[previousWriteLayerGroup] = {
+      ...previousGroup,
+      state: 2,
+    };
+    next.layerGroups[writeLayerGroup] = {
+      ...selectedGroup,
+      state: 3,
+    };
+  }
   next.header = { ...previous, paperSize, writeLayerGroup };
 }
 
@@ -1769,7 +1806,11 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
   if (targetIdSet.has(revisedDocument.header.id)) {
     if (
       savedDocument.header.paperSize !== revisedDocument.header.paperSize ||
-      savedDocument.header.writeLayerGroup !== revisedDocument.header.writeLayerGroup
+      savedDocument.header.writeLayerGroup !== revisedDocument.header.writeLayerGroup ||
+      !sameNativeMetadataValue(
+        savedDocument.layerGroups.map((group) => group.state),
+        revisedDocument.layerGroups.map((group) => group.state)
+      )
     ) {
       const error = new Error(
         "Saved JWW header metadata was not retained after reparse"

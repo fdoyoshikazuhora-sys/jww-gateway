@@ -180,6 +180,13 @@ function withWriteLayer(group, writeLayer) {
   return { ...group, write_layer: writeLayer, layers };
 }
 
+function withWriteGroupState(group, index, previousWriteGroup, writeLayerGroup) {
+  if (previousWriteGroup === writeLayerGroup) return group;
+  if (index === previousWriteGroup) return { ...group, state: 2 };
+  if (index === writeLayerGroup) return { ...group, state: 3 };
+  return group;
+}
+
 export function buildJwwBasicSettingsPatches(document, edits = {}) {
   assertNativeDocument(document);
   assertKnownEditKeys(edits);
@@ -215,14 +222,27 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
     edits.layerGroupScales
   )) {
     if (scale === Number(group.scale)) continue;
-    layerGroupUpdates.set(index, { ...group, scale });
+    const current = withWriteGroupState(
+      group,
+      index,
+      Number(header.writeLayerGroup),
+      writeLayerGroup
+    );
+    layerGroupUpdates.set(index, { ...current, scale });
   }
   for (const { index, group, writeLayer } of normalizedLayerGroupWriteLayers(
     document,
     edits.layerGroupWriteLayers
   )) {
     if (writeLayer === Number(group.write_layer)) continue;
-    const current = layerGroupUpdates.get(index) || group;
+    const current =
+      layerGroupUpdates.get(index) ||
+      withWriteGroupState(
+        group,
+        index,
+        Number(header.writeLayerGroup),
+        writeLayerGroup
+      );
     layerGroupUpdates.set(index, withWriteLayer(current, writeLayer));
   }
   for (const [index, record] of [...layerGroupUpdates.entries()].sort(
