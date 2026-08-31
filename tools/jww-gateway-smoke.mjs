@@ -73,17 +73,42 @@ export async function main() {
   if (!manifest.capabilities?.reportIndex) {
     throw new Error("manifest is missing reportIndex capability");
   }
-  if (!manifest.capabilities || manifest.capabilities.jwwWrite !== false) {
-    throw new Error("manifest must state that JWW write is unsupported");
+  if (!manifest.capabilities?.jwwWrite) {
+    throw new Error("manifest is missing bounded JWW write capability");
   }
-  if (!manifest.openItems?.some((item) => item.id === "jww-write")) {
-    throw new Error("manifest is missing open item metadata");
+  if (!manifest.capabilities?.semanticDiff) {
+    throw new Error("manifest is missing semanticDiff capability");
+  }
+  if (manifest.openItems?.some((item) => item.id === "jww-write")) {
+    throw new Error("resolved bounded writer gate remains in open items");
+  }
+  if (manifest.openItems?.some((item) => item.id === "jww-text-decoration-rendering")) {
+    throw new Error("downstream text rendering remains in Gateway open items");
+  }
+  const versionConformance = manifest.openItems?.find(
+    (item) => item.id === "jww-version-conformance"
+  );
+  if (!versionConformance?.detail?.includes("Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities")) {
+    throw new Error("version conformance evidence boundary is missing");
+  }
+  if (manifest.unresolvedEnvironmentKeys?.length) {
+    throw new Error("manifest must not contain unresolved JWF environment keys");
   }
   if (
-    !manifest.unresolvedEnvironmentKeys?.includes("LTYPE_HC") ||
-    !manifest.unresolvedEnvironmentKeys?.includes("LCOLLOR_M")
+    !manifest.jwfOnlyOperationKeys?.includes("LTYPE_HC") ||
+    !manifest.jwfOnlyOperationKeys?.includes("LCOLLOR_M") ||
+    !manifest.jwfOnlyOperationKeys?.includes("LAYCOL_0") ||
+    !manifest.jwfOnlyOperationKeys?.includes("LAYWID_F") ||
+    !manifest.jwfOnlyOperationKeys?.includes("LAYTYP_F") ||
+    manifest.jwfOnlyOperationKeys.length !== 50
   ) {
-    throw new Error("manifest is missing unresolved core environment keys");
+    throw new Error("manifest is missing JWF-only operation keys");
+  }
+  if (!packageJson.bin?.["jww-writer"]){
+    throw new Error("package.json is missing jww-writer bin entry");
+  }
+  if (!packageJson.bin?.["jww-semantic-diff"]){
+    throw new Error("package.json is missing jww-semantic-diff bin entry");
   }
   if (!packageJson.bin?.["jww-gateway"]) {
     throw new Error("package.json is missing jww-gateway bin entry");
@@ -217,14 +242,17 @@ export async function main() {
   if (!readme.includes("reports\\") || !readme.includes("npm run verify")) {
     throw new Error("README.md is missing package verification notes");
   }
-  if (!readme.includes("direct-match true/false")) {
-    throw new Error("README.md is missing direct-match summary notes");
+  if (
+    !readme.includes("gatewayStatus: not-serialized") ||
+    !readme.includes("not parser promotion candidates")
+  ) {
+    throw new Error("README.md is missing non-serialized JWF key notes");
   }
   if (!readme.includes("open-items")) {
     throw new Error("README.md is missing open-items notes");
   }
   if (!readme.includes("LTYPE_HC") || !readme.includes("LCOLLOR_M")) {
-    throw new Error("README.md is missing unresolved core key notes");
+    throw new Error("README.md is missing JWF-only operation key notes");
   }
   if (!handoff.includes("verify:handoff") || !handoff.includes("sample:plan")) {
     throw new Error("JWW_GATEWAY_HANDOFF.md is missing entry-point commands");
@@ -495,10 +523,21 @@ export async function main() {
     );
   }
   const openItemsReport = openItems.buildOpenItemsReport(manifest);
-  if (!openItemsReport.openItems.some((item) => item.id === "LCOLLOR_M")) {
-    throw new Error("open items report is missing LCOLLOR_M");
+  if (openItemsReport.openItems.some((item) => item.id === "LCOLLOR_M")) {
+    throw new Error("resolved JWF-only key LCOLLOR_M remains in open items");
   }
-  if (!openItems.formatOpenItemsText(openItemsReport).includes("JWW write")) {
+  if (
+    openItemsReport.openItems.some(
+      (item) => item.id === "LAYCOL_LAYWID_LAYTYP"
+    )
+  ) {
+    throw new Error("resolved JWF-only layer defaults remain in open items");
+  }
+  if (
+    !openItems
+      .formatOpenItemsText(openItemsReport)
+      .includes("JWW version and entity conformance corpus")
+  ) {
     throw new Error("open items text output is not working");
   }
   if (typeof reportIndex.buildReportIndex !== "function") {

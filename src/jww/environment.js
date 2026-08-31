@@ -1,4 +1,5 @@
 import { jwwKey } from "./shared.js";
+import { JWF_ONLY_OPERATION_KEYS } from "./jwf.js";
 
 const JWF_KEYS = [
   "S_COMM_0",
@@ -257,7 +258,10 @@ export function buildJwwEnvironment(doc = {}) {
   const lineTypeSettings = doc.line_type_settings || null;
   const layerGroups = doc.layer_groups || [];
   const supported = supportedKeySet(doc);
-  const missing = JWF_KEYS.filter((key) => !supported.has(key));
+  const missing = JWF_KEYS.filter(
+    (key) =>
+      !supported.has(key) && !JWF_ONLY_OPERATION_KEYS.includes(key)
+  );
 
   return {
     source: "jww",
@@ -266,6 +270,7 @@ export function buildJwwEnvironment(doc = {}) {
       totalJwfKeysTracked: JWF_KEYS.length,
       supportedKeys: Array.from(supported).sort(),
       missingJwfKeys: missing,
+      nonSerializedJwfKeys: [...JWF_ONLY_OPERATION_KEYS],
       partialKeys: [
         "LCOLLOR_*",
         "PCOLLOR_*",
@@ -291,9 +296,12 @@ export function buildJwwEnvironment(doc = {}) {
         ...(doc.layer_names_extracted === false
           ? { LAYNAM: "layer name block looked binary; default names were used" }
           : {}),
-        LAYCOL: "not extracted yet",
-        LAYWID: "not extracted yet",
-        LAYTYP: "not extracted yet",
+      },
+      jwfOnlyDefaults: {
+        LAYCOL:
+          "write-layer color-switch defaults; not serialized into JWW",
+        LAYWID: "write-layer width defaults; not serialized into JWW",
+        LAYTYP: "write-layer line-type defaults; not serialized into JWW",
       },
     },
     colors: {
@@ -344,14 +352,14 @@ export function buildJwwEnvironment(doc = {}) {
       offset: lineTypeSettings?.offset,
       byteLength: lineTypeSettings?.byteLength,
       score: lineTypeSettings?.score,
-      LTYPE_HC_candidate: lineTypeSettings?.tailCandidate || null,
+      postLineTypeTailCandidate: lineTypeSettings?.tailCandidate || null,
       missing: {
-        ...(lineTypeSettings?.rows
-          ? { LTYPE_HC: "not extracted yet" }
-          : {
+        ...(!lineTypeSettings?.rows
+          ? {
               LTYPE:
                 "entity pen_style is extracted, actual JWF line pattern table is not",
-            }),
+            }
+          : {}),
       },
     },
     commands: {
@@ -372,6 +380,18 @@ export function buildJwwEnvironment(doc = {}) {
       memo: doc.memo || "",
       version: doc.version ?? null,
       environmentRegion: doc.environment_region || null,
+    },
+    jwfOnly: {
+      LTYPE_HC:
+        "selection/crossline helper and endpoint behavior; not serialized into JWW",
+      LCOLLOR_M:
+        "zoom-operation text color; not serialized into JWW",
+      "LAYCOL_0..F":
+        "write-layer color-switch defaults; not serialized into JWW",
+      "LAYWID_0..F":
+        "write-layer width defaults; not serialized into JWW",
+      "LAYTYP_0..F":
+        "write-layer line-type defaults; not serialized into JWW",
     },
   };
 }

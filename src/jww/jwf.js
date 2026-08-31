@@ -1,6 +1,20 @@
 const DEFAULT_ENCODING = "shift_jis";
 const JWF_HEX_KEYS = "0123456789ABCDEF".split("");
 
+export const JWF_ONLY_OPERATION_KEYS = [
+  "LTYPE_HC",
+  "LCOLLOR_M",
+  ...JWF_HEX_KEYS.flatMap((groupKey) => [
+    `LAYCOL_${groupKey}`,
+    `LAYWID_${groupKey}`,
+    `LAYTYP_${groupKey}`,
+  ]),
+];
+
+export function isJwfOnlyOperationKey(key) {
+  return JWF_ONLY_OPERATION_KEYS.includes(key);
+}
+
 function decodeBytes(bytes, encoding = DEFAULT_ENCODING) {
   const data = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes || []);
   try {
@@ -60,6 +74,9 @@ function familyForKey(key) {
 }
 
 function scopeForKey(key) {
+  if (isJwfOnlyOperationKey(key)) {
+    return "operation";
+  }
   if (/^(LCOLLOR_|PCOLLOR_|LTYPE_|LAYNAM_|LAYCOL_|LAYWID_|LAYTYP_|LAYSCALE$)/.test(key)) {
     return "drawing";
   }
@@ -95,7 +112,16 @@ function definitionForKey(key) {
   };
   if (screenSpecials[key]) {
     const [label, valueSchema] = screenSpecials[key];
-    return { label, valueSchema };
+    return {
+      label,
+      valueSchema,
+      ...(key === "LCOLLOR_M"
+        ? {
+            note:
+              "JWF-only zoom-operation text color. Controlled Jw_cad 10.02.1 Save As tests show that this value is not serialized into JWW.",
+          }
+        : {}),
+    };
   }
   if (/^PCOLLOR_[1-8]$/.test(key)) {
     return {
@@ -118,7 +144,7 @@ function definitionForKey(key) {
   }
   if (key === "LTYPE_HC") {
     return {
-      label: "line type helper / endpoint setting",
+      label: "selection/crossline helper and endpoint setting",
       valueSchema: [
         "selectionTemporaryLineTypeNo",
         "crosslineCursorLineTypeNo",
@@ -128,7 +154,7 @@ function definitionForKey(key) {
         "lineEndStyle",
       ],
       note:
-        "JWF meaning is documented in Sample.jwf; JWW binary extraction remains candidate-only until real files direct-match.",
+        "JWF-only operation/display setting. Controlled Jw_cad 10.02.1 Save As tests show that these six values are not serialized into JWW.",
     };
   }
   if (key === "LAYNAM_N") {
@@ -148,21 +174,21 @@ function definitionForKey(key) {
     return {
       label: "default layer color",
       valueSchema: ["layer0", "layer1", "...", "layerF"],
-      note: "0 means no color switch; 1..9 are JWW line colors, with 9 for auxiliary line.",
+      note: "JWF-only write-layer operation default; not serialized into JWW. 0 means no color switch; 1..9 are JWW line colors, with 9 for auxiliary line.",
     };
   }
   if (/^LAYWID_[0-9A-F]$/.test(key)) {
     return {
       label: "default layer width",
       valueSchema: ["layer0", "layer1", "...", "layerF"],
-      note: "-2 keeps current width, -1 uses the current color width, 0..30000 sets width.",
+      note: "JWF-only write-layer operation default; not serialized into JWW. -2 keeps current width, -1 uses the current color width, 0..30000 sets width.",
     };
   }
   if (/^LAYTYP_[0-9A-F]$/.test(key)) {
     return {
       label: "default layer line type",
       valueSchema: ["layer0", "layer1", "...", "layerF"],
-      note: "0 means no line type switch; valid line types are 0..19 except 10.",
+      note: "JWF-only write-layer operation default; not serialized into JWW. 0 means no line type switch; valid line types are 0..19 except 10.",
     };
   }
   if (key === "P_dpi") {
@@ -579,6 +605,7 @@ function buildLineTypeSettings(entries) {
   return {
     source: "jwf",
     rows,
+    helperEndpoint: rows.LTYPE_HC || null,
     hatchCandidate: rows.LTYPE_HC || null,
   };
 }

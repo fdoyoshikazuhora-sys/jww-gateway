@@ -2,7 +2,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseJwfBytes } from "../src/jww/jwf.js";
+import {
+  isJwfOnlyOperationKey,
+  parseJwfBytes,
+} from "../src/jww/jwf.js";
 import {
   candidatePatterns,
   isLowInformationNumericSequence,
@@ -158,15 +161,10 @@ export function scanValues(
 }
 
 function gatewayCandidateForKey(key, environment = {}) {
-  if (key === "LTYPE_HC") {
-    return environment.lineTypes?.LTYPE_HC_candidate || null;
-  }
-  if (key === "LCOLLOR_M") {
+  if (isJwfOnlyOperationKey(key)) {
     return {
-      LCOLLOR_S: environment.colors?.LCOLLOR_S || null,
-      LCOLLOR_K: environment.colors?.LCOLLOR_K || null,
-      LCOLLOR_Z: environment.colors?.LCOLLOR_Z || null,
-      LCOLLOR_M: environment.colors?.LCOLLOR_M || null,
+      nonSerializedJwfKey: true,
+      reason: "JWF-only operation/default setting; not serialized into JWW",
     };
   }
   return null;
@@ -193,6 +191,13 @@ function rgbHex(values = []) {
 
 function compareGatewayCandidate(key, values = [], candidate = null) {
   if (!candidate) return null;
+  if (candidate.nonSerializedJwfKey) {
+    return {
+      nonSerializedJwfKey: true,
+      comparisonRequired: false,
+      reason: candidate.reason,
+    };
+  }
   if (key === "LTYPE_HC") {
     return {
       expectedValues: values,
@@ -302,12 +307,19 @@ function gatewayContextForJww(jwwBytes, encoding) {
   const environment = converted.meta?.jwwEnvironment || {};
   const supported = new Set(environment.coverage?.supportedKeys || []);
   const missing = new Set(environment.coverage?.missingJwfKeys || []);
+  const nonSerialized = new Set(
+    environment.coverage?.nonSerializedJwfKeys || []
+  );
   return {
     environment,
     extractionStatus: Object.fromEntries(
-      [...supported, ...missing].map((key) => [
+      [...supported, ...missing, ...nonSerialized].map((key) => [
         key,
-        supported.has(key) ? "extracted" : "missing",
+        supported.has(key)
+          ? "extracted"
+          : nonSerialized.has(key)
+            ? "not-serialized"
+            : "missing",
       ])
     ),
   };

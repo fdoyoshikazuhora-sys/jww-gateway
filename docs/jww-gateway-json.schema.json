@@ -44,6 +44,9 @@
         "lineTypeSettings": {
           "anyOf": [{ "$ref": "#/$defs/lineTypeSettings" }, { "type": "null" }]
         },
+        "jwwInternalSettings": {
+          "$ref": "#/$defs/jwwInternalSettings"
+        },
         "layerNamesExtracted": {
           "type": "boolean"
         },
@@ -182,6 +185,66 @@
         "tailCandidate": { "type": "object" }
       },
       "additionalProperties": true
+    },
+    "jwwInternalSettings": {
+      "type": "object",
+      "required": ["sentinel", "records"],
+      "properties": {
+        "sentinel": {
+          "type": "object",
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "$ref": "#/$defs/point" },
+            "end": { "$ref": "#/$defs/point" }
+          },
+          "additionalProperties": false
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "sourceIndex",
+              "key",
+              "settingValue",
+              "text",
+              "startPoint",
+              "endPoint"
+            ],
+            "properties": {
+              "id": { "type": "string" },
+              "sourceIndex": { "type": "integer", "minimum": 0 },
+              "key": { "type": "string" },
+              "settingValue": { "type": "number" },
+              "text": { "type": "string" },
+              "rawText": { "type": "string" },
+              "resolvedText": { "type": "string" },
+              "startPoint": { "$ref": "#/$defs/point" },
+              "endPoint": { "$ref": "#/$defs/point" },
+              "textType": { "type": "integer" },
+              "sizeX": { "type": "number" },
+              "sizeY": { "type": "number" },
+              "spacing": { "type": "number" },
+              "angle": { "type": "number" },
+              "fontFamily": { "type": "string" },
+              "layer": { "type": "string" },
+              "jww": { "type": "object" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "point": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      },
+      "additionalProperties": false
     },
     "jwwEnvironment": {
       "type": "object",

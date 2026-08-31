@@ -15,10 +15,17 @@ function fixturePath(file) {
 function extractionStatusFromEnvironment(environment = {}) {
   const supported = new Set(environment.coverage?.supportedKeys || []);
   const missing = new Set(environment.coverage?.missingJwfKeys || []);
+  const nonSerialized = new Set(
+    environment.coverage?.nonSerializedJwfKeys || []
+  );
   return Object.fromEntries(
-    [...new Set([...supported, ...missing])].map((key) => [
+    [...new Set([...supported, ...missing, ...nonSerialized])].map((key) => [
       key,
-      supported.has(key) ? "extracted" : "missing",
+      supported.has(key)
+        ? "extracted"
+        : nonSerialized.has(key)
+          ? "not-serialized"
+          : "missing",
     ])
   );
 }
@@ -46,17 +53,25 @@ async function valueScanRows(baseName) {
 }
 
 describe("generated JWF/JWW fixture pairs", () => {
-  it("keeps LTYPE_HC and LCOLLOR_M sample-blocked without direct matches", async () => {
+  it("classifies LTYPE_HC and LCOLLOR_M as non-serialized JWF-only keys", async () => {
     const rows = await valueScanRows("jwf-open-items-core");
     const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
 
     expect(byKey.LTYPE_HC.status).toBe("missing");
+    expect(byKey.LTYPE_HC.gatewayCandidate).toMatchObject({
+      nonSerializedJwfKey: true,
+    });
     expect(byKey.LTYPE_HC.gatewayCandidateComparison).toMatchObject({
-      directU32Match: false,
+      nonSerializedJwfKey: true,
+      comparisonRequired: false,
     });
     expect(byKey.LCOLLOR_M.status).toBe("missing");
+    expect(byKey.LCOLLOR_M.gatewayCandidate).toMatchObject({
+      nonSerializedJwfKey: true,
+    });
     expect(byKey.LCOLLOR_M.gatewayCandidateComparison).toMatchObject({
-      directSpecialMatch: false,
+      nonSerializedJwfKey: true,
+      comparisonRequired: false,
     });
 
     const specialAudit = await buildSpecialColorAudit({
@@ -70,7 +85,7 @@ describe("generated JWF/JWW fixture pairs", () => {
     expect(specialAudit.counts.directMatches).toBe(0);
   });
 
-  it("keeps layer default rows audit-only when saved JWW has no direct row matches", async () => {
+  it("classifies layer default rows as non-serialized JWF-only keys", async () => {
     const audit = await buildLayerDefaultsAudit({
       jww: fixturePath("jwf-open-items-layer-defaults.jww"),
       jwf: fixturePath("jwf-open-items-layer-defaults.jwf"),
@@ -82,6 +97,7 @@ describe("generated JWF/JWW fixture pairs", () => {
     expect(audit.counts).toMatchObject({
       rows: 3,
       missing: 3,
+      nonSerialized: 3,
       directMatchCandidates: 0,
       promotionCandidates: 0,
     });
@@ -90,5 +106,24 @@ describe("generated JWF/JWW fixture pairs", () => {
       "LAYTYP_0",
       "LAYWID_0",
     ]);
+    expect(audit.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "LAYCOL_0",
+          gatewayStatus: "not-serialized",
+          nonSerializedJwfKey: true,
+        }),
+        expect.objectContaining({
+          key: "LAYWID_0",
+          gatewayStatus: "not-serialized",
+          nonSerializedJwfKey: true,
+        }),
+        expect.objectContaining({
+          key: "LAYTYP_0",
+          gatewayStatus: "not-serialized",
+          nonSerializedJwfKey: true,
+        }),
+      ])
+    );
   });
 });

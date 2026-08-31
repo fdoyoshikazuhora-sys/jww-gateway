@@ -14,7 +14,7 @@
 </head>
 <body>
   <h1>JWW Gateway Open Items</h1>
-  <p class="meta">Package jww-gateway 0.1.0 / 6 items</p>
+  <p class="meta">Package jww-gateway 0.1.0 / 7 items</p>
   <table>
     <thead>
       <tr><th>ID</th><th>Status</th><th>Category</th><th>Class</th><th>Impact</th><th>Decision</th><th>Title</th><th>Detail</th><th>Evidence</th><th>Next</th></tr>
@@ -22,15 +22,27 @@
     <tbody>
       <tr>
         <td>jww-write</td>
-        <td>not-supported</td>
+        <td>partial-supported</td>
         <td>output</td>
-        <td>separate-project</td>
-        <td>none for import; required only for round-trip JWW editing</td>
-        <td>not a release blocker for read-only Gateway</td>
+        <td>bounded-writer</td>
+        <td>enables explicit v600/v700 output for supported entities; unsupported entities fail by default</td>
+        <td>publish as a bounded writer without a universal JWW compatibility claim</td>
         <td>JWW save/write</td>
-        <td>Gateway is read/import only. Editing results are exported as JWW Gateway JSON and do not update the source JWW file.</td>
-        <td>capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.</td>
-        <td>Keep JWW write disabled until a separate writer format and round-trip test suite exist.</td>
+        <td>Gateway writes internal versions 600 and 700 from Gateway JSON, including native CDataSunpou dimensions, CDataBlock/CDataList blocks, external image references, and v700 embedded image payloads.</td>
+        <td>writer tests and the generated entity-family corpus parse and semantically compare v600/v700 output; Jw_cad 10.02.1 also reopened native block and embedded-image fixtures.</td>
+        <td>Add independently authored real drawings and record Jw_cad reopen/resave evidence for every supported entity family and target Jw_cad release.</td>
+      </tr>
+      <tr>
+        <td>jww-version-conformance</td>
+        <td>sample-blocked</td>
+        <td>compatibility</td>
+        <td>sample-blocked</td>
+        <td>high for exact import claims; current bundled samples do not cover current Jw_cad versions or the full entity set</td>
+        <td>do not claim version-wide or round-trip compatibility from the bundled corpus</td>
+        <td>JWW version and entity conformance corpus</td>
+        <td>The generated round-trip corpus covers seven v600 and eight v700 fixtures across line, arc/circle/ellipse, text/point, solid, dimension, block, and image families. Local Jw_cad drawings remain separate and are not redistributed.</td>
+        <td>npm run roundtrip:corpus requires parser-clean drawing and document semantic equality for every generated fixture; npm run verify:conformance separately records observed real-file parse coverage.</td>
+        <td>Add Jw_cad-produced fixtures for each target application version and entity family, then record reopen and resave evidence separately.</td>
       </tr>
       <tr>
         <td>LTYPE_HC</td>

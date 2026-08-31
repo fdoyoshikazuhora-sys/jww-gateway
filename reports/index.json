@@ -1,16 +1,30 @@
 {
   "format": "jww-gateway-report-index",
-  "generatedAt": "2026-08-27T02:26:55.246Z",
+  "generatedAt": "2026-08-27T15:07:59.121Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestGeneratedAt": "2026-06-04T23:08:20.848Z",
   "reportsDir": "reports",
   "counts": {
-    "reportGroups": 8,
-    "availableGroups": 2,
-    "files": 14
+    "reportGroups": 9,
+    "availableGroups": 3,
+    "files": 15
   },
   "rows": [
+    {
+      "id": "conformance",
+      "title": "Conformance audit",
+      "files": [
+        {
+          "file": "conformance.json",
+          "exists": true,
+          "path": "reports/conformance.json"
+        }
+      ],
+      "command": "npm run verify:conformance",
+      "purpose": "Observed JWW versions, entity types, unsupported classes, and skipped records without claiming write or round-trip compatibility.",
+      "available": true
+    },
     {
       "id": "verify-report",
       "title": "Verify report",

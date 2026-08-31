@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Read-only native JWW Basic Settings inspector" />
+    <title>JWW Basic Settings</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">JW</div>
+          <div>
+            <p class="eyebrow">JWW Gateway child app</p>
+            <h1>JWW Basic Settings</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span class="read-only-pill">Read only</span>
+          <button class="primary-button" id="open-button" type="button">Open JWW</button>
+          <input id="file-input" type="file" accept=".jww,application/octet-stream" hidden />
+        </div>
+      </header>
+
+      <section class="source-strip" id="source-strip" aria-live="polite">
+        <div>
+          <p class="source-name" id="source-name">No JWW file loaded</p>
+          <p class="source-detail" id="source-detail">Choose a local JWW file. It stays on this device.</p>
+        </div>
+        <div class="source-metrics" id="source-metrics"></div>
+      </section>
+
+      <div class="workspace">
+        <aside class="sidebar" aria-label="Basic Settings sections">
+          <nav class="tab-list" id="tab-list"></nav>
+          <div class="legend" id="legend"></div>
+        </aside>
+
+        <main class="content" id="content">
+          <section class="empty-state" id="empty-state">
+            <div class="empty-icon" aria-hidden="true"><span></span><span></span><span></span></div>
+            <p class="eyebrow">Native settings inspector</p>
+            <h2>Open a JWW document</h2>
+            <p>Paper, group scales, layers, colors, line types, text observations, dimension fields, print settings and parser diagnostics will appear here.</p>
+            <button class="secondary-button" id="empty-open-button" type="button">Choose JWW file</button>
+            <p class="empty-footnote">JWF-only settings are never guessed or applied automatically.</p>
+          </section>
+          <div id="settings-view" hidden></div>
+        </main>
+      </div>
+
+      <footer class="statusbar">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Ready. No file is loaded.</span>
+        <span class="status-spacer"></span>
+        <span>No bytes are changed by this app.</span>
+      </footer>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

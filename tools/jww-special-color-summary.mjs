@@ -146,7 +146,7 @@ export async function summarizeSpecialColorAudits(inputFiles) {
     conclusion:
       directMatches > 0
         ? "Direct LCOLLOR_M matches were found. Review before promotion."
-        : "No direct LCOLLOR_M matches were found. Keep LCOLLOR_M unresolved.",
+        : "No direct LCOLLOR_M matches were found, as expected for this JWF-only operation color.",
     byRelativeOffset: relativeOffsetSummary,
     byHex: hexSummary,
   };

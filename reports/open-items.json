@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-open-items",
-  "generatedAt": "2026-08-27T02:26:48.802Z",
+  "generatedAt": "2026-08-27T15:07:53.745Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -10,29 +10,31 @@
     "LCOLLOR_M"
   ],
   "counts": {
-    "total": 6,
+    "total": 7,
     "byStatus": {
-      "not-supported": 1,
-      "sample-blocked": 2,
+      "partial-supported": 1,
+      "sample-blocked": 3,
       "audit-only": 1,
       "downstream-renderer": 1,
       "needs-samples": 1
     },
     "byCategory": {
       "output": 1,
+      "compatibility": 1,
       "jwf-environment": 3,
       "renderer": 1,
       "geometry": 1
     },
     "byClassification": {
-      "separate-project": 1,
-      "sample-blocked": 2,
+      "bounded-writer": 1,
+      "sample-blocked": 3,
       "audit-only": 1,
       "metadata-ready": 1,
       "sample-comparison": 1
     },
     "byReleaseDecision": {
-      "not a release blocker for read-only Gateway": 1,
+      "publish as a bounded writer without a universal JWW compatibility claim": 1,
+      "do not claim version-wide or round-trip compatibility from the bundled corpus": 1,
       "keep open until direct matches repeat in real files": 1,
       "keep open until exact RGB matches repeat in real files": 1,
       "not promoted until a stable storage pattern is found": 1,
@@ -43,15 +45,27 @@
   "openItems": [
     {
       "id": "jww-write",
-      "status": "not-supported",
+      "status": "partial-supported",
       "category": "output",
-      "classification": "separate-project",
-      "conversionImpact": "none for import; required only for round-trip JWW editing",
-      "releaseDecision": "not a release blocker for read-only Gateway",
+      "classification": "bounded-writer",
+      "conversionImpact": "enables explicit v600/v700 output for supported entities; unsupported entities fail by default",
+      "releaseDecision": "publish as a bounded writer without a universal JWW compatibility claim",
       "title": "JWW save/write",
-      "detail": "Gateway is read/import only. Editing results are exported as JWW Gateway JSON and do not update the source JWW file.",
-      "evidence": "capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.",
-      "nextAction": "Keep JWW write disabled until a separate writer format and round-trip test suite exist."
+      "detail": "Gateway writes internal versions 600 and 700 from Gateway JSON, including native CDataSunpou dimensions, CDataBlock/CDataList blocks, external image references, and v700 embedded image payloads.",
+      "evidence": "writer tests and the generated entity-family corpus parse and semantically compare v600/v700 output; Jw_cad 10.02.1 also reopened native block and embedded-image fixtures.",
+      "nextAction": "Add independently authored real drawings and record Jw_cad reopen/resave evidence for every supported entity family and target Jw_cad release."
+    },
+    {
+      "id": "jww-version-conformance",
+      "status": "sample-blocked",
+      "category": "compatibility",
+      "classification": "sample-blocked",
+      "conversionImpact": "high for exact import claims; current bundled samples do not cover current Jw_cad versions or the full entity set",
+      "releaseDecision": "do not claim version-wide or round-trip compatibility from the bundled corpus",
+      "title": "JWW version and entity conformance corpus",
+      "detail": "The generated round-trip corpus covers seven v600 and eight v700 fixtures across line, arc/circle/ellipse, text/point, solid, dimension, block, and image families. Local Jw_cad drawings remain separate and are not redistributed.",
+      "evidence": "npm run roundtrip:corpus requires parser-clean drawing and document semantic equality for every generated fixture; npm run verify:conformance separately records observed real-file parse coverage.",
+      "nextAction": "Add Jw_cad-produced fixtures for each target application version and entity family, then record reopen and resave evidence separately."
     },
     {
       "id": "LTYPE_HC",

@@ -54,19 +54,10 @@ describe("buildJwwEnvironment", () => {
           },
         },
         tailCandidate: {
-          key: "LTYPE_HC",
+          key: "POST_LINE_TYPE_TAIL",
           offset: 116,
           byteLength: 24,
           u32: [0, 1, 2, 1, 0, 0],
-          u32Semantic: {
-            selectionTemporaryLineTypeNo: 0,
-            crosslineCursorLineTypeNo: 1,
-            dashPitchAutoAdjust: 2,
-            rightClickBaseLineColorNo: 1,
-            rightClickBaseLineTypeNo: 0,
-            lineEndStyle: 0,
-            lineEndStyleName: "round",
-          },
           u16: [0, 0, 1, 0, 2, 0, 1, 0, 0, 0, 0, 0],
           note: "candidate",
         },
@@ -98,7 +89,7 @@ describe("buildJwwEnvironment", () => {
     expect(environment.colors.LCOLLOR_Z.hex).toBe("#808080");
     expect(environment.print.scale).toBe(100);
     expect(environment.lineTypes.LTYPE_02.pattern).toBe("99999999");
-    expect(environment.lineTypes.LTYPE_HC_candidate.u32).toEqual([
+    expect(environment.lineTypes.postLineTypeTailCandidate.u32).toEqual([
       0,
       1,
       2,
@@ -106,21 +97,31 @@ describe("buildJwwEnvironment", () => {
       0,
       0,
     ]);
-    expect(environment.lineTypes.LTYPE_HC_candidate.u32Semantic).toMatchObject({
-      selectionTemporaryLineTypeNo: 0,
-      crosslineCursorLineTypeNo: 1,
-      dashPitchAutoAdjust: 2,
-      rightClickBaseLineColorNo: 1,
-      rightClickBaseLineTypeNo: 0,
-      lineEndStyle: 0,
-      lineEndStyleName: "round",
-    });
     expect(environment.coverage.supportedKeys).toContain("LAYSCALE");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_1");
     expect(environment.coverage.supportedKeys).toContain("LTYPE_02");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_S");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_K");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_Z");
-    expect(environment.coverage.missingJwfKeys).toContain("LTYPE_HC");
+    expect(environment.coverage.missingJwfKeys).not.toContain("LTYPE_HC");
+    expect(environment.coverage.missingJwfKeys).not.toContain("LCOLLOR_M");
+    expect(environment.coverage.missingJwfKeys).not.toContain("LAYCOL_0");
+    expect(environment.coverage.missingJwfKeys).not.toContain("LAYWID_F");
+    expect(environment.coverage.missingJwfKeys).not.toContain("LAYTYP_A");
+    expect(environment.coverage.nonSerializedJwfKeys.length).toBe(50);
+    expect(environment.coverage.nonSerializedJwfKeys).toEqual(
+      expect.arrayContaining([
+        "LTYPE_HC",
+        "LCOLLOR_M",
+        "LAYCOL_0",
+        "LAYWID_F",
+        "LAYTYP_A",
+      ])
+    );
+    expect(environment.jwfOnly.LTYPE_HC).toContain("not serialized into JWW");
+    expect(environment.jwfOnly.LCOLLOR_M).toContain("not serialized into JWW");
+    expect(environment.layers.jwfOnlyDefaults.LAYCOL).toContain(
+      "not serialized into JWW"
+    );
   });
 });

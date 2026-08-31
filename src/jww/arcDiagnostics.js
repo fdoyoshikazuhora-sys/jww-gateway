@@ -14,13 +14,6 @@ function formatPoint(point) {
   return `${Math.round(point.x * 1000) / 1000}, ${Math.round(point.y * 1000) / 1000}`;
 }
 
-function pointAtAngle(center, radius, angle) {
-  return {
-    x: center.x + Math.cos(angle) * radius,
-    y: center.y + Math.sin(angle) * radius,
-  };
-}
-
 function arcRow(item, index) {
   const entity = item.entity || {};
   const center = entity.center || {};
@@ -31,14 +24,9 @@ function arcRow(item, index) {
   const tilt = Number(entity.jwwTiltAngle || 0);
   const isEllipseLike = Math.abs(flatness - 1) > FLATNESS_EPSILON;
   const isTilted = Math.abs(tilt) > EPSILON;
-  const startPoint =
-    Number.isFinite(center.x) && Number.isFinite(center.y) && radius > 0
-      ? pointAtAngle(center, radius, startAngle)
-      : null;
-  const endPoint =
-    Number.isFinite(center.x) && Number.isFinite(center.y) && radius > 0
-      ? pointAtAngle(center, radius, endAngle)
-      : null;
+  const geometry = entity.jwwArcGeometry || null;
+  const startPoint = entity.jwwStartPoint || geometry?.startPoint || null;
+  const endPoint = entity.jwwEndPoint || geometry?.endPoint || null;
 
   return {
     id: item.id || `arc-${index}`,
@@ -54,6 +42,8 @@ function arcRow(item, index) {
     appEndDeg: toDegrees(endAngle),
     startPoint: formatPoint(startPoint),
     endPoint: formatPoint(endPoint),
+    geometryKind: geometry?.kind || (isEllipseLike ? "ellipse-arc" : "circle-arc"),
+    bounds: geometry?.bounds || null,
     note: isEllipseLike
       ? "ellipse-like"
       : isTilted

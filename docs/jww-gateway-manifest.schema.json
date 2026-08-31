@@ -18,6 +18,7 @@
     "handoff",
     "capabilities",
     "unresolvedEnvironmentKeys",
+    "jwfOnlyOperationKeys",
     "openItems"
   ],
   "properties": {
@@ -233,6 +234,8 @@
         "diagnosticsDiff",
         "schemaValidate",
         "environmentScan",
+        "conformanceAudit",
+        "semanticDiff",
         "jwfParse",
         "jwfCompare",
         "jwfValueScan",
@@ -246,6 +249,7 @@
         "samplePlan",
         "openItemsReport",
         "reportIndex",
+        "nativeOpen",
         "jwwWrite"
       ],
       "properties": {
@@ -256,6 +260,8 @@
         "diagnosticsDiff": { "type": "boolean" },
         "schemaValidate": { "type": "boolean" },
         "environmentScan": { "type": "boolean" },
+        "conformanceAudit": { "type": "boolean" },
+        "semanticDiff": { "const": true },
         "jwfParse": { "type": "boolean" },
         "jwfCompare": { "type": "boolean" },
         "jwfValueScan": { "type": "boolean" },
@@ -269,7 +275,8 @@
         "samplePlan": { "type": "boolean" },
         "openItemsReport": { "type": "boolean" },
         "reportIndex": { "type": "boolean" },
-        "jwwWrite": { "const": false }
+        "nativeOpen": { "const": true },
+        "jwwWrite": { "const": true }
       },
       "additionalProperties": true
     },
@@ -277,7 +284,36 @@
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "maxItems": 0
+    },
+    "jwfOnlyOperationKeys": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "LTYPE_HC",
+          "LCOLLOR_M",
+          "LAYCOL_0", "LAYWID_0", "LAYTYP_0",
+          "LAYCOL_1", "LAYWID_1", "LAYTYP_1",
+          "LAYCOL_2", "LAYWID_2", "LAYTYP_2",
+          "LAYCOL_3", "LAYWID_3", "LAYTYP_3",
+          "LAYCOL_4", "LAYWID_4", "LAYTYP_4",
+          "LAYCOL_5", "LAYWID_5", "LAYTYP_5",
+          "LAYCOL_6", "LAYWID_6", "LAYTYP_6",
+          "LAYCOL_7", "LAYWID_7", "LAYTYP_7",
+          "LAYCOL_8", "LAYWID_8", "LAYTYP_8",
+          "LAYCOL_9", "LAYWID_9", "LAYTYP_9",
+          "LAYCOL_A", "LAYWID_A", "LAYTYP_A",
+          "LAYCOL_B", "LAYWID_B", "LAYTYP_B",
+          "LAYCOL_C", "LAYWID_C", "LAYTYP_C",
+          "LAYCOL_D", "LAYWID_D", "LAYTYP_D",
+          "LAYCOL_E", "LAYWID_E", "LAYTYP_E",
+          "LAYCOL_F", "LAYWID_F", "LAYTYP_F"
+        ]
+      },
+      "minItems": 50,
+      "maxItems": 50,
+      "uniqueItems": true
     },
     "openItems": {
       "type": "array",

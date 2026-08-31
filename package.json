@@ -3,7 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Standalone JWW import, conversion, and diagnostics CLI. JWW save/write is not supported.",
+  "main": "./src/jww/index.js",
+  "description": "Standalone JWW v600/v700 import, conversion, diagnostics, semantic diff, and bounded writer.",
+  "exports": {
+    ".": "./src/jww/index.js",
+    "./native": "./src/jww/native.js",
+    "./geometry": "./src/jww/arcGeometry.js",
+    "./writer": "./src/jww/writer.js",
+    "./semantic-diff": "./src/jww/semanticDiff.js"
+  },
   "bin": {
     "jww-gateway": "./tools/jww-gateway.mjs",
     "jww-coverage": "./tools/jww-coverage.mjs",
@@ -12,6 +20,9 @@
     "jww-diagnostics-diff": "./tools/jww-diagnostics-diff.mjs",
     "jww-schema-validate": "./tools/jww-schema-validate.mjs",
     "jww-env-scan": "./tools/jww-env-scan.mjs",
+    "jww-conformance": "./tools/jww-conformance.mjs",
+    "jww-writer": "./tools/jww-writer.mjs",
+    "jww-semantic-diff": "./tools/jww-semantic-diff.mjs",
     "jwf-parse": "./tools/jwf-parse.mjs",
     "jww-jwf-compare": "./tools/jww-jwf-compare.mjs",
     "jww-jwf-value-scan": "./tools/jww-jwf-value-scan.mjs",
@@ -37,6 +48,10 @@
     "diff": "node --no-warnings tools/jww-diagnostics-diff.mjs",
     "validate": "node --no-warnings tools/jww-schema-validate.mjs",
     "env:scan": "node --no-warnings tools/jww-env-scan.mjs",
+    "conformance": "node --no-warnings tools/jww-conformance.mjs",
+    "write": "node --no-warnings tools/jww-writer.mjs",
+    "semantic:diff": "node --no-warnings tools/jww-semantic-diff.mjs",
+    "roundtrip:corpus": "node --no-warnings tools/jww-roundtrip-corpus.mjs",
     "jwf:parse": "node --no-warnings tools/jwf-parse.mjs",
     "jwf:compare": "node --no-warnings tools/jww-jwf-compare.mjs",
     "jwf:value-scan": "node --no-warnings tools/jww-jwf-value-scan.mjs",
@@ -52,14 +67,15 @@
     "manifest:validate": "node --no-warnings tools/jww-manifest-validate.mjs",
     "status": "node --no-warnings tools/jww-gateway-status.mjs",
     "verify:report": "node --no-warnings tools/jww-gateway-verify-report.mjs",
+    "verify:conformance": "npm run conformance -- samples --recursive --require-clean-parse --json -o reports\\conformance.json",
     "verify:reports": "npm run verify:report -- -o reports\\verify-report.txt && npm run verify:report -- --json -o reports\\verify-report.json && npm run verify:report -- --csv -o reports\\verify-report.csv && npm run verify:report -- --html -o reports\\verify-report.html",
     "verify:diff": "node --no-warnings tools/jww-gateway-verify-report-diff.mjs",
     "test": "node --import ./src/jww/testHarness.js --test src/jww/*.test.js",
     "test:jww": "npm run test",
     "smoke": "node --no-warnings tools/jww-gateway-smoke.mjs",
     "verify": "npm run smoke && npm run manifest:validate -- JWW_GATEWAY_MANIFEST.json --check-files --json",
-    "verify:all": "npm run verify && npm run verify:reports && npm run open-items -- --json -o reports\\open-items.json && npm run open-items -- --html -o reports\\open-items.html && npm run reports:index -- --json -o reports\\index.json && npm run reports:index -- --html -o reports\\index.html",
-    "verify:handoff": "npm run verify:all && npm run verify:report -- --expect-unresolved LTYPE_HC,LCOLLOR_M"
+    "verify:all": "npm run verify && npm run verify:conformance && npm run verify:reports && npm run open-items -- --json -o reports\\open-items.json && npm run open-items -- --html -o reports\\open-items.html && npm run reports:index -- --json -o reports\\index.json && npm run reports:index -- --html -o reports\\index.html",
+    "verify:handoff": "npm run verify:all && npm run verify:report -- --expect-no-unresolved"
   },
   "engines": {
     "node": ">=18"

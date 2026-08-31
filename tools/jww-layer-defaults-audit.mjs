@@ -43,10 +43,17 @@ function parseArgs(argv) {
 function extractionStatusFromEnvironment(environment = {}) {
   const supported = new Set(environment.coverage?.supportedKeys || []);
   const missing = new Set(environment.coverage?.missingJwfKeys || []);
+  const nonSerialized = new Set(
+    environment.coverage?.nonSerializedJwfKeys || []
+  );
   return Object.fromEntries(
-    [...new Set([...supported, ...missing])].map((key) => [
+    [...new Set([...supported, ...missing, ...nonSerialized])].map((key) => [
       key,
-      supported.has(key) ? "extracted" : "missing",
+      supported.has(key)
+        ? "extracted"
+        : nonSerialized.has(key)
+          ? "not-serialized"
+          : "missing",
     ])
   );
 }
@@ -79,6 +86,8 @@ function compactRow(row) {
     testedPatterns: (row.testedPatterns || []).map((pattern) => pattern.kind),
     matchKinds: (row.matches || []).map((match) => match.kind),
     matchCount: matchCount(row),
+    nonSerializedJwfKey:
+      row.gatewayCandidateComparison?.nonSerializedJwfKey === true,
   };
 }
 
@@ -109,14 +118,18 @@ export async function buildLayerDefaultsAudit(options) {
   )
     .filter((row) => LAYER_FAMILIES.has(row.family))
     .map(compactRow);
-  const promotionCandidates = rows.filter(
-    (row) => row.status === "matched" && row.gatewayStatus !== "extracted"
+  const nonSerializedRows = rows.filter((row) => row.nonSerializedJwfKey);
+  const directByteMatches = rows.filter((row) => row.status === "matched");
+  const directMatchCandidates = directByteMatches.filter(
+    (row) => !row.nonSerializedJwfKey
   );
-  const directMatchCandidates = rows.filter((row) => row.status === "matched");
+  const promotionCandidates = directMatchCandidates.filter(
+    (row) => row.gatewayStatus !== "extracted"
+  );
   const missingRows = rows.filter((row) => row.status === "missing");
   const conclusion =
-    directMatchCandidates.length === 0 && missingRows.length === rows.length
-      ? "No direct byte-sequence matches for LAYCOL/LAYWID/LAYTYP rows were found. Keep these layer defaults unpromoted."
+    nonSerializedRows.length === rows.length
+      ? "LAYCOL/LAYWID/LAYTYP rows are JWF-only write-layer operation defaults and are not serialized into JWW. Byte matches are incidental and are not parser promotion candidates."
       : "Review matched or ambiguous rows before promoting any layer defaults.";
   return {
     format: "jww-layer-defaults-audit",
@@ -127,6 +140,8 @@ export async function buildLayerDefaultsAudit(options) {
     counts: {
       rows: rows.length,
       missing: missingRows.length,
+      nonSerialized: nonSerializedRows.length,
+      directByteMatches: directByteMatches.length,
       directMatchCandidates: directMatchCandidates.length,
       promotionCandidates: promotionCandidates.length,
     },
@@ -146,6 +161,8 @@ export function formatLayerDefaultsAuditText(report) {
     `Entities: ${report.entityCount}`,
     `Rows: ${report.counts.rows}`,
     `Missing: ${report.counts.missing}`,
+    `Non-serialized JWF keys: ${report.counts.nonSerialized}`,
+    `Direct byte matches: ${report.counts.directByteMatches}`,
     `Direct match candidates: ${report.counts.directMatchCandidates}`,
     `Promotion candidates: ${report.counts.promotionCandidates}`,
     `Conclusion: ${report.conclusion}`,
@@ -183,6 +200,8 @@ export function formatLayerDefaultsAuditCsv(report) {
     ["section", "key", "value"],
     ["summary", "rows", report.counts.rows],
     ["summary", "missing", report.counts.missing],
+    ["summary", "nonSerialized", report.counts.nonSerialized],
+    ["summary", "directByteMatches", report.counts.directByteMatches],
     ["summary", "directMatchCandidates", report.counts.directMatchCandidates],
     ["summary", "promotionCandidates", report.counts.promotionCandidates],
     ["summary", "conclusion", report.conclusion],
@@ -208,6 +227,7 @@ export function formatLayerDefaultsAuditCsv(report) {
       "testedPatterns",
       "matchKinds",
       "matchCount",
+      "nonSerializedJwfKey",
     ],
     ...report.rows.map((row) => [
       row.key,
@@ -219,6 +239,7 @@ export function formatLayerDefaultsAuditCsv(report) {
       row.testedPatterns,
       row.matchKinds,
       row.matchCount,
+      row.nonSerializedJwfKey,
     ]),
   ];
   return `${rows.map((row) => row.map(csvValue).join(",")).join("\n")}\n`;
@@ -250,7 +271,7 @@ export function formatLayerDefaultsAuditHtml(report) {
 </head>
 <body>
   <h1>JWW Layer Defaults Audit</h1>
-  <p>Rows ${report.counts.rows}, missing ${report.counts.missing}, direct match candidates ${report.counts.directMatchCandidates}, promotion candidates ${report.counts.promotionCandidates}</p>
+  <p>Rows ${report.counts.rows}, missing ${report.counts.missing}, non-serialized ${report.counts.nonSerialized}, direct byte matches ${report.counts.directByteMatches}, direct match candidates ${report.counts.directMatchCandidates}, promotion candidates ${report.counts.promotionCandidates}</p>
   <p><strong>Conclusion:</strong> ${htmlEscape(report.conclusion)}</p>
   <h2>Family Status</h2>
   <table>
@@ -271,7 +292,7 @@ ${Object.entries(report.familyStatusCounts || {})
   </table>
   <h2>Rows</h2>
   <table>
-    <thead><tr><th>Key</th><th>Family</th><th>Status</th><th>Gateway</th><th>Reason</th><th>Values</th><th>Tested</th><th>Matches</th></tr></thead>
+    <thead><tr><th>Key</th><th>Family</th><th>Status</th><th>Gateway</th><th>Non-serialized</th><th>Reason</th><th>Values</th><th>Tested</th><th>Matches</th></tr></thead>
     <tbody>
 ${report.rows
   .map(
@@ -280,6 +301,7 @@ ${report.rows
         <td>${htmlEscape(row.family)}</td>
         <td>${htmlEscape(row.status)}</td>
         <td>${htmlEscape(row.gatewayStatus)}</td>
+        <td>${htmlEscape(row.nonSerializedJwfKey)}</td>
         <td>${htmlEscape(row.reason)}</td>
         <td>${htmlEscape(row.values.join(", "))}</td>
         <td>${htmlEscape(row.testedPatterns.join(", "))}</td>

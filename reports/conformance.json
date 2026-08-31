@@ -1,0 +1,56 @@
+{
+  "format": "jww-gateway-conformance-report",
+  "formatVersion": 1,
+  "generatedAt": "2026-08-27T15:07:38.301Z",
+  "scope": {
+    "read": "parser diagnostics only",
+    "write": "separate bounded writer",
+    "roundTrip": "not tested by this command"
+  },
+  "counts": {
+    "files": 2,
+    "versions": {
+      "700": 2
+    },
+    "readAssessments": {
+      "parsed-without-reported-loss": 2
+    },
+    "filesWithReportedLoss": 0
+  },
+  "files": [
+    {
+      "source": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-core.jww",
+      "fileName": "jwf-open-items-core.jww",
+      "bytes": 17435,
+      "encoding": "shift_jis",
+      "jwwVersion": 700,
+      "entityCount": 6,
+      "entityTypes": {
+        "TEXT": 6
+      },
+      "unsupportedClasses": {},
+      "unsupportedCount": 0,
+      "skippedCount": 0,
+      "readAssessment": "parsed-without-reported-loss",
+      "roundTripAssessment": "not-tested",
+      "exactCompatibility": false
+    },
+    {
+      "source": "C:\\dev\\New project\\JWW Gateway\\samples\\jwf-pairs\\jwf-open-items-layer-defaults.jww",
+      "fileName": "jwf-open-items-layer-defaults.jww",
+      "bytes": 17657,
+      "encoding": "shift_jis",
+      "jwwVersion": 700,
+      "entityCount": 6,
+      "entityTypes": {
+        "TEXT": 6
+      },
+      "unsupportedClasses": {},
+      "unsupportedCount": 0,
+      "skippedCount": 0,
+      "readAssessment": "parsed-without-reported-loss",
+      "roundTripAssessment": "not-tested",
+      "exactCompatibility": false
+    }
+  ]
+}

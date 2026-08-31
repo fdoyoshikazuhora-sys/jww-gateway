@@ -45,16 +45,17 @@ function emptyDocument() {
     write_layer_group: 0,
     layer_groups: emptyLayerGroups(),
     entities: [],
+    entity_records: [],
+    entity_list_complete: false,
     block_defs: [],
+    block_records: [],
+    block_list_complete: false,
     embedded_images: [],
     color_settings: { screenColors: {} },
     print_settings: {},
+    grid_settings: {},
     sunpou_settings: {},
-    diagnostics: {
-      unsupportedClasses: {},
-      unsupportedCount: 0,
-      skippedCount: 0,
-    },
+    diagnostics: createDiagnostics(),
   };
 }
 
@@ -112,6 +113,64 @@ function readJwwExtendedLength(reader) {
   if (lenByte !== 255) return lenByte;
   const lenWord = reader.readWord();
   return lenWord < 65535 ? lenWord : reader.readDword();
+}
+
+function readEmbeddedImageName(reader, encoding) {
+  const start = reader.pos;
+  const fail = (reason, declaredByteLength = null, stringEncoding = encoding) => ({
+    ok: false,
+    reason,
+    text: "",
+    declaredByteLength,
+    bytesRead: 0,
+    stringEncoding,
+    start,
+    end: reader.pos,
+  });
+  if (reader.remaining() < 1) return fail("truncated-file-name-length");
+
+  const lenByte = reader.readByte();
+  let length = lenByte;
+  let stringEncoding = encoding;
+  if (lenByte === 255) {
+    if (reader.remaining() < 2) return fail("truncated-file-name-length");
+    const lenWord = reader.readWord();
+    if (lenWord === 0xfffe || lenWord === 0xfeff) {
+      stringEncoding = lenWord === 0xfffe ? "utf-16le" : "utf-16be";
+      if (reader.remaining() < 1) return fail("truncated-file-name-length", null, stringEncoding);
+      const charLenByte = reader.readByte();
+      let charLength = charLenByte;
+      if (charLenByte === 255) {
+        if (reader.remaining() < 2) return fail("truncated-file-name-length", null, stringEncoding);
+        const charLenWord = reader.readWord();
+        if (charLenWord < 65535) charLength = charLenWord;
+        else {
+          if (reader.remaining() < 4) return fail("truncated-file-name-length", null, stringEncoding);
+          charLength = reader.readDword();
+        }
+      }
+      length = charLength * 2;
+    } else if (lenWord < 65535) length = lenWord;
+    else {
+      if (reader.remaining() < 4) return fail("truncated-file-name-length");
+      length = reader.readDword();
+    }
+  }
+
+  if (!Number.isSafeInteger(length) || length < 0 || length > 1000000) {
+    return fail("invalid-file-name-length", length, stringEncoding);
+  }
+  const raw = reader.readBytes(length);
+  return {
+    ok: raw.length === length,
+    reason: raw.length === length ? null : "truncated-file-name",
+    text: decodeJwwRawString(raw, stringEncoding),
+    declaredByteLength: length,
+    bytesRead: raw.length,
+    stringEncoding,
+    start,
+    end: reader.pos,
+  };
 }
 
 function readEntityBase(reader, version) {
@@ -435,54 +494,12 @@ function readLineTypeTailCandidate(data, offset) {
     u16.push(value);
   }
   return {
-    key: "LTYPE_HC",
+    key: "POST_LINE_TYPE_TAIL",
     offset,
     byteLength: 24,
     u32,
-    u32Semantic: lineTypeHcSemantic(u32),
     u16,
-    valueSchema: [
-      "selectionTemporaryLineTypeNo",
-      "crosslineCursorLineTypeNo",
-      "dashPitchAutoAdjust",
-      "rightClickBaseLineColorNo",
-      "rightClickBaseLineTypeNo",
-      "lineEndStyle",
-    ],
-    note: "candidate bytes after LTYPE_L4; public JWF docs define the six LTYPE_HC fields, but this candidate is not promoted because sample files do not match JWF LTYPE_HC values directly",
-  };
-}
-
-function lineTypeHcSemantic(values = []) {
-  const [
-    selectionTemporaryLineTypeNo,
-    crosslineCursorLineTypeNo,
-    dashPitchAutoAdjust,
-    rightClickBaseLineColorNo,
-    rightClickBaseLineTypeNo,
-    lineEndStyle,
-  ] = values.map((value) => Number(value));
-  if (
-    ![
-      selectionTemporaryLineTypeNo,
-      crosslineCursorLineTypeNo,
-      dashPitchAutoAdjust,
-      rightClickBaseLineColorNo,
-      rightClickBaseLineTypeNo,
-      lineEndStyle,
-    ].every(Number.isFinite)
-  ) {
-    return null;
-  }
-  const lineEndStyleNames = { 0: "round", 1: "square", 2: "flat" };
-  return {
-    selectionTemporaryLineTypeNo,
-    crosslineCursorLineTypeNo,
-    dashPitchAutoAdjust,
-    rightClickBaseLineColorNo,
-    rightClickBaseLineTypeNo,
-    lineEndStyle,
-    lineEndStyleName: lineEndStyleNames[lineEndStyle] || "unknown",
+    note: "diagnostic bytes after LTYPE_L4; controlled Jw_cad 10.02.1 Save As tests prove that this region is not the JWF-only LTYPE_HC setting",
   };
 }
 
@@ -733,14 +750,49 @@ function findEntityListOffset(data, version) {
     if (data[i + 2] !== schemaLow || data[i + 3] !== schemaHigh) continue;
     const nameLen = data[i + 4] | (data[i + 5] << 8);
     if (nameLen < 8 || nameLen > 20 || i + 6 + nameLen > data.length) continue;
-    const marker = String.fromCharCode(
-      data[i + 6],
-      data[i + 7],
-      data[i + 8],
-      data[i + 9],
-      data[i + 10]
+    const className = String.fromCharCode(...data.slice(i + 6, i + 6 + nameLen));
+    if (className.startsWith("CData")) {
+      const extendedCount = readUint32(data, i - 4);
+      let offset;
+      if (
+        readUint16(data, i - 6) === 0xffff &&
+        extendedCount !== null &&
+        extendedCount >= 0xffff
+      ) {
+        offset = i - 6;
+      } else {
+        offset = i - 2;
+      }
+      if (className === "CDataList" && readUint16(data, offset - 2) === 0) {
+        return offset - 2;
+      }
+      return offset;
+    }
+  }
+  return undefined;
+}
+
+function findEmptyEntityListOffset(data, searchStart, version, encoding, textContext) {
+  const start = Math.max(0, Number(searchStart) || 0);
+  for (let offset = start; offset + 4 <= data.length; offset += 1) {
+    if (readUint16(data, offset) !== 0 || readUint16(data, offset + 2) !== 0) {
+      continue;
+    }
+    const tailOffset = offset + 4;
+    if (version < 700) {
+      if (tailOffset === data.length) return offset;
+      continue;
+    }
+    const images = parseEmbeddedImages(
+      data,
+      tailOffset,
+      version,
+      encoding,
+      textContext
     );
-    if (marker === "CData") return i - 2;
+    if (images.complete && tailOffset + images.bytes_consumed === data.length) {
+      return offset;
+    }
   }
   return undefined;
 }
@@ -785,22 +837,57 @@ function parseTextPayload(reader, encoding, textContext = {}) {
   };
 }
 
-function skipSunpouExtra(reader, version) {
-  if (version < 420) return;
-  reader.readWord();
-  for (let i = 0; i < 2; i += 1) {
-    readEntityBase(reader, version);
-    reader.readDouble();
-    reader.readDouble();
-    reader.readDouble();
-    reader.readDouble();
+function parseLinePayload(reader, version) {
+  return {
+    base: readEntityBase(reader, version),
+    start_x: reader.readDouble(),
+    start_y: reader.readDouble(),
+    end_x: reader.readDouble(),
+    end_y: reader.readDouble(),
+  };
+}
+
+function parseGridSettings(reader) {
+  return {
+    mode: reader.readDword(),
+    minimum_display_spacing: reader.readDouble(),
+    spacing_x: reader.readDouble(),
+    spacing_y: reader.readDouble(),
+    base_x: reader.readDouble(),
+    base_y: reader.readDouble(),
+  };
+}
+
+function parsePointPayload(reader, version) {
+  const base = readEntityBase(reader, version);
+  const value = {
+    base,
+    x: reader.readDouble(),
+    y: reader.readDouble(),
+    is_temporary: reader.readDword() !== 0,
+    code: 0,
+    angle: 0,
+    scale: 1,
+  };
+  if (base.pen_style === 100) {
+    value.code = reader.readDword();
+    value.angle = reader.readDouble();
+    value.scale = reader.readDouble();
   }
-  for (let i = 0; i < 4; i += 1) {
-    readEntityBase(reader, version);
-    reader.readDouble();
-    reader.readDouble();
-    reader.readDword();
-  }
+  return value;
+}
+
+function parseSunpouExtra(reader, version) {
+  if (version < 420) return null;
+  return {
+    sxf_mode: reader.readWord(),
+    extension_line_1: parseLinePayload(reader, version),
+    extension_line_2: parseLinePayload(reader, version),
+    dimension_point_1: parsePointPayload(reader, version),
+    dimension_point_2: parsePointPayload(reader, version),
+    extension_point_1: parsePointPayload(reader, version),
+    extension_point_2: parsePointPayload(reader, version),
+  };
 }
 
 function createDiagnostics() {
@@ -808,14 +895,41 @@ function createDiagnostics() {
     unsupportedClasses: {},
     unsupportedCount: 0,
     skippedCount: 0,
+    unsupportedRecords: [],
+    nullRecordCount: 0,
+    objectReferenceCount: 0,
+    embeddedImageCountDeclared: 0,
+    embeddedImageCountParsed: 0,
+    embeddedImageTruncatedCount: 0,
+    embeddedImageIssues: [],
   };
 }
 
-function addUnsupportedClass(diagnostics, className) {
+const FILTERED_ENTITY = Symbol("filtered-jww-entity");
+const UNSUPPORTED_ENTITY = Symbol("unsupported-jww-entity");
+
+function addUnsupportedClass(diagnostics, className, record = null) {
   const key = className || "(unknown)";
   diagnostics.unsupportedClasses[key] =
     (diagnostics.unsupportedClasses[key] || 0) + 1;
   diagnostics.unsupportedCount += 1;
+  if (record) diagnostics.unsupportedRecords.push(record);
+}
+
+function createArchiveTrackingState() {
+  return {
+    nextPid: 1,
+    classByPid: new Map(),
+    objectByPid: new Map(),
+  };
+}
+
+function readArchiveCount(reader) {
+  const wordCount = reader.readWord();
+  if (wordCount !== 0xffff) {
+    return { count: wordCount, byteLength: 2 };
+  }
+  return { count: reader.readDword(), byteLength: 6 };
 }
 
 function textContextForBase(textContext = {}, base = {}) {
@@ -835,16 +949,12 @@ function parseEntityByClass(
   version,
   encoding,
   diagnostics,
-  textContext = {}
+  textContext = {},
+  archiveState = null,
+  recordContext = {}
 ) {
   if (className === "CDataSen") {
-    return wrap({
-      base: readEntityBase(reader, version),
-      start_x: reader.readDouble(),
-      start_y: reader.readDouble(),
-      end_x: reader.readDouble(),
-      end_y: reader.readDouble(),
-    });
+    return wrap(parseLinePayload(reader, version));
   }
 
   if (className === "CDataEnko") {
@@ -862,22 +972,7 @@ function parseEntityByClass(
   }
 
   if (className === "CDataTen") {
-    const base = readEntityBase(reader, version);
-    const value = {
-      base,
-      x: reader.readDouble(),
-      y: reader.readDouble(),
-      is_temporary: reader.readDword() !== 0,
-      code: 0,
-      angle: 0,
-      scale: 1,
-    };
-    if (base.pen_style === 100) {
-      value.code = reader.readDword();
-      value.angle = reader.readDouble();
-      value.scale = reader.readDouble();
-    }
-    return wrap(value);
+    return wrap(parsePointPayload(reader, version));
   }
 
   if (className === "CDataMoji") {
@@ -886,7 +981,7 @@ function parseEntityByClass(
       base,
       ...parseTextPayload(reader, encoding, textContextForBase(textContext, base)),
     };
-    if (isMetadataText(text.content)) return undefined;
+    if (isMetadataText(text.content)) return FILTERED_ENTITY;
     return wrap(text);
   }
 
@@ -915,12 +1010,8 @@ function parseEntityByClass(
   }
 
   if (className === "CDataSunpou") {
-    readEntityBase(reader, version);
-    const lineBase = readEntityBase(reader, version);
-    const start_x = reader.readDouble();
-    const start_y = reader.readDouble();
-    const end_x = reader.readDouble();
-    const end_y = reader.readDouble();
+    const dimensionBase = readEntityBase(reader, version);
+    const dimensionLine = parseLinePayload(reader, version);
     const textBase = readEntityBase(reader, version);
     const text = {
       base: textBase,
@@ -930,18 +1021,26 @@ function parseEntityByClass(
         textContextForBase(textContext, textBase)
       ),
     };
-    skipSunpouExtra(reader, version);
+    const native = parseSunpouExtra(reader, version);
     if (!text.content) {
-      return wrap({ base: lineBase, start_x, start_y, end_x, end_y });
+      return wrap({
+        ...dimensionLine,
+        jww_dimension: {
+          base: dimensionBase,
+          line: dimensionLine,
+          text,
+          native,
+        },
+      });
     }
     return wrap({
       ...text,
-      dimension_line: {
-        base: lineBase,
-        start_x,
-        start_y,
-        end_x,
-        end_y,
+      dimension_line: dimensionLine,
+      jww_dimension: {
+        base: dimensionBase,
+        line: dimensionLine,
+        text,
+        native,
       },
     });
   }
@@ -958,54 +1057,237 @@ function parseEntityByClass(
     });
   }
 
-  addUnsupportedClass(diagnostics, className);
-  readEntityBase(reader, version);
-  reader.readDouble();
-  reader.readDouble();
-  reader.readDouble();
-  reader.readDouble();
-  return undefined;
+  if (className === "CDataList") {
+    const base = readEntityBase(reader, version);
+    const number = reader.readDword();
+    const referred = reader.readDword() !== 0;
+    const created_at = reader.readDword();
+    const name = readCString(reader, encoding, textContext);
+    const nested = parseEntityList(
+      reader.data,
+      reader.pos,
+      version,
+      encoding,
+      diagnostics,
+      textContext,
+      archiveState,
+      {
+        section: `block-${recordContext.index ?? 0}`,
+        path: `${recordContext.path || recordContext.section || "block"}.entities`,
+      }
+    );
+    reader.pos += nested.bytes_consumed;
+    return wrap({
+      base,
+      number,
+      referred,
+      created_at,
+      name,
+      entities: nested.entities,
+      entity_records: nested.records,
+      entity_list_complete: nested.complete,
+    });
+  }
+
+  return UNSUPPORTED_ENTITY;
 }
 
 function parseEntityWithClassTracking(
   reader,
   version,
-  pidToClass,
-  nextPid,
+  archiveState,
   encoding,
   diagnostics,
-  textContext = {}
+  textContext = {},
+  recordContext = {}
 ) {
-  const classId = reader.readWord();
+  const start = reader.pos;
+  const wordTag = reader.readWord();
+  let classId = wordTag;
+  let extendedTag = false;
+  if (wordTag === 0x7fff) {
+    classId = reader.readDword();
+    extendedTag = true;
+  }
   let className = "";
-  let updatedNextPid = nextPid;
+  let classPid = null;
+  let objectPid = null;
+  let kind = "object";
 
-  if (classId === 65535) {
-    reader.readWord();
-    className = decodeAsciiClassName(reader.readBytes(reader.readWord()));
-    if (updatedNextPid < pidToClass.length) pidToClass[updatedNextPid] = className;
-    updatedNextPid = (updatedNextPid + 1) & 65535;
-  } else if (classId === 32768) {
-    return { entity: undefined, pidToClass, nextPid: (nextPid + 1) & 65535 };
-  } else {
-    className = pidToClass[classId & 32767] || "";
-    if (!className) {
-      parseEntityByClass("", reader, version, encoding, diagnostics, textContext);
-      return { entity: undefined, pidToClass, nextPid: (nextPid + 1) & 65535 };
-    }
+  if (!extendedTag && classId === 0) {
+    diagnostics.nullRecordCount += 1;
+    return {
+      entity: undefined,
+      record: {
+        ...recordContext,
+        kind: "null",
+        tag: classId,
+        className: "",
+        classPid: null,
+        objectPid: null,
+        sourceSpan: {
+          start,
+          headerEnd: reader.pos,
+          payloadStart: reader.pos,
+          end: reader.pos,
+          byteLength: reader.pos - start,
+        },
+      },
+      stop: false,
+    };
   }
 
-  return {
-    entity: parseEntityByClass(
+  if (!extendedTag && classId === 0xffff) {
+    const schema = reader.readWord();
+    className = decodeAsciiClassName(reader.readBytes(reader.readWord()));
+    classPid = archiveState.nextPid;
+    archiveState.classByPid.set(classPid, { className, schema });
+    archiveState.nextPid += 1;
+    objectPid = archiveState.nextPid;
+    archiveState.nextPid += 1;
+    kind = "new-class-object";
+  } else {
+    const oldClassMask = extendedTag ? 0x80000000 : 0x8000;
+    const oldClass = (classId & oldClassMask) !== 0;
+    if (!oldClass) {
+      const referenced = archiveState.objectByPid.get(classId);
+      if (!referenced) {
+        const unsupported = {
+          ...recordContext,
+          reason: "unregistered-object-pid",
+          tag: classId,
+          extendedTag,
+          className: "",
+          classPid: null,
+          objectPid: classId,
+          start,
+          headerEnd: reader.pos,
+          payloadStart: reader.pos,
+          end: null,
+        };
+        addUnsupportedClass(diagnostics, "", unsupported);
+        diagnostics.skippedCount += 1;
+        return {
+          entity: undefined,
+          record: { ...unsupported, kind: "unsupported", sourceSpan: null },
+          stop: true,
+        };
+      }
+      diagnostics.objectReferenceCount += 1;
+      return {
+        entity: referenced.entity,
+        record: {
+          ...recordContext,
+          kind: "object-reference",
+          tag: classId,
+          extendedTag,
+          className: referenced.className,
+          classPid: referenced.classPid,
+          objectPid: classId,
+          sourceSpan: {
+            start,
+            headerEnd: reader.pos,
+            payloadStart: reader.pos,
+            end: reader.pos,
+            byteLength: reader.pos - start,
+          },
+        },
+        stop: false,
+      };
+    }
+
+    classPid = classId & ~oldClassMask;
+    const registered = archiveState.classByPid.get(classPid);
+    className = registered?.className || "";
+    if (!className) {
+      const unsupported = {
+        ...recordContext,
+        reason: classPid === 0 ? "invalid-old-class-pid-zero" : "unregistered-class-pid",
+        tag: classId,
+        extendedTag,
+        className: "",
+        classPid,
+        objectPid: null,
+        start,
+        headerEnd: reader.pos,
+        payloadStart: reader.pos,
+        end: null,
+      };
+      addUnsupportedClass(diagnostics, "", unsupported);
+      diagnostics.skippedCount += 1;
+      return {
+        entity: undefined,
+        record: { ...unsupported, kind: "unsupported", sourceSpan: null },
+        stop: true,
+      };
+    }
+    objectPid = archiveState.nextPid;
+    archiveState.nextPid += 1;
+    kind = "old-class-object";
+  }
+
+  const payloadStart = reader.pos;
+  const parsedEntity = parseEntityByClass(
+    className,
+    reader,
+    version,
+    encoding,
+    diagnostics,
+    textContext,
+    archiveState,
+    recordContext
+  );
+  if (parsedEntity === UNSUPPORTED_ENTITY) {
+    const unsupported = {
+      ...recordContext,
+      reason: "unsupported-class-payload-boundary-unknown",
+      tag: classId,
+      extendedTag,
       className,
-      reader,
-      version,
-      encoding,
-      diagnostics,
-      textContext
-    ),
-    pidToClass,
-    nextPid: (updatedNextPid + 1) & 65535,
+      classPid,
+      objectPid,
+      start,
+      headerEnd: payloadStart,
+      payloadStart,
+      end: null,
+    };
+    addUnsupportedClass(diagnostics, className, unsupported);
+    diagnostics.skippedCount += 1;
+    archiveState.objectByPid.set(objectPid, {
+      entity: undefined,
+      className,
+      classPid,
+    });
+    return {
+      entity: undefined,
+      record: { ...unsupported, kind: "unsupported", sourceSpan: null },
+      stop: true,
+    };
+  }
+
+  const entity = parsedEntity === FILTERED_ENTITY ? undefined : parsedEntity;
+  archiveState.objectByPid.set(objectPid, { entity, className, classPid });
+  const sourceSpan = {
+    start,
+    headerEnd: payloadStart,
+    payloadStart,
+    end: reader.pos,
+    byteLength: reader.pos - start,
+  };
+  return {
+    entity,
+    record: {
+      ...recordContext,
+      kind,
+      tag: classId,
+      extendedTag,
+      className,
+      classPid,
+      objectPid,
+      filtered: parsedEntity === FILTERED_ENTITY,
+      sourceSpan,
+    },
+    stop: false,
   };
 }
 
@@ -1015,33 +1297,169 @@ function parseEntityList(
   version,
   encoding,
   diagnostics,
-  textContext = {}
+  textContext = {},
+  archiveState = null,
+  listContext = {}
 ) {
   const reader = new BinaryReader(data, offset);
   const startPos = reader.pos;
-  const count = reader.readWord();
+  const archiveCount = readArchiveCount(reader);
+  const count = archiveCount.count;
   const entities = [];
-  let pidToClass = Array.from({ length: 65536 }, () => "");
-  let nextPid = 1;
+  const records = [];
+  const tracking = archiveState || createArchiveTrackingState();
+  const section = listContext.section || "drawing";
+  const path = listContext.path || section;
 
   for (let i = 0; i < count && reader.remaining() >= 4; i += 1) {
     const result = parseEntityWithClassTracking(
       reader,
       version,
-      pidToClass,
-      nextPid,
+      tracking,
       encoding,
       diagnostics,
-      textContext
+      textContext,
+      { section, path, index: i }
     );
-    if (result.entity) entities.push(result.entity);
-    else diagnostics.skippedCount += 1;
-    pidToClass = result.pidToClass;
-    nextPid = result.nextPid;
+    if (result.entity) {
+      result.record.entityIndex = entities.length;
+      entities.push(result.entity);
+    }
+    records.push(result.record);
+    if (result.stop) break;
   }
 
   return {
     entities,
+    records,
+    declared_count: count,
+    count_bytes: archiveCount.byteLength,
+    complete: records.length === count && !records.some((record) => record?.kind === "unsupported"),
+    bytes_consumed: reader.pos - startPos,
+    archive_state: tracking,
+  };
+}
+
+function parseEmbeddedImages(data, offset, version, encoding, textContext = {}) {
+  if (version < 700 || !Number.isInteger(offset) || offset + 4 > data.length) {
+    return {
+      images: [],
+      declared_count: 0,
+      complete: version < 700,
+      issues: [],
+      bytes_consumed: 0,
+    };
+  }
+  const reader = new BinaryReader(data, offset);
+  const startPos = reader.pos;
+  const count = reader.readDword();
+  const images = [];
+  const issues = [];
+  for (let index = 0; index < count && reader.remaining() > 0; index += 1) {
+    const recordStart = reader.pos;
+    const name = readEmbeddedImageName(reader, encoding, textContext);
+    if (!name.ok) {
+      const sourceSpan = {
+        start: recordStart,
+        headerEnd: reader.pos,
+        payloadStart: reader.pos,
+        end: reader.pos,
+        byteLength: reader.pos - recordStart,
+      };
+      images.push({
+        file_name: name.text,
+        declared_size: null,
+        bytes: new Uint8Array(),
+        truncated: true,
+        sourceSpan,
+      });
+      issues.push({
+        section: "embedded-images",
+        index,
+        reason: name.reason,
+        declaredByteLength: name.declaredByteLength,
+        bytesRead: name.bytesRead,
+        sourceSpan,
+      });
+      break;
+    }
+    if (reader.remaining() < 4) {
+      const sourceSpan = {
+        start: recordStart,
+        headerEnd: reader.pos,
+        payloadStart: reader.pos,
+        end: data.length,
+        byteLength: data.length - recordStart,
+      };
+      reader.pos = data.length;
+      images.push({
+        file_name: name.text,
+        declared_size: null,
+        bytes: new Uint8Array(),
+        truncated: true,
+        sourceSpan,
+      });
+      issues.push({
+        section: "embedded-images",
+        index,
+        reason: "truncated-size-field",
+        sourceSpan,
+      });
+      break;
+    }
+    const sizeStart = reader.pos;
+    const declared_size = reader.readDword();
+    const payloadStart = reader.pos;
+    const bytes = reader.readBytes(declared_size);
+    const sourceSpan = {
+      start: recordStart,
+      nameEnd: sizeStart,
+      headerEnd: payloadStart,
+      payloadStart,
+      end: reader.pos,
+      byteLength: reader.pos - recordStart,
+    };
+    const truncated = bytes.length !== declared_size;
+    images.push({
+      file_name: name.text,
+      declared_size,
+      bytes,
+      truncated,
+      sourceSpan,
+    });
+    if (truncated) {
+      issues.push({
+        section: "embedded-images",
+        index,
+        reason: "truncated-payload",
+        declaredByteLength: declared_size,
+        bytesRead: bytes.length,
+        sourceSpan,
+      });
+      break;
+    }
+  }
+  if (images.length !== count && !issues.length) {
+    issues.push({
+      section: "embedded-images",
+      index: images.length,
+      reason: "record-count-mismatch",
+      declaredCount: count,
+      parsedCount: images.length,
+      sourceSpan: {
+        start: reader.pos,
+        headerEnd: reader.pos,
+        payloadStart: reader.pos,
+        end: reader.pos,
+        byteLength: 0,
+      },
+    });
+  }
+  return {
+    images,
+    declared_count: count,
+    complete: images.length === count && issues.length === 0,
+    issues,
     bytes_consumed: reader.pos - startPos,
   };
 }
@@ -1068,20 +1486,49 @@ export function parse(input, options = {}) {
   const paper_size = reader.readDword();
   const write_layer_group = reader.readDword();
   let layer_groups = parseLayerGroups(reader);
-  const print_settings = parsePrintSettings(reader);
   const sunpou_settings = parseSunpouSettings(reader);
+  const print_settings = parsePrintSettings(reader);
+  const grid_settings = parseGridSettings(reader);
   const textContext = {
     ...baseTextContext,
     memo,
     layerGroups: layer_groups,
   };
-  layer_groups = parseLayerNames(reader, layer_groups, encoding, textContext);
+  let entityOffset = findEntityListOffset(data, version);
+  const layerNamesOffset = reader.pos;
+  if (entityOffset !== undefined && layerNamesOffset >= entityOffset) {
+    layer_groups = withDefaultLayerNames(layer_groups);
+  } else {
+    const parsedLayerGroups = parseLayerNames(
+      reader,
+      layer_groups,
+      encoding,
+      textContext
+    );
+    if (
+      parsedLayerGroups.namesExtracted === false ||
+      (entityOffset !== undefined && reader.pos > entityOffset)
+    ) {
+      reader.pos = layerNamesOffset;
+      layer_groups = withDefaultLayerNames(layer_groups);
+    } else {
+      layer_groups = parsedLayerGroups;
+    }
+  }
   const layer_names_extracted = layer_groups.namesExtracted !== false;
   const layer_name_fallbacks = layer_groups.nameFallbacks || [];
   const afterLayerNamesOffset = reader.pos;
   textContext.layerGroups = layer_groups;
+  if (entityOffset === undefined) {
+    entityOffset = findEmptyEntityListOffset(
+      data,
+      afterLayerNamesOffset,
+      version,
+      encoding,
+      textContext
+    );
+  }
 
-  const entityOffset = findEntityListOffset(data, version);
   const color_settings = parseColorSettings(data, entityOffset);
   const line_type_settings = parseLineTypeSettings(
     data,
@@ -1093,17 +1540,54 @@ export function parse(input, options = {}) {
     afterLayerNamesOffset,
     entityOffset || afterLayerNamesOffset
   );
+  const archiveState = createArchiveTrackingState();
   const entityResult =
     entityOffset === undefined
-      ? { entities: [], bytes_consumed: 0 }
+      ? { entities: [], records: [], bytes_consumed: 0, complete: false }
       : parseEntityList(
           data,
           entityOffset,
           version,
           encoding,
           diagnostics,
-          textContext
+          textContext,
+          archiveState,
+          { section: "drawing", path: "drawing" }
         );
+  const blockListOffset =
+    entityOffset === undefined
+      ? undefined
+      : entityOffset + entityResult.bytes_consumed;
+  const blockResult =
+    blockListOffset === undefined || blockListOffset + 2 > data.length
+      ? { entities: [], records: [], bytes_consumed: 0, complete: false }
+      : parseEntityList(
+          data,
+          blockListOffset,
+          version,
+          encoding,
+          diagnostics,
+          textContext,
+          archiveState,
+          { section: "block-definitions", path: "blockDefinitions" }
+        );
+  const embeddedImageOffset =
+    blockListOffset === undefined
+      ? undefined
+      : blockListOffset + blockResult.bytes_consumed;
+  const embeddedImageResult = parseEmbeddedImages(
+    data,
+    embeddedImageOffset,
+    version,
+    encoding,
+    textContext
+  );
+  diagnostics.embeddedImageCountDeclared = embeddedImageResult.declared_count;
+  diagnostics.embeddedImageCountParsed = embeddedImageResult.images.length;
+  diagnostics.embeddedImageTruncatedCount = embeddedImageResult.images.filter(
+    (image) => image.truncated
+  ).length;
+  diagnostics.embeddedImageIssues = embeddedImageResult.issues;
 
   return {
     version,
@@ -1114,12 +1598,26 @@ export function parse(input, options = {}) {
     layer_names_extracted,
     layer_name_fallbacks,
     entities: entityResult.entities,
-    block_defs: [],
-    embedded_images: [],
+    entity_records: entityResult.records || [],
+    entity_list_complete: entityResult.complete !== false,
+    entity_list_offset: entityOffset,
+    entity_bytes_consumed: entityResult.bytes_consumed,
+    block_defs: blockResult.entities
+      .map((item) => item?.value)
+      .filter((item) => item && Array.isArray(item.entities)),
+    block_records: blockResult.records || [],
+    block_list_complete: blockResult.complete !== false,
+    block_list_offset: blockListOffset,
+    block_bytes_consumed: blockResult.bytes_consumed,
+    embedded_images: embeddedImageResult.images,
+    embedded_image_list_complete: embeddedImageResult.complete,
+    embedded_image_offset: embeddedImageOffset,
+    embedded_image_bytes_consumed: embeddedImageResult.bytes_consumed,
     color_settings,
     line_type_settings,
     environment_region,
     print_settings,
+    grid_settings,
     sunpou_settings,
     diagnostics,
   };

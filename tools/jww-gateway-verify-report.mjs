@@ -18,6 +18,7 @@ function parseArgs(argv) {
     html: false,
     csv: false,
     expectedUnresolved: [],
+    expectNoUnresolved: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -25,6 +26,7 @@ function parseArgs(argv) {
     else if (arg === "--json") args.json = true;
     else if (arg === "--html") args.html = true;
     else if (arg === "--csv") args.csv = true;
+    else if (arg === "--expect-no-unresolved") args.expectNoUnresolved = true;
     else if (arg === "--expect-unresolved") {
       args.expectedUnresolved = (argv[++index] || "")
         .split(",")
@@ -65,8 +67,8 @@ async function fileInventory(root, files) {
   return inventory;
 }
 
-function unresolvedExpectation(actual, expected) {
-  if (!expected?.length) {
+function unresolvedExpectation(actual, expected, forceCheck = false) {
+  if (!forceCheck && !expected?.length) {
     return {
       checked: false,
       valid: true,
@@ -113,7 +115,8 @@ export async function buildGatewayVerifyReport(options = {}) {
   const inventory = await fileInventory(root, manifest.packageFiles || []);
   const unresolvedCheck = unresolvedExpectation(
     manifest.unresolvedEnvironmentKeys || [],
-    options.expectedUnresolved || []
+    options.expectedUnresolved || [],
+    options.expectNoUnresolved === true
   );
 
   return {
@@ -153,6 +156,7 @@ export async function buildGatewayVerifyReport(options = {}) {
     handoff: manifest.handoff || {},
     capabilities: manifest.capabilities || {},
     unresolvedEnvironmentKeys: manifest.unresolvedEnvironmentKeys || [],
+    jwfOnlyOperationKeys: manifest.jwfOnlyOperationKeys || [],
     unresolvedExpectation: unresolvedCheck,
     openItems: manifest.openItems || [],
     notes: manifest.notes || [],
@@ -174,6 +178,7 @@ export function formatGatewayVerifyReportText(report) {
     `Missing bins: ${report.counts.missingBins}`,
     `Handoff entry: ${report.handoff?.entrypoint || "none"}`,
     `Unresolved environment keys: ${report.unresolvedEnvironmentKeys.join(", ") || "none"}`,
+    `JWF-only operation keys: ${report.jwfOnlyOperationKeys.join(", ") || "none"}`,
     `Open items: ${report.counts.openItems}`,
   ];
   if (report.unresolvedExpectation?.checked) {
@@ -273,6 +278,10 @@ export function formatGatewayVerifyReportHtml(report) {
       "Unresolved environment keys",
       report.unresolvedEnvironmentKeys.join(", ") || "none",
     ],
+    [
+      "JWF-only operation keys",
+      report.jwfOnlyOperationKeys.join(", ") || "none",
+    ],
   ];
   if (report.unresolvedExpectation?.checked) {
     rows.push(
@@ -344,6 +353,7 @@ async function main() {
   const report = await buildGatewayVerifyReport({
     manifest: args.manifest,
     expectedUnresolved: args.expectedUnresolved,
+    expectNoUnresolved: args.expectNoUnresolved,
   });
   const output = args.json
     ? `${JSON.stringify(report, null, 2)}\n`

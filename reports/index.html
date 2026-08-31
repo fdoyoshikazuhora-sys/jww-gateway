@@ -17,12 +17,19 @@
 </head>
 <body>
   <h1>JWW Gateway Report Index</h1>
-  <p class="meta">Package jww-gateway 0.1.0 / available groups 2 of 8</p>
+  <p class="meta">Package jww-gateway 0.1.0 / available groups 3 of 9</p>
   <table>
     <thead>
       <tr><th>Status</th><th>Report</th><th>Files</th><th>Purpose</th><th>Command</th></tr>
     </thead>
     <tbody>
+      <tr>
+        <td class="yes">available</td>
+        <td>Conformance audit</td>
+        <td><a href="conformance.json">conformance.json</a></td>
+        <td>Observed JWW versions, entity types, unsupported classes, and skipped records without claiming write or round-trip compatibility.</td>
+        <td><code>npm run verify:conformance</code></td>
+      </tr>
       <tr>
         <td class="yes">available</td>
         <td>Verify report</td>

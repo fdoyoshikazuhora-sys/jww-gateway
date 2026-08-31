@@ -13,9 +13,9 @@ Common report files:
 - `*.coverage.*`: JWF-like environment coverage extracted from a JWW file.
 - `*.jwf-compare.*`: JWW extracted settings compared with a `.jwf` file.
 - `*.value-scan.*`: raw numeric/color byte-pattern scans against a `.jwf` file.
-- `*.core-open.json`: focused scans for unresolved core keys such as `LTYPE_HC` and `LCOLLOR_M`.
+- `*.core-open.json`: historical focused scans for the former core open items `LTYPE_HC` and `LCOLLOR_M`; current scans classify both as non-serialized JWF-only operation/display keys.
 - `*.special-color.json`: focused audits for special color settings such as `LCOLLOR_M`.
-- `*.layer-defaults.json`: focused audits for layer default color, width, and line type settings.
+- `*.layer-defaults.json`: historical and controlled evidence for JWF-only layer default color, width, and line type settings; current rows report `gatewayStatus: not-serialized`.
 - `*-summary.*`: cross-sample summaries for coverage, core-open keys, special colors, and layer defaults.
 
 The package generator recreates `reports\`. Keep long-term evidence in the source project, the GitHub backup, or a dated local backup.

@@ -22,7 +22,8 @@ Expected:
 - `Missing files: 0`
 - `Missing scripts: 0`
 - `Missing bins: 0`
-- unresolved keys are only `LTYPE_HC` and `LCOLLOR_M`
+- unresolved environment keys: none
+- JWF-only operation/default keys: `LTYPE_HC`, `LCOLLOR_M`, and all `LAYCOL/LAYWID/LAYTYP_0..F` keys
 
 On Windows, the same checks can be started with:
 
@@ -67,6 +68,6 @@ The open-items report classifies each item by status, class, conversion impact, 
 ## Current Limits
 
 - JWW import, conversion, and diagnostics are supported.
-- JWW save/write is not supported.
-- `LTYPE_HC` and `LCOLLOR_M` remain unresolved until real files show stable direct matches.
+- JWW write is limited to internal versions 600 and 700 and supported entities; Jw_cad reopen/resave evidence remains a separate compatibility gate.
+- `LTYPE_HC` and `LCOLLOR_M` are JWF-only operation/display settings and are not serialized into JWW.
 - Other open items are classified in `reports\open-items.html` so unresolved research does not look like accidental parser loss.

@@ -49,18 +49,22 @@ export function summarizeLayerDefaultsAudits(reports) {
   let totalRows = 0;
   let promotionCandidates = 0;
   let directMatchCandidates = 0;
+  let nonSerialized = 0;
 
   for (const report of reports) {
     const source = sourceLabel(report);
     totalRows += report.counts?.rows || 0;
     promotionCandidates += report.counts?.promotionCandidates || 0;
     directMatchCandidates += report.counts?.directMatchCandidates || 0;
+    nonSerialized += report.counts?.nonSerialized || 0;
     for (const row of report.rows || []) {
       const status = row.status || "unknown";
       const family = row.family || "unknown";
       addStatusCount(byKey, row.key, status);
       byKey[row.key].family = family;
       byKey[row.key].gatewayStatus = row.gatewayStatus || "";
+      byKey[row.key].nonSerializedJwfKey =
+        row.nonSerializedJwfKey === true;
       addRowEvidence(byKey[row.key], row);
       if (source && !byKey[row.key].files.includes(source)) {
         byKey[row.key].files.push(source);
@@ -93,11 +97,14 @@ export function summarizeLayerDefaultsAudits(reports) {
       alwaysMissing: alwaysMissing.length,
       withDirectMatches: withDirectMatches.length,
       mixed: mixed.length,
+      nonSerialized,
       directMatchCandidates,
       promotionCandidates,
     },
     conclusion:
-      promotionCandidates === 0 && directMatchCandidates === 0
+      totalRows > 0 && nonSerialized === totalRows
+        ? "All audited LAYCOL/LAYWID/LAYTYP rows are JWF-only write-layer operation defaults and are not serialized into JWW."
+        : promotionCandidates === 0 && directMatchCandidates === 0
         ? "No direct LAYCOL/LAYWID/LAYTYP promotion candidates were found across the audited reports."
         : "Review direct matches before promoting any LAYCOL/LAYWID/LAYTYP extraction.",
     byFamily: Object.values(byFamily).sort((a, b) =>

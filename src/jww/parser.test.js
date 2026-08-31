@@ -4,6 +4,10 @@ function pushDword(bytes, value) {
   bytes.push(value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255);
 }
 
+function pushWord(bytes, value) {
+  bytes.push(value & 255, (value >>> 8) & 255);
+}
+
 function pushDouble(bytes, value) {
   const buffer = new ArrayBuffer(8);
   new DataView(buffer).setFloat64(0, value, true);
@@ -40,27 +44,55 @@ function minimalJwwBytesWithUnicodeMemo(options = {}) {
     }
   }
 
-  pushDouble(bytes, 0);
-  pushDouble(bytes, 0);
-  pushDouble(bytes, 1);
-  pushDword(bytes, 0);
-
   for (let index = 0; index < 21; index += 1) {
     pushDword(bytes, 0);
   }
 
-  for (let groupIndex = 0; groupIndex < 16; groupIndex += 1) {
-    for (let layerIndex = 0; layerIndex < 16; layerIndex += 1) {
-      const layerName = options.layerNames?.[groupIndex]?.[layerIndex];
-      if (layerName) pushCStringBytes(bytes, layerName);
+  pushDouble(bytes, 0);
+  pushDouble(bytes, 0);
+  pushDouble(bytes, 1);
+  pushDword(bytes, 0);
+  pushDword(bytes, 0);
+  for (let index = 0; index < 5; index += 1) {
+    pushDouble(bytes, 0);
+  }
+
+  if (!options.omitLayerNames) {
+    for (let groupIndex = 0; groupIndex < 16; groupIndex += 1) {
+      for (let layerIndex = 0; layerIndex < 16; layerIndex += 1) {
+        const layerName = options.layerNames?.[groupIndex]?.[layerIndex];
+        if (layerName) pushCStringBytes(bytes, layerName);
+        else pushEmptyCString(bytes);
+      }
+    }
+
+    for (let groupIndex = 0; groupIndex < 16; groupIndex += 1) {
+      const groupName = options.groupNames?.[groupIndex];
+      if (groupName) pushCStringBytes(bytes, groupName);
       else pushEmptyCString(bytes);
     }
   }
 
-  for (let groupIndex = 0; groupIndex < 16; groupIndex += 1) {
-    const groupName = options.groupNames?.[groupIndex];
-    if (groupName) pushCStringBytes(bytes, groupName);
-    else pushEmptyCString(bytes);
+  if (options.appendLineEntity) {
+    pushWord(bytes, 1);
+    pushWord(bytes, 0xffff);
+    pushWord(bytes, 700);
+    pushWord(bytes, 8);
+    bytes.push(...asciiBytes("CDataSen"));
+    pushDword(bytes, 0);
+    bytes.push(1);
+    pushWord(bytes, 2);
+    pushWord(bytes, 0);
+    pushWord(bytes, 0);
+    pushWord(bytes, 0);
+    pushWord(bytes, 0);
+    pushDouble(bytes, 1);
+    pushDouble(bytes, 2);
+    pushDouble(bytes, 3);
+    pushDouble(bytes, 4);
+    pushWord(bytes, 0);
+    pushWord(bytes, 0);
+    pushDword(bytes, 0);
   }
 
   return Uint8Array.from(bytes);
@@ -106,5 +138,27 @@ describe("parse", () => {
         fallback: "Group13",
       },
     ]);
+  });
+
+  it("does not consume an entity list while probing absent layer names", () => {
+    const doc = parse(
+      minimalJwwBytesWithUnicodeMemo({
+        omitLayerNames: true,
+        appendLineEntity: true,
+      }),
+      { encoding: "shift_jis" }
+    );
+
+    expect(doc.layer_names_extracted).toBe(false);
+    expect(
+      doc.environment_region.afterLayerNamesOffset <= doc.entity_list_offset
+    ).toBe(true);
+    expect(doc.entities.length).toBe(1);
+    expect(doc.entities[0].value).toMatchObject({
+      start_x: 1,
+      start_y: 2,
+      end_x: 3,
+      end_y: 4,
+    });
   });
 });

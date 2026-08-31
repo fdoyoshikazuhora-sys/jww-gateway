@@ -5,6 +5,7 @@ Generated review artifacts should be written under `reports\` in the standalone 
 Common report files:
 
 - `index.html`: one-page index of generated reports and the commands that create missing optional reports.
+- `conformance.json`: observed JWW versions, entity types, unsupported classes, and skipped records. A clean parser result is not a Jw_cad round-trip guarantee.
 - `verify-report.txt`, `verify-report.json`, `verify-report.csv`, `verify-report.html`: package readiness, manifest validity, required files, scripts, binaries, unresolved keys, and file inventory.
 - `verify-diff.*`: differences between two `verify-report.json` files.
 - `open-items.*`: classified limitations and remaining research items from `JWW_GATEWAY_MANIFEST.json`, including conversion impact, evidence, release decision, and next action.
@@ -13,7 +14,7 @@ Common report files:
 - `*.coverage.*`: JWF-like environment coverage extracted from a JWW file.
 - `*.jwf-compare.*`: JWW extracted settings compared with a `.jwf` file.
 - `*.value-scan.*`: raw numeric/color byte-pattern scans against a `.jwf` file.
-- `*.core-open.json`: focused scans for unresolved core keys such as `LTYPE_HC` and `LCOLLOR_M`.
+- `*.core-open.json`: historical focused scans that helped prove `LTYPE_HC` and `LCOLLOR_M` are not serialized into JWW.
 - `*.special-color.json`: focused audits for special color settings such as `LCOLLOR_M`.
 - `*.layer-defaults.json`: focused audits for layer default color, width, and line type settings.
 - `*-summary.*`: cross-sample summaries for coverage, core-open keys, special colors, and layer defaults.

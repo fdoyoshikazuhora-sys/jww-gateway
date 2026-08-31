@@ -34,6 +34,7 @@ export function formatGatewayStatusText(report) {
     `Report index: ${report.handoff?.reportIndexCommand || "none"}`,
     `Known open items: ${report.counts.openItems}`,
     `Unresolved: ${report.unresolvedEnvironmentKeys.join(", ") || "none"}`,
+    `JWF-only operation keys: ${report.jwfOnlyOperationKeys.join(", ") || "none"}`,
     `JWW write: ${report.capabilities.jwwWrite ? "supported" : "unsupported"}`,
   ];
 

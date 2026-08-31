@@ -10,6 +10,14 @@ const packageRoot = path.resolve(
 
 const REPORT_DEFINITIONS = [
   {
+    id: "conformance",
+    title: "Conformance audit",
+    files: ["conformance.json"],
+    command: "npm run verify:conformance",
+    purpose:
+      "Observed JWW versions, entity types, unsupported classes, and skipped records without claiming write or round-trip compatibility.",
+  },
+  {
     id: "verify-report",
     title: "Verify report",
     files: [
@@ -75,7 +83,7 @@ const REPORT_DEFINITIONS = [
     files: ["sample-layer-defaults-summary.html", "sample-layer-defaults-summary.json"],
     command:
       "npm run layer-defaults:summary -- reports\\*.layer-defaults.json --html -o reports\\sample-layer-defaults-summary.html",
-    purpose: "Cross-sample LAYCOL, LAYWID, and LAYTYP audit summary.",
+    purpose: "Cross-sample evidence for non-serialized JWF-only LAYCOL, LAYWID, and LAYTYP defaults.",
   },
 ];
 

@@ -70,6 +70,7 @@ describe("layer defaults summary", () => {
       alwaysMissing: 1,
       withDirectMatches: 1,
       mixed: 2,
+      nonSerialized: 0,
       directMatchCandidates: 1,
       promotionCandidates: 1,
     });
@@ -109,5 +110,29 @@ describe("layer defaults summary", () => {
 
     expect(summary.counts.promotionCandidates).toBe(0);
     expect(summary.conclusion).toContain("No direct");
+  });
+
+  it("reports a resolved conclusion when every row is non-serialized", () => {
+    const summary = summarizeLayerDefaultsAudits([
+      {
+        sources: { jww: "C:\\samples\\resolved.jww" },
+        counts: {
+          rows: 3,
+          nonSerialized: 3,
+          directMatchCandidates: 0,
+          promotionCandidates: 0,
+        },
+        rows: ["LAYCOL_0", "LAYWID_0", "LAYTYP_0"].map((key) => ({
+          key,
+          family: "layerDefaults",
+          status: "missing",
+          gatewayStatus: "not-serialized",
+          nonSerializedJwfKey: true,
+        })),
+      },
+    ]);
+
+    expect(summary.counts.nonSerialized).toBe(3);
+    expect(summary.conclusion).toContain("not serialized into JWW");
   });
 });

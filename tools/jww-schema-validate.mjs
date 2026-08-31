@@ -60,6 +60,80 @@ function validatePoint(errors, pathName, value) {
     addError(errors, `${pathName}.y`, "must be a finite number", value.y);
 }
 
+function validateJwwInternalSettings(errors, value) {
+  if (value === undefined) return;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    addError(errors, "meta.jwwInternalSettings", "must be an object", value);
+    return;
+  }
+  if (
+    !value.sentinel ||
+    typeof value.sentinel !== "object" ||
+    Array.isArray(value.sentinel)
+  ) {
+    addError(
+      errors,
+      "meta.jwwInternalSettings.sentinel",
+      "must be an object",
+      value.sentinel
+    );
+  } else {
+    validatePoint(
+      errors,
+      "meta.jwwInternalSettings.sentinel.start",
+      value.sentinel.start
+    );
+    validatePoint(
+      errors,
+      "meta.jwwInternalSettings.sentinel.end",
+      value.sentinel.end
+    );
+  }
+  if (!Array.isArray(value.records)) {
+    addError(
+      errors,
+      "meta.jwwInternalSettings.records",
+      "must be an array",
+      value.records
+    );
+    return;
+  }
+  value.records.forEach((record, index) => {
+    const prefix = `meta.jwwInternalSettings.records[${index}]`;
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      addError(errors, prefix, "must be an object", record);
+      return;
+    }
+    if (typeof record.id !== "string" || !record.id) {
+      addError(errors, `${prefix}.id`, "must be a non-empty string", record.id);
+    }
+    if (typeof record.key !== "string" || !record.key) {
+      addError(errors, `${prefix}.key`, "must be a non-empty string", record.key);
+    }
+    if (!hasInteger(record.sourceIndex) || record.sourceIndex < 0) {
+      addError(
+        errors,
+        `${prefix}.sourceIndex`,
+        "must be a non-negative integer",
+        record.sourceIndex
+      );
+    }
+    if (!hasNumber(record.settingValue)) {
+      addError(
+        errors,
+        `${prefix}.settingValue`,
+        "must be a finite number",
+        record.settingValue
+      );
+    }
+    if (typeof record.text !== "string") {
+      addError(errors, `${prefix}.text`, "must be a string", record.text);
+    }
+    validatePoint(errors, `${prefix}.startPoint`, record.startPoint);
+    validatePoint(errors, `${prefix}.endPoint`, record.endPoint);
+  });
+}
+
 function validateColorEntry(errors, pathName, value) {
   if (value === null || value === undefined) return;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -392,6 +466,7 @@ export function validateJwwGatewayJson(value) {
     validateColorSettings(errors, meta.colorSettings);
     validateLineTypeSettings(errors, meta.lineTypeSettings);
     validateJwwEnvironment(errors, meta.jwwEnvironment);
+    validateJwwInternalSettings(errors, meta.jwwInternalSettings);
   }
 
   validateBounds(errors, value.bounds);

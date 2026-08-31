@@ -182,13 +182,22 @@ function colorDiagnostics(converted) {
 }
 
 function textDiagnostics(converted) {
+  const internalSettingRecords =
+    converted.meta?.jwwInternalSettings?.records || [];
   const textEntities = (converted.entities || []).filter(
     (item) => item.type === "TEXT" || item.entity?.type === "TEXT"
   );
   const specialRuns = [];
   const textSegments = [];
   const unresolvedSamples = [];
-  const settingTextSamples = [];
+  const settingTextSamples = internalSettingRecords.slice(0, 12).map((row) => ({
+    id: row.id || "jww-internal-setting",
+    layer: cleanText(row.layer || "-"),
+    text: String(row.text || `${row.key || "Setting"} = ${row.settingValue ?? ""}`),
+    key: row.key || "",
+    settingValue: row.settingValue,
+    kind: "internal-setting",
+  }));
   for (const item of textEntities) {
     const entity = item.entity || {};
     const text = String(entity.text || "");
@@ -222,15 +231,14 @@ function textDiagnostics(converted) {
       });
     }
     if (
-      /^(Printer_|View_|Draw_|Type\s+Distance|Layer\s+Center|Bounds\s+Note)/.test(
-        text
-      ) &&
+      /^(Type\s+Distance|Layer\s+Center|Bounds\s+Note)/.test(text) &&
       settingTextSamples.length < 12
     ) {
       settingTextSamples.push({
         id: item.id,
         layer: cleanText(item.layer || entity.layer || "-"),
         text,
+        kind: "possible-hidden-note",
       });
     }
   }
@@ -542,9 +550,9 @@ function linesForDiagnostics(report) {
       .slice(0, 12)) {
       lines.push(`  ${key}: ${row.values?.join(" ") || "-"}`);
     }
-    if (lineTypes.LTYPE_HC_candidate) {
+    if (lineTypes.postLineTypeTailCandidate) {
       lines.push(
-        `  LTYPE_HC candidate @${lineTypes.LTYPE_HC_candidate.offset}: u32 ${lineTypes.LTYPE_HC_candidate.u32?.join(" ")}`
+        `  Post-line-type diagnostic tail @${lineTypes.postLineTypeTailCandidate.offset}: u32 ${lineTypes.postLineTypeTailCandidate.u32?.join(" ")}`
       );
     }
     lines.push("");
@@ -607,7 +615,7 @@ function linesForDiagnostics(report) {
     }
   }
   if (report.text.settingTextSamples.length) {
-    lines.push("  JWW setting text / possible hidden notes:");
+    lines.push("  JWW internal settings / possible hidden notes:");
     for (const row of report.text.settingTextSamples) {
       lines.push(`    ${row.id} ${row.layer}: "${cleanText(row.text)}"`);
     }
@@ -862,11 +870,11 @@ function htmlForDiagnostics(report) {
           row.offset ?? "",
         ])
     : [];
-  if (report.environment?.lineTypes?.LTYPE_HC_candidate) {
-    const candidate = report.environment.lineTypes.LTYPE_HC_candidate;
+  if (report.environment?.lineTypes?.postLineTypeTailCandidate) {
+    const candidate = report.environment.lineTypes.postLineTypeTailCandidate;
     lineTypeRows.push([
-      "LTYPE_HC candidate",
-      "candidate",
+      "Post-line-type diagnostic tail",
+      "diagnostic",
       `u32: ${(candidate.u32 || []).join(", ")} / u16: ${(candidate.u16 || []).join(", ")}`,
       candidate.offset ?? "",
     ]);

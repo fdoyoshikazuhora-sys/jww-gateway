@@ -1,3 +1,7 @@
+import {
+  JWF_ONLY_OPERATION_KEYS as JWF_ONLY_KEYS_FROM_JWF,
+} from "./jwf.js";
+
 export const GATEWAY_MANIFEST_FORMAT = "jww-gateway-package-manifest";
 export const GATEWAY_MANIFEST_VERSION = 1;
 export const GATEWAY_MANIFEST_SCHEMA = "docs/jww-gateway-manifest.schema.json";
@@ -15,102 +19,25 @@ export const SUPPORTED_JWW_ENCODINGS = [
   "utf-16le",
   "utf-16be",
 ];
-export const UNRESOLVED_ENVIRONMENT_KEYS = ["LTYPE_HC", "LCOLLOR_M"];
+export const UNRESOLVED_ENVIRONMENT_KEYS = [];
+export const JWF_ONLY_OPERATION_KEYS = [...JWF_ONLY_KEYS_FROM_JWF];
 export const GATEWAY_OPEN_ITEMS = [
   {
-    id: "jww-write",
-    status: "not-supported",
-    category: "output",
-    classification: "separate-project",
-    conversionImpact: "none for import; required only for round-trip JWW editing",
-    releaseDecision: "not a release blocker for read-only Gateway",
-    title: "JWW save/write",
-    detail:
-      "Gateway is read/import only. Editing results are exported as JWW Gateway JSON and do not update the source JWW file.",
-    evidence:
-      "capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.",
-    nextAction:
-      "Keep JWW write disabled until a separate writer format and round-trip test suite exist.",
-  },
-  {
-    id: "LTYPE_HC",
-    status: "sample-blocked",
-    category: "jwf-environment",
-    classification: "sample-blocked",
+    id: "jww-version-conformance",
+    status: "external-runtime-blocked",
+    category: "compatibility",
+    classification: "old-release-runtime",
     conversionImpact:
-      "low for current conversion; candidate bytes are retained for later comparison",
-    releaseDecision: "keep open until direct matches repeat in real files",
-    title: "Hatch/line type environment key",
+      "bounded for current Jw_cad 10.02.1 claims; old-release runtime behavior and independently sourced v600 DIMENSION/BLOCK/IMAGE remain unverified",
+    releaseDecision:
+      "claim only the recorded Jw_cad 10.02.1 and bounded v600/v700 results; do not claim version-wide or Jw_cad 6.x runtime compatibility",
+    title: "JWW version and entity conformance corpus",
     detail:
-      "Candidate bytes after LTYPE_L4 are retained, but tested sample files do not directly match the JWF LTYPE_HC values.",
+      "Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse cleanly and survive Gateway template rewrites with drawing and document semantic equality. Jw_cad 10.02.1 opened the representative Gateway output, appended one LINE, saved it as v700, and reopened it; the existing 1,754 drawing entities were unchanged and Gateway's subsequent template rewrite was byte-identical. The installed v600 samples do not contain native DIMENSION, BLOCK/INSERT, or IMAGE records, and no Jw_cad 6.x runtime is available.",
     evidence:
-      "core-open summaries across current sample sets show matched 0 and direct-match false.",
+      "JWW_VERSION_CONFORMANCE_EVIDENCE.md separates installed-sample parser/semantic evidence, generated entity-family coverage, current Jw_cad 10.02.1 GUI open/edit/save/reload, and the remaining old-release boundary.",
     nextAction:
-      "Review new real files that actively use this setting before promoting it to extracted coverage.",
-  },
-  {
-    id: "LCOLLOR_M",
-    status: "sample-blocked",
-    category: "jwf-environment",
-    classification: "sample-blocked",
-    conversionImpact:
-      "low for entity rendering; affects a JWF special/zoom text color rather than parsed entity colors",
-    releaseDecision: "keep open until exact RGB matches repeat in real files",
-    title: "Zoom text/special color environment key",
-    detail:
-      "Special color audits search nearby RGB triplets, but no stable direct match has been found yet.",
-    evidence:
-      "special-color audits found no direct LCOLLOR_M match in the current real-file set.",
-    nextAction:
-      "Promote only after direct matches repeat across real JWW/JWF pairs.",
-  },
-  {
-    id: "LAYCOL_LAYWID_LAYTYP",
-    status: "audit-only",
-    category: "jwf-environment",
-    classification: "audit-only",
-    conversionImpact:
-      "low for imported drawing display; entity-level color, width, and line type are already read",
-    releaseDecision: "not promoted until a stable storage pattern is found",
-    title: "Layer default color, width, and line type settings",
-    detail:
-      "Entity-level pen color, width, and style are read, but JWF layer default setting rows remain audit-only.",
-    evidence:
-      "layer-default summaries keep promotionCandidates at 0; non-zero M-08 layer defaults still do not direct-match.",
-    nextAction:
-      "Use layer-defaults audit/summary reports when new sample sets are added.",
-  },
-  {
-    id: "jww-text-decoration-rendering",
-    status: "downstream-renderer",
-    category: "renderer",
-    classification: "metadata-ready",
-    conversionImpact:
-      "medium visual-fidelity item; converted metadata exists but Gateway does not draw a view",
-    releaseDecision: "not a parser blocker because decoration metadata is exported",
-    title: "JWW text decoration overprint rendering",
-    detail:
-      "Special text runs and decoration segments are preserved as metadata, but exact visual overprint reproduction is not implemented in Gateway.",
-    evidence:
-      "Gateway exports jwwSpecialRuns and jwwTextSegments for renderer-side overprint work.",
-    nextAction:
-      "Implement in the downstream renderer using jwwSpecialRuns and jwwTextSegments.",
-  },
-  {
-    id: "tilted-ellipse-arc-comparison",
-    status: "needs-samples",
-    category: "geometry",
-    classification: "sample-comparison",
-    conversionImpact:
-      "medium for rare complex arcs; source angles and diagnostics are preserved",
-    releaseDecision: "not promoted further without confirmed before/after examples",
-    title: "Tilted arcs and ellipse-like arcs",
-    detail:
-      "Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.",
-    evidence:
-      "Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.",
-    nextAction:
-      "Add targeted before/after diagnostics when more confirmed JWW examples are available.",
+      "Obtain an actual Jw_cad 6.x runtime and non-private independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE samples, then record parser, visual, edit, Save As, semantic-diff, and old-release reload evidence separately.",
   },
 ];
 export const REQUIRED_PACKAGE_FILE_MARKERS = [
@@ -130,6 +57,9 @@ export const REQUIRED_GATEWAY_COMMANDS = [
   "diff",
   "validate",
   "env:scan",
+  "conformance",
+  "write",
+  "semantic:diff",
   "jwf:parse",
   "jwf:compare",
   "jwf:value-scan",
@@ -145,6 +75,7 @@ export const REQUIRED_GATEWAY_COMMANDS = [
   "manifest:validate",
   "status",
   "verify:report",
+  "verify:conformance",
   "verify:reports",
   "verify:diff",
   "verify:handoff",
@@ -161,6 +92,9 @@ export const REQUIRED_GATEWAY_BINARIES = [
   "jww-diagnostics-diff",
   "jww-schema-validate",
   "jww-env-scan",
+  "jww-conformance",
+  "jww-writer",
+  "jww-semantic-diff",
   "jwf-parse",
   "jww-jwf-compare",
   "jww-jwf-value-scan",
@@ -187,6 +121,8 @@ export const REQUIRED_GATEWAY_CAPABILITIES = [
   "diagnosticsDiff",
   "schemaValidate",
   "environmentScan",
+  "conformanceAudit",
+  "semanticDiff",
   "jwfParse",
   "jwfCompare",
   "jwfValueScan",
@@ -200,6 +136,7 @@ export const REQUIRED_GATEWAY_CAPABILITIES = [
   "samplePlan",
   "openItemsReport",
   "reportIndex",
+  "nativeOpen",
   "jwwWrite",
 ];
 
@@ -248,6 +185,8 @@ export function buildGatewayManifest({
       diagnosticsDiff: true,
       schemaValidate: true,
       environmentScan: true,
+      conformanceAudit: true,
+      semanticDiff: true,
       jwfParse: true,
       jwfCompare: true,
       jwfValueScan: true,
@@ -261,14 +200,19 @@ export function buildGatewayManifest({
       samplePlan: true,
       openItemsReport: true,
       reportIndex: true,
-      jwwWrite: false,
+      nativeOpen: true,
+      jwwWrite: true,
     },
     unresolvedEnvironmentKeys: [...UNRESOLVED_ENVIRONMENT_KEYS],
+    jwfOnlyOperationKeys: [...JWF_ONLY_OPERATION_KEYS],
     openItems: GATEWAY_OPEN_ITEMS.map((item) => ({ ...item })),
     notes: [
-      "JWW save/write is not supported.",
-      "LTYPE_HC and LCOLLOR_M remain unresolved until real files show stable direct matches.",
-      "Open items include classification, conversion impact, evidence, and release decision fields so sample-blocked research is not mistaken for a release blocker.",
+      "JWW write is limited to internal versions 600 and 700 and supported entities; unsupported entity types fail by default.",
+      "Jw_cad 10.02.1 reopened and edited a v700 Gateway file containing every supported entity family; the normalized Gateway rewrite was byte-identical before the intended edit.",
+      "JWW text decoration raw controls, special runs, and segments survive Gateway JSON and native rebuild write paths; visual overprint is a downstream renderer responsibility.",
+      "LTYPE_HC, LCOLLOR_M, and LAYCOL/LAYWID/LAYTYP_0..F are resolved as JWF-only operation/default settings and are not serialized into JWW.",
+      "Tilted circles and ellipse arcs expose parameter-preserving render geometry and exact bounds; Jw_cad 10.02.1 reopened and resaved the targeted v700 fixture without drawing differences.",
+      "Open items include classification, conversion impact, evidence, and release decision fields so old-release runtime evidence is not mistaken for current-version parser loss.",
     ],
   };
 }
@@ -403,13 +347,16 @@ export function validateGatewayManifest(manifest) {
       addError(errors, `capabilities.${capability}`, "must be a boolean");
     }
   }
-  if (capabilities.jwwWrite !== false) {
-    addError(errors, "capabilities.jwwWrite", "must be false");
+  if (capabilities.jwwWrite !== true) {
+    addError(errors, "capabilities.jwwWrite", "must be true");
   }
 
-  for (const key of UNRESOLVED_ENVIRONMENT_KEYS) {
-    if (!manifest.unresolvedEnvironmentKeys?.includes(key)) {
-      addError(errors, "unresolvedEnvironmentKeys", `must include ${key}`);
+  if (manifest.unresolvedEnvironmentKeys?.length) {
+    addError(errors, "unresolvedEnvironmentKeys", "must be empty");
+  }
+  for (const key of JWF_ONLY_OPERATION_KEYS) {
+    if (!manifest.jwfOnlyOperationKeys?.includes(key)) {
+      addError(errors, "jwfOnlyOperationKeys", `must include ${key}`);
     }
   }
 

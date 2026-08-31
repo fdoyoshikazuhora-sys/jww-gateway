@@ -1,8 +1,8 @@
 # JWW Gateway
 
-JWW Gateway は、JWW読み込み・変換・診断用の単体CLIです。
+JWW Gateway は、JWW読み込み・変換・診断・意味差分・v600/v700限定書き出し用の単体CLIです。
 
-Jw_cad `.jww` ファイルを読み込み、JWW Gateway JSONへ変換し、診断レポートを出力します。JWW保存/書き出しには未対応です。
+Jw_cad `.jww` ファイルを読み込み、JWW Gateway JSONへ変換し、診断レポートを出力します。明示的なwriter CLIから内部バージョン600/700を書き出せますが、未対応エンティティ型は既定でエラーにします。
 
 このフォルダは、コマンドラインから JWW ファイルを変換・診断するための配布用フォルダです。画面付きのCADアプリ本体ではありません。
 
@@ -25,8 +25,10 @@ JWW Gateway は、常駐サーバーや画面アプリへ直接接続するツ�
 - 用紙、縮尺、レイヤ、基本線色、線種、文字情報の保持
 - JWF比較、値スキャン、未対応項目の棚卸し
 - 受け渡し用の検証レポート生成
+- JWW Gateway JSONから内部バージョン600/700のJWWを書き出し
+- 2つのJWWの図形・文書メタ情報・Jw_cad内部設定を分離した意味差分
 
-JWW保存/書き出しには対応していません。変換・診断コマンドは元のJWWファイルを変更しません。
+書き出しは明示的な `write` コマンドだけが行います。変換・診断・意味差分コマンドは元のJWWファイルを変更しません。未対応型は `--allow-unsupported` を明示しない限り書き出しを拒否します。
 
 ## 最初に確認
 
@@ -89,6 +91,33 @@ npm run diagnose -- "C:\path\to\file.jww" --html -o diagnostics.html
 npm run diagnose -- "C:\path\to\file.jww" --json --outlier-limit 40 --outlier-distance-min 500 -o diagnostics.json
 ```
 
+## JWWを書き出す
+
+```powershell
+npm run write -- input.json -o output.jww --version 700
+npm run write -- input.json -o output-v600.jww --version 600
+npm run write -- input.json -o output.jww --template source.jww
+```
+
+現在のwriter契約はv600/v700とテスト済みエンティティに限定されます。既存図面の編集では同じ元JWWを `--template` に指定してください。無関係なテンプレートは異なる文字種テーブルを持つ場合があります。ネイティブの `CDataSunpou` 寸法、`CDataBlock` 参照と `CDataList` 定義、外部画像参照、v700埋込画像ペイロードに対応しています。Jw_cadでの再読込・再保存結果は、parser成功や意味差分とは別に記録します。
+
+エンティティ種別ごとの往復コーパスは次のコマンドで生成・検証します。
+
+```powershell
+npm run roundtrip:corpus
+```
+
+生成コーパスはv600が7件、v700が8件です。各fixtureでparser clean、図面意味一致、対応文書メタデータ一致をすべて要求します。
+
+## JWWの意味差分を確認
+
+`drawingRoundTripCompatible` は図面一致とparser clean、`roundTripCompatible` はさらに文書メタ情報一致を要求します。Jw_cad内部設定差は別項目に分離します。
+
+```powershell
+npm run semantic:diff -- before.jww after.jww
+npm run semantic:diff -- before.jww after.jww --json --fail-on-drawing-difference
+```
+
 ## 変換JSONを検証
 
 ```powershell
@@ -106,6 +135,8 @@ Windowsでは、フォルダ直下の `.cmd` からも実行できます。
 .\jww-gateway-status.cmd
 .\jww-gateway-convert.cmd "C:\path\to\file.jww" -o output.json
 .\jww-gateway-diagnose.cmd "C:\path\to\file.jww" --html -o diagnostics.html
+.\jww-gateway-write.cmd input.json -o output.jww --version 700
+.\jww-gateway-semantic-diff.cmd before.jww after.jww
 .\jww-gateway-verify-handoff.cmd
 ```
 
@@ -113,12 +144,12 @@ Windowsでは、フォルダ直下の `.cmd` からも実行できます。
 
 ## 既知の制限
 
-- JWW保存/書き出しには未対応です。
+- JWW書き出しは内部バージョン600/700とテスト済みエンティティに限定され、未対応型は既定で拒否します。
+- ネイティブ寸法、ブロック定義/参照、外部画像参照、v700埋込画像はfocused testと生成コーパスの対象です。
 - Jw_cad完全互換ビューアではありません。
-- 傾き弧や楕円弧は、実ファイル比較による調整が必要になる場合があります。
-- 複雑なJWW文字装飾はメタ情報として保持しますが、見た目の完全再現は未完了です。
-- JWW文字装飾の範囲は `jwwTextSegments` として出力します。
-- `LTYPE_HC` と `LCOLLOR_M` は、実ファイルで安定した直接一致が出るまで未解決扱いです。
+- 傾き弧・楕円弧は、JWWのパラメータ角、扁平率、傾きを保持した明示geometryと正確なboundsを出力します。v700対象fixtureはJw_cad 10.02.1でOpen/Save As後も図形semantic差分0を確認済みです。下流rendererはこのgeometry契約を使用する必要があります。
+- JWW文字装飾はraw制御列、`jwwSpecialRuns`、`jwwTextSegments`をGateway JSONとnative rebuild保存で保持します。見た目の完全再現は下流rendererの責任です。
+- `LTYPE_HC`、`LCOLLOR_M`、`LAYCOL_0..F`、`LAYWID_0..F`、`LAYTYP_0..F` はJWF専用の操作・作図既定値です。Jw_cad 10.02.1の単独変更Save As比較で、JWWへ保存されないことを確認済みです。
 - 単体版の `open-items` レポートでは、未対応項目を「サンプル待ち」「監査のみ」「メタデータ出力済み」「別プロジェクト」「変換対象外」に分類し、変換への影響と公開判断を併記します。
 
 既知の制限と残り調査項目を確認する場合:

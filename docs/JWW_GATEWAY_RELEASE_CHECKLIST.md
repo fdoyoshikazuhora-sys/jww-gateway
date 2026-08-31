@@ -92,10 +92,10 @@ You can make this check fail automatically:
 
 ```powershell
 npm run verify:handoff
-npm run verify:report -- --expect-unresolved LTYPE_HC,LCOLLOR_M
+npm run verify:report -- --expect-no-unresolved
 ```
 
-These remain unresolved until real files show stable direct matches.
+`LTYPE_HC`, `LCOLLOR_M`, and all `LAYCOL/LAYWID/LAYTYP_0..F` keys are recorded separately as JWF-only operation/default keys; the unresolved environment-key list must stay empty.
 
 ## 4. Compare with a previous handoff
 
@@ -109,7 +109,7 @@ Use the diff report to confirm added, removed, and changed files are expected.
 
 ## 5. Handoff notes
 
-- JWW write/save is not supported.
+- JWW write/save is bounded to v600/v700 and supported entities; unsupported types must fail unless explicitly allowed.
 - Generated review artifacts live in `reports\`.
 - Report file types are summarized in `reports\README.md` and `docs/JWW_GATEWAY_REPORTS.md`.
 - `reports\` is recreated when the package is regenerated.

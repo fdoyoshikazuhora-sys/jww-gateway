@@ -67,11 +67,14 @@ Run these from the standalone `JWW_Gateway` folder.
 | `jww-gateway-special-color-summary.cmd`  | Summarize multiple special color audits. |
 | `jww-gateway-layer-defaults-audit.cmd`   | Audit LAYCOL/LAYWID/LAYTYP directly.     |
 | `jww-gateway-layer-defaults-summary.cmd` | Summarize multiple layer default audits. |
-| `jww-gateway-sample-plan.cmd`            | Plan repeatable checks for JWW/JWF sets. |
+| jww-gateway-sample-plan.cmd            | Plan repeatable checks for JWW/JWF sets. |
+| jww-gateway-write.cmd                  | Write bounded JWW v600/v700 output.      |
+| jww-gateway-roundtrip-corpus.cmd       | Run the v600/v700 entity corpus.         |
+| jww-gateway-semantic-diff.cmd          | Compare normalized JWW meaning.          |
 
 ## Notes
 
 - Paths with spaces must be quoted.
 - All arguments after the `.cmd` file are passed through to the npm command.
 - `reports\` is recreated when the standalone package is regenerated.
-- JWW save/write is not supported.
+- `jww-gateway-write.cmd` writes bounded v600/v700 output; `jww-gateway-semantic-diff.cmd` compares normalized meaning. Unsupported writer entity types fail by default.

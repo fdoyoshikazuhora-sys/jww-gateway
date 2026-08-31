@@ -105,6 +105,23 @@ describe("JWW Gateway JSON validator CLI", () => {
               missingJwfKeys: ["LTYPE_HC", "LCOLLOR_M"],
             },
           },
+          jwwInternalSettings: {
+            sentinel: {
+              start: { x: 0, y: -1000 },
+              end: { x: 0, y: -1000 },
+            },
+            records: [
+              {
+                id: "jww-internal-setting-42",
+                key: "Printer_Orientation",
+                sourceIndex: 42,
+                settingValue: 0,
+                text: "Printer_Orientation = 0",
+                startPoint: { x: 0, y: -1000 },
+                endPoint: { x: 0, y: -1000 },
+              },
+            ],
+          },
         },
       })
     );
@@ -140,6 +157,23 @@ describe("JWW Gateway JSON validator CLI", () => {
               missingJwfKeys: "LTYPE_HC",
             },
           },
+          jwwInternalSettings: {
+            sentinel: {
+              start: { x: "0", y: -1000 },
+              end: { x: 0, y: -1000 },
+            },
+            records: [
+              {
+                id: 0,
+                key: "",
+                sourceIndex: -1,
+                settingValue: "0",
+                text: 0,
+                startPoint: null,
+                endPoint: { x: 0, y: -1000 },
+              },
+            ],
+          },
         },
       })
     );
@@ -156,6 +190,13 @@ describe("JWW Gateway JSON validator CLI", () => {
         "meta.jwwEnvironment.coverage.totalJwfKeysTracked",
         "meta.jwwEnvironment.coverage.supportedKeys[1]",
         "meta.jwwEnvironment.coverage.missingJwfKeys",
+        "meta.jwwInternalSettings.sentinel.start.x",
+        "meta.jwwInternalSettings.records[0].id",
+        "meta.jwwInternalSettings.records[0].key",
+        "meta.jwwInternalSettings.records[0].sourceIndex",
+        "meta.jwwInternalSettings.records[0].settingValue",
+        "meta.jwwInternalSettings.records[0].text",
+        "meta.jwwInternalSettings.records[0].startPoint",
       ])
     );
   });

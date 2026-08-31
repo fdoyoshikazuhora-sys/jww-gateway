@@ -1,5 +1,6 @@
 import {
   buildGatewayManifest,
+  JWF_ONLY_OPERATION_KEYS,
   REQUIRED_GATEWAY_BINARIES,
   REQUIRED_GATEWAY_COMMANDS,
   validateGatewayManifest,
@@ -115,7 +116,9 @@ function writePackageJsonForManifest(manifestFile, packageJson) {
 }
 
 function runVerifyReport(manifest, options = {}) {
-  const file = writeManifest(manifest, options.files || []);
+  const fixtureManifest = JSON.parse(JSON.stringify(manifest));
+  if (options.mutateManifest) options.mutateManifest(fixtureManifest);
+  const file = writeManifest(fixtureManifest, options.files || []);
   writePackageJsonForManifest(
     file,
     options.packageJson || packageJsonForManifest()
@@ -127,6 +130,7 @@ function runVerifyReport(manifest, options = {}) {
   if (options.expectedUnresolved) {
     args.push("--expect-unresolved", options.expectedUnresolved);
   }
+  if (options.expectNoUnresolved) args.push("--expect-no-unresolved");
   const result = spawnSync(process.execPath, args, { encoding: "utf8" });
   return {
     status: result.status,
@@ -185,25 +189,47 @@ describe("JWW Gateway package manifest", () => {
     expect(manifest.capabilities.layerDefaultsSummary).toBe(true);
     expect(manifest.capabilities.specialColorAudit).toBe(true);
     expect(manifest.capabilities.specialColorSummary).toBe(true);
-    expect(manifest.capabilities.jwwWrite).toBe(false);
+    expect(manifest.capabilities.jwwWrite).toBe(true);
+    expect(manifest.capabilities.semanticDiff).toBe(true);
     expect(manifest.capabilities.valueScanSummary).toBe(true);
     expect(manifest.capabilities.promotionCandidateGate).toBe(true);
     expect(manifest.capabilities.openItemsReport).toBe(true);
     expect(manifest.capabilities.reportIndex).toBe(true);
+    expect(manifest.capabilities.nativeOpen).toBe(true);
     expect(manifest.openItems).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "jww-write" }),
-        expect.objectContaining({
-          id: "LCOLLOR_M",
-          classification: "sample-blocked",
-        }),
+        expect.objectContaining({ id: "jww-version-conformance" }),
       ])
     );
-    expect(manifest.unresolvedEnvironmentKeys).toEqual(
-      expect.arrayContaining(["LTYPE_HC", "LCOLLOR_M"])
+    expect(
+      manifest.openItems.find((item) => item.id === "jww-version-conformance")
+        ?.detail
+    ).toContain("Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities");
+    expect(manifest.packageFiles).toContain(
+      "docs/JWW_VERSION_CONFORMANCE_EVIDENCE.md"
     );
+    expect(manifest.packageFiles).toContain(
+      "docs/JWW_TEXT_DECORATION_CONTRACT.md"
+    );
+    expect(manifest.openItems.map((item) => item.id)).not.toEqual(
+      expect.arrayContaining([
+        "jww-write",
+        "jww-text-decoration-rendering",
+        "LTYPE_HC",
+        "LCOLLOR_M",
+        "tilted-ellipse-arc-comparison",
+      ])
+    );
+    expect(manifest.unresolvedEnvironmentKeys).toEqual([]);
+    expect(manifest.jwfOnlyOperationKeys).toEqual(JWF_ONLY_OPERATION_KEYS);
+    expect(manifest.jwfOnlyOperationKeys.length).toBe(50);
     expect(manifest.packageFiles).toEqual(
-      expect.arrayContaining(["tools/jww-manifest-validate.mjs"])
+      expect.arrayContaining([
+        "tools/jww-manifest-validate.mjs",
+        "src/jww/arcGeometry.js",
+        "src/jww/arcGeometry.test.js",
+        "docs/JWW_ELLIPSE_ARC_EVIDENCE.md",
+      ])
     );
     expect(validateGatewayManifest(manifest)).toEqual({
       valid: true,
@@ -214,8 +240,9 @@ describe("JWW Gateway package manifest", () => {
   it("reports missing output contract and unresolved key information", () => {
     const manifest = validManifest();
     manifest.outputFormat.schema = "wrong.json";
-    manifest.capabilities.jwwWrite = true;
+    manifest.capabilities.jwwWrite = false;
     manifest.unresolvedEnvironmentKeys = ["LTYPE_HC"];
+    manifest.jwfOnlyOperationKeys = ["LTYPE_HC"];
 
     const result = validateGatewayManifest(manifest);
 
@@ -225,6 +252,7 @@ describe("JWW Gateway package manifest", () => {
         "outputFormat.schema",
         "capabilities.jwwWrite",
         "unresolvedEnvironmentKeys",
+        "jwfOnlyOperationKeys",
       ])
     );
   });
@@ -241,8 +269,8 @@ describe("JWW Gateway package manifest", () => {
 
   it("returns CLI errors for invalid manifests", () => {
     const manifest = validManifest();
-    manifest.capabilities.jwwWrite = true;
-    manifest.unresolvedEnvironmentKeys = [];
+    manifest.capabilities.jwwWrite = false;
+    manifest.unresolvedEnvironmentKeys = ["UNEXPECTED"];
     manifest.packageFiles = [];
     manifest.commands = ["convert"];
     manifest.binaries = ["jww-gateway"];
@@ -322,6 +350,10 @@ describe("JWW Gateway package manifest", () => {
         "tools/jww-gateway-status.mjs",
         "docs/jww-gateway-manifest.schema.json",
         "docs/JWW_GATEWAY_RELEASE_CHECKLIST.md",
+        "docs/JWW_NATIVE_API.md",
+        "src/jww/index.js",
+        "src/jww/native.js",
+        "src/jww/native.test.js",
         "docs/JWW_GATEWAY_RELEASE_NOTES.md",
         "docs/JWW_GATEWAY_REPORTS.md",
         "docs/JWW_GATEWAY_HANDOFF.md",
@@ -502,17 +534,18 @@ describe("JWW Gateway package manifest", () => {
     expect(output.format).toBe("jww-gateway-open-items");
     expect(output.manifestFile).toBe("JWW_GATEWAY_MANIFEST.json");
     expect(path.isAbsolute(output.manifestFile)).toBe(false);
-    expect(output.counts.total).toBeGreaterThan(1);
-    expect(output.counts.byClassification["sample-blocked"]).toBe(2);
+    expect(output.counts.total).toBe(1);
+    expect(output.counts.byClassification["old-release-runtime"]).toBe(1);
     expect(output.openItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "jww-write",
-          releaseDecision: expect.stringContaining("read-only"),
+          id: "jww-version-conformance",
+          releaseDecision: expect.stringContaining("version-wide"),
         }),
-        expect.objectContaining({ id: "LTYPE_HC" }),
-        expect.objectContaining({ id: "LCOLLOR_M" }),
       ])
+    );
+    expect(output.openItems.map((item) => item.id)).not.toEqual(
+      expect.arrayContaining(["jww-write", "LTYPE_HC", "LCOLLOR_M"])
     );
   });
 
@@ -570,7 +603,7 @@ describe("JWW Gateway package manifest", () => {
     expect(output.counts.missingFiles).toBe(0);
     expect(output.counts.missingScripts).toBe(0);
     expect(output.counts.missingBins).toBe(0);
-    expect(output.counts.openItems).toBeGreaterThan(1);
+    expect(output.counts.openItems).toBe(1);
     expect(output.fileInventory).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -580,9 +613,8 @@ describe("JWW Gateway package manifest", () => {
         }),
       ])
     );
-    expect(output.unresolvedEnvironmentKeys).toEqual(
-      expect.arrayContaining(["LTYPE_HC", "LCOLLOR_M"])
-    );
+    expect(output.unresolvedEnvironmentKeys).toEqual([]);
+    expect(output.jwfOnlyOperationKeys).toEqual(JWF_ONLY_OPERATION_KEYS);
     expect(output.handoff.entrypoint).toBe("JWW_GATEWAY_HANDOFF.md");
   });
 
@@ -604,7 +636,13 @@ describe("JWW Gateway package manifest", () => {
     expect(result.stdout).toContain("Open items: npm run open-items");
     expect(result.stdout).toContain("Report index: npm run reports:index");
     expect(result.stdout).toContain("Known open items:");
-    expect(result.stdout).toContain("Unresolved: LTYPE_HC, LCOLLOR_M");
+    expect(result.stdout).toContain("Unresolved: none");
+    expect(result.stdout).toContain(
+      "JWF-only operation keys: LTYPE_HC, LCOLLOR_M"
+    );
+    expect(result.stdout).toContain("LAYCOL_0");
+    expect(result.stdout).toContain("LAYWID_F");
+    expect(result.stdout).toContain("LAYTYP_F");
   });
 
   it("reports script mismatches in the handoff verify report", () => {
@@ -626,13 +664,16 @@ describe("JWW Gateway package manifest", () => {
     expect(output.missingScripts).toEqual(["verify:report"]);
   });
 
-  it("can gate expected unresolved keys in the handoff verify report", () => {
+  it("can gate that no unresolved keys remain in the handoff verify report", () => {
     const manifest = validManifest();
 
     const result = runVerifyReport(manifest, {
       files: packageRequiredFiles(),
       json: true,
-      expectedUnresolved: "LTYPE_HC",
+      expectNoUnresolved: true,
+      mutateManifest: (value) => {
+        value.unresolvedEnvironmentKeys = ["UNEXPECTED"];
+      },
     });
     const output = JSON.parse(result.stdout);
 
@@ -641,9 +682,9 @@ describe("JWW Gateway package manifest", () => {
     expect(output.unresolvedExpectation).toEqual(
       expect.objectContaining({
         checked: true,
-        expected: ["LTYPE_HC"],
+        expected: [],
         missing: [],
-        unexpected: ["LCOLLOR_M"],
+        unexpected: ["UNEXPECTED"],
       })
     );
   });
@@ -660,6 +701,7 @@ describe("JWW Gateway package manifest", () => {
     expect(result.stdout).toContain("<title>JWW Gateway Verify Report</title>");
     expect(result.stdout).toContain("Manifest schema");
     expect(result.stdout).toContain("JWW_GATEWAY_HANDOFF.md");
+    expect(result.stdout).toContain("JWF-only operation keys");
     expect(result.stdout).toContain("LTYPE_HC, LCOLLOR_M");
     expect(result.stdout).toContain("File Inventory");
     expect(result.stdout).toContain("package.json");

@@ -12,7 +12,7 @@ Jw_cad操作マニュアルでは、基本設定の「ファイル読込項目�
 
 JWFについては、環境設定ファイルが `.JWF` のテキストファイルであり、Jw*cad上の「環境設定ファイル」読込み・書込み・編集対象であることが公開マニュアルで説明されている。公開されている `Sample.jwf` 互換資料では、`LCOLLOR*\_`、`PCOLLOR\__`、`LTYPE*\*`、`LAYNAM*_`、`LAYCOL\_\_`、`LAYWID*\*`、`LAYTYP*\*` の意味と値域が確認できる。
 
-公開情報から、`LAYCOL_*` は書込レイヤを変えた時の既定線色で、0 は切替なし、1..9 が線色番号、9 は補助線を意味する。`LAYWID_*` は線幅を1/100mm単位とする設定時のレイヤ別既定線幅で、-2 は線幅変更なし、-1 は現在線色に対する線幅へ変更、0..30000 は指定線幅を意味する。`LAYTYP_*` はレイヤ別既定線種で、0 は切替なし、0..19 の範囲だが 10 は除外される。これらは表示済みエンティティの見た目より、Jw_cad上で「そのレイヤに書き込む時の初期属性」に近いため、JWW変換表示では必須ではないが、Gatewayの環境再現データとしては保持対象にする。
+公開情報から、`LAYCOL_*` は書込レイヤを変えた時の既定線色で、0 は切替なし、1..9 が線色番号、9 は補助線を意味する。`LAYWID_*` は線幅を1/100mm単位とする設定時のレイヤ別既定線幅で、-2 は線幅変更なし、-1 は現在線色に対する線幅へ変更、0..30000 は指定線幅を意味する。`LAYTYP_*` はレイヤ別既定線種で、0 は切替なし、0..19 の範囲だが 10 は除外される。これらは既存エンティティ属性ではなく「書込レイヤを切り替えた時の作図属性」に属する。2026-08-30の単独変更Save As比較でJWWへ保存されないことを確認したため、JWF Environment Profileでは保持するがJWW native documentの抽出・保存対象にはしない。
 
 この公開情報のうち、意味と値並びが確定しやすい `LCOLLOR_*`、`PCOLLOR_*`、`LTYPE_*`、`LAYNAM_*`、`LAYCOL_*`、`LAYWID_*`、`LAYTYP_*` は、JWFパーサの `entry.definition` に付与する。加えて、`Sample.jwf` の説明から `S_COMM_*`、文字、寸法、ハッチ、キー割当、クロックメニューなどのカテゴリ定義も付与する。`jwf:compare` / `jwf:value-scan` の HTML/CSV ではこの定義を Meaning 列として出力し、候補バイトが何の設定に対応するかを確認しやすくする。
 
@@ -65,7 +65,7 @@ JWFについては、環境設定ファイルが `.JWF` のテキストファイ
 - JWW 特殊文字、印刷時埋め込み文字の一部
 - 弧、楕円弧系の元角度情報
 
-一方で、JWF にある環境設定全体としてはまだ未対応項目が多い。特に `S_COMM_*`、`LAYCOL_*`、`LAYWID_*`、`LAYTYP_*`、文字種プリセット、寸法設定の詳細、ハッチ設定、キー割当、クロックメニュー、AUTO モードなどは、JWW 内に存在する可能性を前提に追加調査が必要。線種テーブルは `LTYPE_02..09`、`LTYPE_R1..R5`、`LTYPE_L1..L4` まで構造化済みで、`LTYPE_HC` が残件。
+一方で、JWF にある環境設定全体としてはまだ未対応項目が多い。特に `S_COMM_*`、文字種プリセット、寸法設定の詳細、ハッチ設定、キー割当、クロックメニュー、AUTO モードなどは、JWW 内に存在するか、JWF専用操作設定かを個別に判断する必要がある。線種テーブルは `LTYPE_02..09`、`LTYPE_R1..R5`、`LTYPE_L1..L4` まで構造化済み。`LTYPE_HC`、`LCOLLOR_M`、`LAYCOL/LAYWID/LAYTYP_0..F` はJWF専用設定として解決済み。
 
 ### 未対応分類の公開方針
 
@@ -73,12 +73,11 @@ JWFについては、環境設定ファイルが `.JWF` のテキストファイ
 
 | 分類 | 対象 | 公開判断 |
 | --- | --- | --- |
-| `sample-blocked` | `LTYPE_HC`、`LCOLLOR_M` | 候補や近傍調査は残すが、直接一致が複数実ファイルで再現するまで未抽出扱い。 |
-| `audit-only` | `LAYCOL_*`、`LAYWID_*`、`LAYTYP_*` | エンティティ側の色・線幅・線種は読めているため、表示変換のブロッカーにはしない。レイヤ既定値としては監査継続。 |
-| `metadata-ready` | JWW文字装飾の重ね描画 | `jwwSpecialRuns` / `jwwTextSegments` は出力済み。見た目の完全再現は下流レンダラ側の課題。 |
-| `sample-comparison` | 傾き弧、楕円弧系の稀なケース | 元角度と変換後角度の診断は保持済み。確定例が増えた時に比較する。 |
+| `jwf-only-operation` | `LTYPE_HC`、`LCOLLOR_M`、`LAYCOL/LAYWID/LAYTYP_0..F` | JWF専用の操作・表示・書込レイヤ既定値。JWW文書には保存されないため、native Open/Saveの抽出対象外。 |
+| `gateway-contract-complete` | JWW文字装飾 | raw制御列、`jwwSpecialRuns`、`jwwTextSegments`をGateway JSON/native rebuild保存で保持。見た目の完全再現は下流レンダラ側の課題。 |
+| `geometry-resolved` | 傾き弧、楕円弧 | パラメータ角、扁平率、傾きを分離したgeometryと正確なboundsを実装。v700対象fixtureのJw_cad 10.02.1 Open/Save Asで図形差分0。版全体conformanceは別項目。 |
 | `jwf-parse-ready` | `KEY_*`、クロックメニュー、操作コマンド等 | `.jwf` テキストファイルからは `normalizedSettings.operation` として正規化済み。JWWバイナリ内の保存位置抽出は、図面変換外の監査項目として継続。 |
-| `separate-project` | JWW保存/書き戻し | 読み込みGatewayとは別プロジェクト。round-trip用仕様とテストができるまで非対応を明示する。 |
+| `bounded-writer-resolved` | JWW保存/書き戻し | v600/v700の対応エンティティに限定したwriterを実装。v700全対応種をJw_cad 10.02.1でOpen・編集・再保存し、正規化後のGateway再構築は編集前byte-identical。版全体保証は別のconformance項目に残す。 |
 
 この分類は `JWW_GATEWAY_MANIFEST.json` の `openItems` と、`npm run open-items -- --html -o reports\open-items.html` の出力に反映する。未対応の数を減らすより、誤読して対応済みに見せないことを優先する。
 
@@ -108,13 +107,13 @@ UTF-16文字列には、JWF書出し用と思われるフォーマット列が�
 | `LAYSCALE`                               | レイヤグループ縮尺                 |       対応済み | `doc.layer_groups[].scale`、Gateway `groupScaleState`。                                                                                                           |
 | `LAYNAM_N`                               | レイヤ名表示などの設定             |         未対応 | 名前本体は対応済みだが、表示設定値は未抽出。                                                                                                                      |
 | `LAYNAM_0..F`                            | レイヤグループ名、レイヤ名         |       対応済み | `doc.layer_groups[].name`、`layers[].name`。                                                                                                                      |
-| `LAYCOL_0..F`                            | レイヤ別色指定                     |         未対応 | 現在は各エンティティの `base.pen_color` を使用。レイヤデフォルト色は未抽出。                                                                                      |
-| `LAYWID_0..F`                            | レイヤ別線幅指定                   |         未対応 | 現在は各エンティティの `base.pen_width` と色テーブル線幅を使用。                                                                                                  |
-| `LAYTYP_0..F`                            | レイヤ別線種指定                   |         未対応 | 現在は各エンティティの `base.pen_style` を使用。                                                                                                                  |
+| `LAYCOL_0..F`                            | 書込レイヤ切替時の既定線色         | JWF専用操作設定 | JWF parserで保持する。JWWには保存されず、既存エンティティは `base.pen_color` を正本とする。                                                                        |
+| `LAYWID_0..F`                            | 書込レイヤ切替時の既定線幅         | JWF専用操作設定 | JWF parserで保持する。JWWには保存されず、既存エンティティは `base.pen_width` を正本とする。                                                                        |
+| `LAYTYP_0..F`                            | 書込レイヤ切替時の既定線種         | JWF専用操作設定 | JWF parserで保持する。JWWには保存されず、既存エンティティは `base.pen_style` を正本とする。                                                                        |
 | `LCOLLOR_1..8`                           | 画面表示基本色、線幅               |       部分対応 | バイナリ内テーブルを推定して `color_settings.screenColors` に格納。確定オフセットではなくスコア推定。                                                             |
 | `LCOLLOR_G`                              | グレー                             |       部分対応 | 色テーブル候補では読める場合あり。意味付けは弱い。                                                                                                                |
 | `LCOLLOR_H`                              | 補助線色                           |       部分対応 | 10色テーブル推定に含まれる可能性あり。専用名としては未固定。                                                                                                      |
-| `LCOLLOR_S/K/Z/M`                        | 選択色、仮線色、ズーム枠色、ズーム文字色 |       部分対応 | `LCOLLOR_S`、`LCOLLOR_K`、`LCOLLOR_Z` は色テーブル基準の候補オフセットから抽出。公開JWF資料では `LCOLLOR_M` はズーム文字色だが、JWW内位置は未特定。                  |
+| `LCOLLOR_S/K/Z/M`                        | 選択色、仮線色、ズーム枠色、ズーム文字色 |       部分対応 | `LCOLLOR_S`、`LCOLLOR_K`、`LCOLLOR_Z` はJWW候補オフセットから抽出。`LCOLLOR_M` はJWF専用のズーム操作文字色で、JWWには保存されない。                           |
 | `LCOLLOR_B`                              | 背景色                             |       部分対応 | `color_settings.backgroundColor` として推定。白黒反転判断に利用。                                                                                                 |
 | `PCOLLOR_1..8`                           | 印刷色、印刷線幅、実点半径         |       対応済み | `color_settings.printColors` として推定。`RGB + width + pointRadius` 形式を優先し、実点半径を `pointRadius` として保持。                                          |
 | `PCOLLOR_G`                              | 印刷グレー                         |   対応済み寄り | 推定テーブルに含まれる場合は `PCOLLOR_G` として抽出。専用意味付けはまだ弱い。                                                                                     |
@@ -122,7 +121,7 @@ UTF-16文字列には、JWF書出し用と思われるフォーマット列が�
 | `LTYPE_02..09`                           | 基本線種パターン                   |       対応済み | `line_type_settings.rows`、`meta.jwwEnvironment.lineTypes` に抽出。候補テーブルはスコア推定。                                                                     |
 | `LTYPE_R*`                               | ランダム線種                       |       対応済み | `LTYPE_R1..R5` を抽出。                                                                                                                                           |
 | `LTYPE_L*`                               | 倍長線種など                       |       対応済み | `LTYPE_L1..L4` を抽出。                                                                                                                                           |
-| `LTYPE_HC`                               | 線種補助・端点設定                 |   候補診断のみ | `line_type_settings.tailCandidate` / `meta.jwwEnvironment.lineTypes.LTYPE_HC_candidate` に線種テーブル直後の候補バイト、6項目の `valueSchema`、`u32Semantic` を保持。JWF値と一致未確認のため未抽出扱い。 |
+| `LTYPE_HC`                               | 選択仮線・クロスライン・端点設定   | JWF専用操作設定 | 6項目の意味はJWF契約として確定。JWWには保存されない。線種テーブル直後24 bytesは `postLineTypeTailCandidate` として中立な診断名で保持する。                 |
 | `MSET`                                   | 文字設定の基本                     |         未対応 | エンティティ文字の実値は読めるが、文字種プリセットとしては未抽出。                                                                                                |
 | `MHEN`                                   | 文字フォント                       |       部分対応 | 各文字エンティティの `font_name` は読取済み。プリセット側は未対応。                                                                                               |
 | `MWIDE`                                  | 文字種幅                           |         未対応 | 各文字の `size_x` は読取済み。プリセット表は未抽出。                                                                                                              |
@@ -227,18 +226,18 @@ JWW Gateway の変換JSONは `docs/jww-gateway-json.schema.json` と `tools/jww-
 
 `src/jww/schemaValidator.test.js` は、正しいJWWメタデータを通すことと、不正な色HEX、RGB範囲外、線種設定の型崩れ、JWF coverage の型崩れを検出することを確認する。これにより、JWF項目の棚卸しが進んでも、外部アプリへ渡すJSONの最低契約が崩れないようにする。
 
-単体配布フォルダ `..\JWW_Gateway` には `JWW_GATEWAY_MANIFEST.json` を生成する。manifest は、対応CLI、対応エンコーディング、出力スキーマ、機能有無、JWW書き込み非対応、未確定環境キー、配布ファイル一覧を機械的に伝えるためのもの。manifest の形は `docs/jww-gateway-manifest.schema.json` に固定し、生成と検証の共通ルールは `src/jww/gatewayManifest.js` に置く。配布対象ファイル一覧は `src/jww/gatewayPackageFiles.js` に集約し、`package-jww-gateway.mjs` と `jww-gateway-smoke.mjs` が同じ一覧を使い、manifest の `packageFiles` にも出力する。`tools/jww-manifest-validate.mjs` はこの共通ルールで manifest JSON を単独検証するCLI。`--check-files` 付きでは、manifest と同じフォルダを基準に `packageFiles` の実在確認も行う。現時点の `unresolvedEnvironmentKeys` は `LTYPE_HC` と `LCOLLOR_M` で、`capabilities.jwwWrite` は `false` とする。`src/jww/gatewayManifest.test.js` は manifest生成、共通検証、CLI正常系、CLI異常系、配布必須ファイル一覧、`--check-files` 正常系/欠品系を確認する。元プロジェクト側の `npm run jww:package:smoke` は manifest、READMEの未確定キー説明、schema validator の正常系/異常系、value scan のRGB triplet、core-open direct-match 集計を確認する。
+単体配布フォルダ `..\JWW_Gateway` には `JWW_GATEWAY_MANIFEST.json` を生成する。manifest は、対応CLI、対応エンコーディング、出力スキーマ、機能有無、JWF専用操作キー、未確定環境キー、配布ファイル一覧を機械的に伝えるためのもの。manifest の形は `docs/jww-gateway-manifest.schema.json` に固定し、生成と検証の共通ルールは `src/jww/gatewayManifest.js` に置く。配布対象ファイル一覧は `src/jww/gatewayPackageFiles.js` に集約し、`package-jww-gateway.mjs` と `jww-gateway-smoke.mjs` が同じ一覧を使い、manifest の `packageFiles` にも出力する。`tools/jww-manifest-validate.mjs` はこの共通ルールで manifest JSON を単独検証するCLI。`--check-files` 付きでは、manifest と同じフォルダを基準に `packageFiles` の実在確認も行う。`unresolvedEnvironmentKeys` は空、`jwfOnlyOperationKeys` は `LTYPE_HC`、`LCOLLOR_M`、`LAYCOL/LAYWID/LAYTYP_0..F` の計50キーとする。`capabilities.jwwWrite` はv600/v700限定writerの追加により `true` とする。v700全対応種のJw_cad 10.02.1実機ゲートは完了し、独立作図・版全体の互換性は`jww-version-conformance`に残す。
 manifest の `capabilities.valueScanSummary` と `capabilities.promotionCandidateGate` は、`value-scan:summary` と `--fail-on-promotion-candidates` が使えることを外部アプリへ伝える。
 
 単体配布版 `JWW_Gateway` には `verify` コマンドを持たせる。`verify` は smoke と `manifest:validate --check-files` を連続実行し、公開前に配布物の欠落を確認する。生成レポートは `reports\` に出す運用とし、このフォルダはパッケージ再生成時に作り直される。
 `verify:report` は公開・受け渡し用の短い検証レポートを生成する。manifestの妥当性、必須ファイル欠落、scripts/binのズレ、capability、未解決キーをまとめ、`reports\verify-report.txt`、`reports\verify-report.json`、または `reports\verify-report.html` に保存する。
-`verify:report --expect-unresolved LTYPE_HC,LCOLLOR_M` を使うと、未解決キーの増減を検証エラーにできる。これにより、`LCOLLOR_M` や `LTYPE_HC` が解決された時、または別の未解決キーが増えた時に、公開前チェックで必ず気付ける。
+`verify:report --expect-no-unresolved` を使うと、未解決キーが1件でも追加された場合を検証エラーにできる。
 JSON/CSV/HTMLには manifest 掲載ファイルのサイズとSHA-256も出力し、受け渡し後に配布物が変わっていないか比較できるようにする。
 `verify:reports` は txt/json/csv/html の受け渡しレポートを一括生成する。
 `verify:all` は `verify` と `verify:reports` を連続実行し、配布物検証と受け渡しレポート生成を一括で行う。
 `reports\README.md` と `docs/JWW_GATEWAY_REPORTS.md` には、`verify-report`、`sample-plan`、coverage、JWF比較、value-scan、special-color、layer-defaults など生成レポートの置き場と種類をまとめる。
-`verify:handoff` は `verify:all` の後に `--expect-unresolved LTYPE_HC,LCOLLOR_M` を実行し、受け渡し時の未解決キー増減をまとめて検出する。
-`status` は単体配布フォルダの準備状態、欠落数、未解決キー、JWW書き込み非対応を短く表示する。
+`verify:handoff` は `verify:all` の後に `--expect-no-unresolved` を実行し、受け渡し時に未解決キーが追加されていないことを検出する。
+`status` は単体配布フォルダの準備状態、欠落数、未解決キー、bounded JWW writerの有無を短く表示する。
 `open-items` は manifest の `openItems` から、既知の制限と残り調査項目を txt/json/csv/html で出力する。公開時に「残っているが意図した制限」と「実ファイル待ちの調査」を分けて説明するための一覧として使う。
 `reports:index` は `reports\` 内の成果物を一覧化し、どのレポートが生成済みかと未生成レポートの作成コマンドを1枚のHTMLにまとめる。
 Windows向けに `jww-gateway-status.cmd`、`jww-gateway-verify-all.cmd`、`jww-gateway-verify-handoff.cmd`、`jww-gateway-open-items.cmd`、`jww-gateway-report-index.cmd` も単体配布フォルダ直下へ置く。
@@ -261,9 +260,8 @@ manifest validator は必須 `commands` / `binaries` も検査する。capabilit
 
 ### 優先度 A: 図面再現に直結
 
-1. JWW 内の `LAYCOL_*` / `LAYWID_*` / `LAYTYP_*` 相当を抽出する。
-2. JWW 内の文字種プリセット `MSET` / `MWIDE` / `MHIGH` / `MDIST` / `MPEN` 相当を抽出する。
-3. `LTYPE_HC` 候補診断を複数ファイルで比較し、JWF値との対応が確定したら抽出へ昇格する。
+1. JWW 内の文字種プリセット `MSET` / `MWIDE` / `MHIGH` / `MDIST` / `MPEN` 相当を抽出する。
+2. `postLineTypeTailCandidate` は `LTYPE_HC` と無関係な診断領域として保持し、公式仕様で別フィールドを特定できるまで意味付けしない。
 4. `LCOLLOR_G/H/B`、`PCOLLOR_G` など特殊色の意味付けを固定する。
 5. `LTYPE_*` と `PCOLLOR_* pointRadius` は対応済み。実ファイル差分で誤検出がないか継続確認する。
 
@@ -308,7 +306,7 @@ manifest validator は必須 `commands` / `binaries` も検査する。capabilit
 複数のcoverage JSONは `coverage:summary` で横断集計し、全ファイル共通でmissingのキーと、ファイルにより extracted/missing が分かれるキーを確認する。
 `coverage:summary` は `alwaysMissingDrawing` も出す。これは `document` / `operation` のJWF環境設定を除き、図面再現に近い `drawing` scope で全サンプル共通 missing のキー数だけを数える。さらに `core`、`layerDefaults`、`other` に分類するため、レイヤ既定値の48件と中核未解決2件を分けて見られる。`--fail-on-always-missing-drawing` を使うと、公開前チェックで図面系の未対応が残っている場合だけ終了コード2で止められる。
 `A-00-3 平面図`、`A-00 断面図`、`M-08 衛生設備` の coverage JSON を横断すると `alwaysMissingDrawing: 50`。内訳は `layerDefaults: 48`、`core: 2`、`other: 0`。この50件は図面再現に近い残件として、今後のサンプル追加時もまず確認する。
-`LAYCOL_*` / `LAYWID_*` / `LAYTYP_*` に絞る場合は `layer-defaults:audit` を使う。これは `jwf:value-scan` のレイヤ既定値ファミリだけを抜き出し、family/status、昇格候補、tested pattern、match kind を確認するための専用ビュー。複数セットを比較する場合は、各 audit を `--json` で保存してから `layer-defaults:summary` に渡す。これにより全サンプル共通 missing、direct match 候補、promotion 候補を横断確認できる。summary は ambiguous 行について reason、値シグネチャ、match kind も集計するため、低情報値による偶然一致と、今後追加調査すべき案件固有値を分けて見られる。`--fail-on-direct-matches` は、将来レイヤ既定値の直接一致候補が出た時だけ検証を止めるためのゲートとして使う。
+`LAYCOL_*` / `LAYWID_*` / `LAYTYP_*` の履歴・単独変更証拠を確認する場合は `layer-defaults:audit` を使う。現在は48キーを `gatewayStatus: not-serialized` とし、`nonSerialized` 件数へ集計する。複数セットを比較する場合は、各 audit を `--json` で保存してから `layer-defaults:summary` に渡す。旧監査JSONのmissing/ambiguous/direct match情報も読み取れるが、非シリアライズキーはpromotion candidateから除外する。
 
 JWF自体は `npm run jwf:parse -- <file.jwf>` でJSON化できる。`Sample.jwf` は先頭の `END` 以降が説明用なので、棚卸し用途では `--include-after-end` を付ける。
 
@@ -322,16 +320,16 @@ npm run jwf:compare -- "C:\path\to\file.jww" "C:\jww\Sample.jwf" --include-after
 これにより、JWF側の各キーが `extracted`、`missing`、`not-tracked` のどれに該当するかを一覧化できる。
 HTML/CSVでは JWFパーサの `entry.definition` を Meaning 列に出すため、未対応項目の用途を見ながら優先順位を決められる。
 
-値そのものが JWW バイト列内に存在するかを調査する場合は `jwf:value-scan` を使う。全て0、全て-1などの低情報量な連続数値は、JWW内の空白領域や初期化領域にも一致しやすいため `ambiguous` として扱う。`LAYCOL_*` / `LAYTYP_*` が全0のJWFでは、この曖昧一致を抽出済みへ昇格しない。共有・目視確認用には `--html -o value-scan.html` でHTMLレポートも出力できる。
+値そのものが JWW バイト列内に存在するかを調査する場合は `jwf:value-scan` を使う。全て0、全て-1などの低情報量な連続数値は、JWW内の空白領域や初期化領域にも一致しやすいため `ambiguous` として扱う。`LAYCOL_*` / `LAYTYP_*` が全0のJWFで見つかる一致は、非シリアライズ契約では偶然一致として扱い、抽出済みへ昇格しない。共有・目視確認用には `--html -o value-scan.html` でHTMLレポートも出力できる。
 
 ## 調査メモ
 
 - `PCOLLOR_*` は画面色テーブルから少し離れた位置にある `RGB + width + pointRadius` 形式の印刷色テーブル候補を優先採用する。`M-07 1階平面図(衛生).jww` では `PCOLLOR_1..8` と `PCOLLOR_G` が `extracted` になる。
 - `PCOLLOR_1..8` の実点半径は `pointRadius` として保持する。古い `rgb-width` 候補に戻った場合は点半径が欠落する可能性があるため、`printColorTableKind` と `printColorTableCandidates` を診断に残す。
-- `LAYCOL_*`、`LAYWID_*`、`LAYTYP_*` はレイヤ名直後の領域や単純な16x16テーブル探索では確定できなかった。現時点では誤読防止のため未抽出扱い。
+- `LAYCOL_*`、`LAYWID_*`、`LAYTYP_*` はレイヤ名直後の領域や単純な16x16テーブル探索では確定できなかった。その後の単独変更Save As比較で、JWWへシリアライズされないJWF専用設定と確定した。
 - `A-00-3 平面図.jww` + `建築.JWF`、`A-00 断面図.jww` + `断面図.JWF`、`A-11 仕上表.jww` + `仕上げ表.JWF` は、`LAYCOL_*` と `LAYTYP_*` がほぼ全0、`LAYWID_*` が全-1の初期値中心だった。値スキャンではゼロ領域との曖昧一致になりやすいため、保存位置特定の主サンプルには弱い。
-- `A-00 断面図.jww` は JWW診断上 `A2`、14232 entities、`LAYNAM_*` は抽出済み、レイヤ名フォールバック3件。JWF比較は extracted 58 / missing 151、値スキャンは matched 42 / ambiguous 37 / missing 102 / not-scanned 28。`LAYCOL_*` / `LAYTYP_*` は全0のため ambiguous、`LAYWID_*` は全-1のため未抽出扱いを維持する。
-- `M-08 事務所棟 1階平面図(衛生設備).jww` + `設備.JWF` は `LAYCOL_*` / `LAYTYP_*` に差のある値を含むため、次の保存位置調査ではこちらを主サンプルにする。
+- `A-00 断面図.jww` は JWW診断上 `A2`、14232 entities、`LAYNAM_*` は抽出済み、レイヤ名フォールバック3件。旧JWF比較は extracted 58 / missing 151、値スキャンは matched 42 / ambiguous 37 / missing 102 / not-scanned 28。`LAYCOL_*` / `LAYTYP_*` の全0と `LAYWID_*` の全-1は、当時の曖昧一致調査の記録として残す。
+- `M-08 事務所棟 1階平面図(衛生設備).jww` + `設備.JWF` は `LAYCOL_*` / `LAYTYP_*` に差のある値を含み、単純配列の直接一致がないことを示した歴史的サンプルとして残す。
 
 ### Raw Environment Region Diagnostics
 
@@ -344,7 +342,7 @@ This region starts immediately after layer/group names and ends at the entity li
 - repeated `u32PairRuns`
 - early numeric `doubleSamples`
 
-The purpose is to compare real JWW files before accepting new extraction rules for `LAYCOL_*`, `LAYWID_*`, `LAYTYP_*`, text preset tables, hatch settings, and other JWF-like environment data.
+The purpose is to compare real JWW files before accepting new extraction rules for serialized text preset tables, hatch settings, and other JWF-like environment data. `LAYCOL_*`, `LAYWID_*`, and `LAYTYP_*` are retained only as historical non-serialization evidence.
 
 `npm run env:scan -- <file-or-folder> --recursive --csv -o env-scan.csv` produces a compact multi-file table for this comparison.
 
@@ -352,18 +350,18 @@ The purpose is to compare real JWW files before accepting new extraction rules f
 
 `npm run jwf:value-scan -- <file.jww> <file.jwf> --include-after-end` searches the JWW bytes for exact numeric/color byte patterns derived from JWF entries. Add `--json`, `--csv`, or `--html` to generate machine-readable output, table data, or a review report.
 It is an investigation tool, not proof that a JWF setting has been fully decoded. Short or repeated numeric arrays can match unrelated data, but stable offsets across files are useful candidates for promotion into the parser.
-The scanner now checks color byte patterns, RGB triplets, and `u8`, `u16`, `i16`, `u32`, `i32`, and `f64` numeric sequences. JSON/CSV/HTML output includes `testedPatterns`, so missing rows still show which byte layouts were tried. It also includes `gatewayCandidate` and `gatewayCandidateComparison` for unresolved keys that Gateway already exposes as diagnostic candidates, such as `LTYPE_HC_candidate`. This is important for `LAYCOL_*` and `LAYTYP_*`, because those JWF rows are 16 small integers and may be stored more compactly than 32-bit values if they exist in the JWW environment block.
+The scanner checks color byte patterns, RGB triplets, and `u8`, `u16`, `i16`, `u32`, `i32`, and `f64` numeric sequences. JSON/CSV/HTML output includes `testedPatterns`, so missing rows still show which byte layouts were tried. Historical reports compared the old `LTYPE_HC_candidate`; current output marks `LTYPE_HC`, `LCOLLOR_M`, and all `LAYCOL/LAYWID/LAYTYP_0..F` keys as non-serialized JWF keys and exposes the unrelated post-line-type bytes only through the neutral diagnostic name.
 
-For `M-07 1階平面図(衛生).jww` with `設備設計用.jwf`, the scan finds many `LTYPE_*` rows and `LCOLLOR_1..8` as byte patterns. `LTYPE_02..09`, `LTYPE_R1..R5`, and `LTYPE_L1..L4` are now promoted to structured parser output. `LTYPE_HC` remains unresolved.
+For `M-07 1階平面図(衛生).jww` with `設備設計用.jwf`, the scan finds many `LTYPE_*` rows and `LCOLLOR_1..8` as byte patterns. `LTYPE_02..09`, `LTYPE_R1..R5`, and `LTYPE_L1..L4` are promoted to structured parser output. The lack of an `LTYPE_HC` match was later explained by its JWF-only operation scope.
 
-`M-08 事務所棟 1階平面図(衛生設備).jww` + `設備.JWF` は `LAYCOL_*` / `LAYTYP_*` に非ゼロ値が混ざる確認用セットとして有効。`u8/u16/i16` 追加後も、`--scope drawing --gateway-status missing` の50行はすべて `missing` のままで、非ゼロのレイヤ既定色・線種テーブルは直接バイト列としては見つからなかった。したがって現時点では、レイヤ既定値はJWWに保存されない、または単純な16要素配列ではなく別構造へ変換されている可能性が高い。
-`--family layerColors,layerLineTypes,layerWidths` で絞ると、M-08 では `layerColors missing 16`、`layerWidths missing 16`、`layerLineTypes missing 16` の48行だけを確認できる。
-`--family lineTypes,screenColors --gateway-status missing` で絞ると、A-00 断面図とM-08の両方で残る非レイヤ系drawing項目は `LTYPE_HC` と `LCOLLOR_M` の2件だけになる。`LCOLLOR_M` はRGB tripletも試して一致なし。
+`M-08 事務所棟 1階平面図(衛生設備).jww` + `設備.JWF` は `LAYCOL_*` / `LAYTYP_*` に非ゼロ値が混ざる確認用セットとして有効だった。`u8/u16/i16` 追加後も非ゼロのレイヤ既定色・線種テーブルは直接バイト列として見つからず、後述の単独変更試験による非シリアライズ結論と整合する。
+現在は `--family layerColors,layerLineTypes,layerWidths --gateway-status not-serialized` で48行を確認できる。
+`LTYPE_HC` と `LCOLLOR_M` も同じ `not-serialized` 分類であり、drawing missing件数には含めない。
 `LCOLLOR_M` の追加調査には `special-color:audit` を使う。これはJWWの検出済み色テーブル周辺をRGB tripletとして走査し、JWFの `LCOLLOR_M` 色との距離順に候補を出す。現時点では候補監査用であり、直接抽出には昇格しない。
-複数の special color audit JSON は `special-color:summary` で横断集計できる。相対オフセット別・候補色別にファイル数、行数、直接一致数、距離をまとめるため、近似色が複数ファイルで繰り返し出ているかを確認できる。ただし `LCOLLOR_M` は直接一致が出るまで未解決扱いのままにする。
+複数のspecial color audit JSONは`special-color:summary`で横断集計できる。この監査で直接一致がなかったことは、後の単独変更試験で`LCOLLOR_M`がJWF専用のズーム操作文字色と確定した結果と整合する。
 `A-00-3 平面図`、`M-08 衛生設備`、`A-00 断面図`、`A-11 仕上表` の special color audit JSON を `special-color:summary --fail-on-direct-matches` で横断したところ、4レポート96候補で `directMatches: 0`。最も近い繰り返し候補は相対 `+248/+249` の `#c3c3c3`、平均距離 `8.66` だった。期待値そのものではないため、抽出昇格は行わない。
-`--key LTYPE_HC,LCOLLOR_M` で `A-00 断面図`、`A-00-3 平面図`、`A-11 仕上表`、`M-08 衛生設備` の4セットを横断確認した。4セットすべてで `LTYPE_HC` は `directU32Match: false`、`LCOLLOR_M` は `directSpecialMatch: false` だった。したがって、この2項目は現時点では抽出済みへ昇格しない。
-複数の `--key LTYPE_HC,LCOLLOR_M --json` レポートは `core:summary` で横断集計できる。`core-open-cross-sample-summary.json/html/csv` では4レポート8行を集約し、`LTYPE_HC missing 4 / matched 0`、`LCOLLOR_M missing 4 / matched 0` と確認できる。集計には direct-match true/false も含め、候補位置の値がJWF値と直接一致したかを横断で追えるようにする。`--fail-on-direct-matches` は今後のサンプルで直接一致が現れた時に非0終了し、未確定キーを昇格候補として見落とさないための確認ゲートとして使う。
+`--key LTYPE_HC,LCOLLOR_M` で `A-00 断面図`、`A-00-3 平面図`、`A-11 仕上表`、`M-08 衛生設備` の4セットを横断確認した旧レポートでは、4セットすべてで直接一致なしだった。現在のscannerは両キーを `nonSerializedJwfKey: true`、`comparisonRequired: false` とする。
+複数の旧 `--key LTYPE_HC,LCOLLOR_M --json` レポートは `core:summary` で横断集計できる。これらは非シリアライズ結論に至るまでの履歴証拠であり、新しいparser昇格ゲートではない。
 
 `--family text --json` で `A-00-3 平面図`、`A-00 断面図`、`A-11 仕上表`、`M-08 衛生設備` の4セットを横断確認した。4セットすべてで `MSET`、`MWIDE`、`MHIGH`、`MDIST`、`MPEN`、`MOFST` は `missing`、`MHEN` は文字列/フォント名設定のため `not-scanned` だった。したがって、文字種プリセットは現時点では単純な連続数値テーブルとしてはJWW内に見つかっていない。各文字エンティティの `font_name`、`size_x`、`size_y`、`spacing`、`base.pen_color` は引き続き個別実体値として保持する。
 
@@ -391,11 +389,35 @@ For `M-07 1階平面図(衛生).jww` with `設備設計用.jwf`, the scan finds 
 - `LCOLLOR_M`: JWF値 `#0c2238` に対し、RGB triplet と特殊色候補の直接一致はなし。`directSpecialMatch: false`、`directMatches: 0`
 - `LAYCOL_0` / `LAYWID_0` / `LAYTYP_0`: `u8`、`u16`、`i16`、`u32`、`i32`、`f64` の各連続パターンで直接一致なし。`promotionCandidates: 0`
 
-したがって、今回の生成ペアでも `LTYPE_HC` と `LCOLLOR_M` は未解決、`LAYCOL_*` / `LAYWID_*` / `LAYTYP_*` は audit-only を維持する。推測で抽出済みに昇格せず、別構造や保存条件が確認できた場合のみ再評価する。
+この時点ではこれらを未解決またはaudit-onlyとしていたが、以下の2026-08-30単独変更試験によってJWF専用操作設定と確定した。
 
-### LTYPE_HC candidate
+### 2026-08-30 `LTYPE_HC` / `LCOLLOR_M` 単独変更試験
 
-`LTYPE_L4` の直後24 bytesを `LTYPE_HC_candidate` として保持する。公開JWF資料では6項目の意味が確認できたため、候補JSONには `selectionTemporaryLineTypeNo`、`crosslineCursorLineTypeNo`、`dashPitchAutoAdjust`、`rightClickBaseLineColorNo`、`rightClickBaseLineTypeNo`、`lineEndStyle` の `valueSchema` と、`lineEndStyleName` を含む `u32Semantic` を出す。`A-00-3 平面図.jww` と `A-00 断面図.jww` では u32 候補が `0,1,2,1,0,0`、`A-11 仕上表.jww` では `0,1,1,0,0,0`、`M-08 事務所棟 1階平面図(衛生設備).jww` では `0,1,1,0,1,0` だった。一方、対応するJWFの `LTYPE_HC` は `1,1,0,2,1,0` で、現時点では順序・型・意味が一致しない。したがって `coverage.supportedKeys` には入れず、診断候補として比較用に残す。
+Jw_cad 10.02.1で同一の1-LINE図面へ、baselineと各1項目だけを変えたJWFを順番に読み込み、毎回別名JWWへSave Asした。`LTYPE_HC`は6フィールドをそれぞれ単独変更し、`LCOLLOR_M`は`200 200 200`から`0 255 0`へ変更した。さらにbaselineをもう一度保存し、設定差と保存ごとの可変値を分離した。
+
+- 全9出力は19,355 bytesでGateway再parseがclean、semantic diffはdrawing/document/internal settingsすべてequal。
+- 全ファイルのバイト差はoffset 2396、2472、6600付近だけ。baseline再保存でも同じ3箇所が変化した。
+- 公式`jwdatafmt.txt`により、2396はレイヤ群直後の14 DWORDダミーの先頭、2472は寸法設定直後のDWORDダミー、6600は作図時間`m_lnDrawTime`と確認した。
+- 線種テーブル直後の従来`LTYPE_HC_candidate` 24 bytesは全9出力で不変だったため、`LTYPE_HC`ではない。`postLineTypeTailCandidate`へ改名した。
+- `LCOLLOR_M=0 255 0`で保存したJWWをbaseline環境で再読込しても、Jw_cadのズーム文字色は`200 200 200`のままだった。
+- `LTYPE_HC`の端点形状を`2`（フラット）にして保存したJWWをbaseline環境で再読込しても、端点形状は`丸`のままだった。
+
+以上により、`LTYPE_HC`と`LCOLLOR_M`はJWFの操作・表示プロファイル値であり、JWW native documentの保存対象ではない。直接一致がないことはparser未対応ではなく、JWWへシリアライズされないという仕様・実挙動による。
+
+### 2026-08-30 `LAYCOL` / `LAYWID` / `LAYTYP` 単独変更試験
+
+Jw_cad 10.02.1で同一の6-entity図面へ、baselineと各1項目だけを変えたJWFを順番に読み込み、毎回別名JWWへSave Asした。baselineは`LAYCOL_0`全0、`LAYWID_0`全-1、`LAYTYP_0`全0とし、variantはグループ0・レイヤ1だけをそれぞれ`color=8`、`width=250`、`lineType=5`へ変更した。
+
+- 4出力はすべて19,355 bytesで、Gateway native parseは6 entities、unsupported/skipped 0、source spansあり、trailing bytes 0。
+- 3 variantはbaselineに対して`drawingSemanticEqual`、`drawingRoundTripCompatible`、`roundTripCompatible`、`documentMetadataEqual`、`internalSettingsEqual`、`parserClean`がすべてtrue。
+- colorとwidthの差は4 bytesだけで、offset 2396-2397、2472、6600。line typeの差は6 bytesだけで、2396-2397、2472-2473、6600-6601。
+- これらは`LTYPE_HC` / `LCOLLOR_M`試験でも変化した保存セッション可変領域であり、公式`jwdatafmt.txt`上はレイヤ群直後のdummy DWORD、寸法設定直後のdummy DWORD、`m_lnDrawTime`に対応する。レイヤ既定値テーブル本体と解釈できる差分はない。
+
+以上により、`LAYCOL_0..F`、`LAYWID_0..F`、`LAYTYP_0..F`は、`Sample.jwf`が説明する書込レイヤ切替時のJWF操作既定値であり、JWW文書へシリアライズされない。GatewayはJWF parser/Environment Profileでは値を保持するが、JWW coverageでは50個のJWF専用キーの一部として`not-serialized`に分類し、JWW parser/writerの欠落やopen itemには数えない。
+
+### Post-line-type diagnostic tail（旧 `LTYPE_HC_candidate`）
+
+`LTYPE_L4` の直後24 bytesは `postLineTypeTailCandidate` として保持する。単独変更試験でJWFの `LTYPE_HC` 6フィールドと連動しないことを確認したため、`LTYPE_HC`というキー名や6項目の意味は付与しない。既存実ファイル比較のためraw `u32` / `u16`だけを中立な診断値として残す。
 
 The same pair also showed that print colors can appear as `RGB + width + pointRadius` rows. Gateway now prefers this richer `print-rgb-width-radius` table over the older plain RGB/width candidate, so `PCOLLOR_1..8` can retain real point radius values when present.
 

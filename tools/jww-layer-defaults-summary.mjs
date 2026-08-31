@@ -44,6 +44,7 @@ export function formatLayerDefaultsSummaryText(summary) {
     `Always missing: ${summary.counts.alwaysMissing}`,
     `Keys with direct matches: ${summary.counts.withDirectMatches}`,
     `Mixed: ${summary.counts.mixed}`,
+    `Non-serialized JWF keys: ${summary.counts.nonSerialized}`,
     `Direct match candidates: ${summary.counts.directMatchCandidates}`,
     `Promotion candidates: ${summary.counts.promotionCandidates}`,
     `Conclusion: ${summary.conclusion}`,
@@ -89,6 +90,7 @@ export function formatLayerDefaultsSummaryCsv(summary) {
     ["summary", "alwaysMissing", summary.counts.alwaysMissing],
     ["summary", "withDirectMatches", summary.counts.withDirectMatches],
     ["summary", "mixed", summary.counts.mixed],
+    ["summary", "nonSerialized", summary.counts.nonSerialized],
     ["summary", "directMatchCandidates", summary.counts.directMatchCandidates],
     ["summary", "promotionCandidates", summary.counts.promotionCandidates],
     ["summary", "conclusion", summary.conclusion],
@@ -156,7 +158,7 @@ export function formatLayerDefaultsSummaryHtml(summary) {
 </head>
 <body>
   <h1>JWW Layer Defaults Summary</h1>
-  <p>Reports ${summary.reportCount}, rows ${summary.counts.rows}, always missing ${summary.counts.alwaysMissing}, promotion candidates ${summary.counts.promotionCandidates}</p>
+  <p>Reports ${summary.reportCount}, rows ${summary.counts.rows}, always missing ${summary.counts.alwaysMissing}, non-serialized ${summary.counts.nonSerialized}, promotion candidates ${summary.counts.promotionCandidates}</p>
   <p><strong>Conclusion:</strong> ${htmlEscape(summary.conclusion)}</p>
   <h2>Family Totals</h2>
   <table>

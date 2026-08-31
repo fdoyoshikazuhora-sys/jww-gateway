@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-08-27T02:26:38.109Z",
+  "generatedAt": "2026-08-27T15:07:45.627Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -13,54 +13,54 @@
     "missingFiles": []
   },
   "counts": {
-    "commands": 28,
-    "binaries": 23,
-    "packageFiles": 96,
+    "commands": 34,
+    "binaries": 26,
+    "packageFiles": 114,
     "missingFiles": 0,
     "missingScripts": 0,
     "missingBins": 0,
     "unresolvedEnvironmentKeys": 2,
     "unexpectedUnresolvedEnvironmentKeys": 0,
     "missingExpectedUnresolvedEnvironmentKeys": 0,
-    "openItems": 6
+    "openItems": 7
   },
   "missingScripts": [],
   "missingBins": [],
   "fileInventory": [
     {
       "file": "JWW_GATEWAY_HANDOFF.md",
-      "bytes": 2594,
-      "sha256": "66bcc7918b8afad7e6895d94f96eee83c4fcac8ddd011af68309c708779a5fe3"
+      "bytes": 2780,
+      "sha256": "ed1f27483c3a2e8a1839f99a53b91c510b34bd6c13635f8c054c60b675cc7a45"
     },
     {
       "file": "JWW_GATEWAY_MANIFEST.json",
-      "bytes": 11361,
-      "sha256": "487159d6e8dcef21ace72021e9e08bd2a3f4bdbc6ac91fea8b90eb54616d715a"
+      "bytes": 14055,
+      "sha256": "df62b7dc0d696bab67dd15d2e1846f21203d3987d7cfb61c1406ab1274c8a41f"
     },
     {
       "file": "README.ja.md",
-      "bytes": 7498,
-      "sha256": "f0e57ac0cdcd6fcb9d89ad45f782d441ed7979be91996ff377b5cd5fd99b0ff8"
+      "bytes": 9975,
+      "sha256": "181c6097762e11d2e4471da278fa45258c28514a1013007a2d8b160d141e3a32"
     },
     {
       "file": "README.md",
-      "bytes": 9549,
-      "sha256": "15b7a1cd2833ac613325929ce8e86ebcfe94e142b988e75c287665b40b248438"
+      "bytes": 12342,
+      "sha256": "b62ac54174a3a18a70c1624f867b0877e40be558bd78f44f226bd53945fe1bec"
     },
     {
       "file": "docs/JWW_GATEWAY_HANDOFF.md",
-      "bytes": 2594,
-      "sha256": "66bcc7918b8afad7e6895d94f96eee83c4fcac8ddd011af68309c708779a5fe3"
+      "bytes": 2780,
+      "sha256": "ed1f27483c3a2e8a1839f99a53b91c510b34bd6c13635f8c054c60b675cc7a45"
     },
     {
       "file": "docs/JWW_GATEWAY_RELEASE_CHECKLIST.md",
-      "bytes": 3807,
-      "sha256": "57f36788ff0bd786ed8f2dca2c32db987539673c6b490c9666367a27d0ae2ded"
+      "bytes": 4008,
+      "sha256": "eb8f415bc1074c7afc29068096c3fd1812c6ce4722ade09ab2786428a9b38d29"
     },
     {
       "file": "docs/JWW_GATEWAY_RELEASE_NOTES.md",
-      "bytes": 3337,
-      "sha256": "105085b99298e1cde4efaca1cd5ad4eedef9c379c14b03cf5d111d7d037d8341"
+      "bytes": 4150,
+      "sha256": "f5a2023d17ffcd1de466eb9eec5625835c30436b355bc08841c4df5f13ef69ba"
     },
     {
       "file": "docs/JWW_GATEWAY_REPORTS.md",
@@ -79,33 +79,38 @@
     },
     {
       "file": "docs/JWW_GATEWAY_SPEC.md",
-      "bytes": 26743,
-      "sha256": "411889302b426c1dd1a13bcd02122263c7d2659667870a6ae2c89ac9b7484933"
+      "bytes": 28819,
+      "sha256": "4a7838bd6fbd87d28b691e433ea8254ef653de1ae8b9b000819287bb6fc413a0"
     },
     {
       "file": "docs/JWW_GATEWAY_WINDOWS_COMMANDS.md",
-      "bytes": 4627,
-      "sha256": "285caff6737dc275cb93670f54b69acdeb3724f58fbe0986d04eb793c3d8186e"
+      "bytes": 5094,
+      "sha256": "9ba9fe73fb8da88985a4f098f37f56333d421029998b66b206abab33fd22ea4c"
     },
     {
       "file": "docs/JWW_JWF_ENV_AUDIT.md",
-      "bytes": 52241,
-      "sha256": "56e0d3ddc57d8bdcba8ece9e5ab2abd9c085c808eea2c0edbc4c086a8b72fd7e"
+      "bytes": 52750,
+      "sha256": "3a8df41aa8a929bd6d75799431ae97c73f4bc9ddb1ddd6a4c6273b21ecaf64ac"
     },
     {
       "file": "docs/jww-gateway-json.schema.json",
-      "bytes": 6010,
-      "sha256": "853dad201c9f6d9811e62251cfc1b5e232d6c6411fdb694dd360e66eadc979c5"
+      "bytes": 8008,
+      "sha256": "695b2a3fd4af2d68d28e9f503665359910c1af6d1c848e8ad197ec5bd1adedcf"
     },
     {
       "file": "docs/jww-gateway-manifest.schema.json",
-      "bytes": 9530,
-      "sha256": "ef8c3c7258dd76bfca5f8c0fe832b1c59d9f7b7f8b223fe61d449120be0ee6dd"
+      "bytes": 9990,
+      "sha256": "0c4e2e68ec30057539c0f7ac17a666fcbfc9994eb0db3240cb4455228b47c7ca"
     },
     {
       "file": "docs/jww-gateway-sample-sets.schema.json",
       "bytes": 1241,
       "sha256": "45b79ab5e79e03571e2d688c33c28961a589c70400c38da1892646fcc5a82260"
+    },
+    {
+      "file": "jww-gateway-conformance.cmd",
+      "bytes": 65,
+      "sha256": "4b890f9511bc41f14624a028860b86fc1faf4c67611670ef28aa19eb04fd6155"
     },
     {
       "file": "jww-gateway-convert.cmd",
@@ -183,6 +188,11 @@
       "sha256": "23ac4512f2548049c3db1b22b9e2d224e05173594ec8adb497b7383db3ed1350"
     },
     {
+      "file": "jww-gateway-semantic-diff.cmd",
+      "bytes": 65,
+      "sha256": "7ff5aac8307605687838fdc75b15e23cf9dbd9b5d4e4b5ef55b5ee7baf04cd82"
+    },
+    {
       "file": "jww-gateway-special-color-audit.cmd",
       "bytes": 67,
       "sha256": "9efe4833e72d7baacdae960505cd47506e36c6b73e88afe222f97cdf9cc6bff5"
@@ -223,9 +233,19 @@
       "sha256": "47bfbedc142b07306c5a761cf6daf4f81d2464798cedb2129399bbc3bd019527"
     },
     {
+      "file": "jww-gateway-write.cmd",
+      "bytes": 57,
+      "sha256": "8ba12bbab68e7d89bf5bcec503a9616c91721f4386fecf78b3e8ae7852817df2"
+    },
+    {
+      "file": "jww-gateway-roundtrip-corpus.cmd",
+      "bytes": 64,
+      "sha256": "f9b4be1995c7bc39d5e23b29dce42c8e9e15b9f8d9fade82d6928a0900aa5b68"
+    },
+    {
       "file": "package.json",
-      "bytes": 4362,
-      "sha256": "1cd8ae501788287b8512b4d78d026a3861b124a4d7d157f19ce2ead560552272"
+      "bytes": 5206,
+      "sha256": "88076235d7258c880af07da7d73dc9286f5c41b221914de133ba61f6badb4f68"
     },
     {
       "file": "reports/.gitkeep",
@@ -234,8 +254,13 @@
     },
     {
       "file": "reports/README.md",
-      "bytes": 1859,
-      "sha256": "21c26f34891503de77c22644fcdfa6ce07122a1f9b703e8fb6e47ebe5dcf7046"
+      "bytes": 2020,
+      "sha256": "807813f2ca4fd179b56c4209cc327f320ec89e6e153ced794896607144849237"
+    },
+    {
+      "file": "samples/roundtrip/README.md",
+      "bytes": 606,
+      "sha256": "3d6a9e478e1ed60b9c3d7e5071238addb966a2e99db929294647ce2579754695"
     },
     {
       "file": "samples/jwf-pairs/jwf-open-items-core.jwf",
@@ -268,6 +293,16 @@
       "sha256": "c103c13096599c32385901ecd9a86820ab079a785adca2dea58a0c801360fb25"
     },
     {
+      "file": "src/jww/conformance.js",
+      "bytes": 2901,
+      "sha256": "47d8510328560ca5ac987a10c08b2c797d71bcc58804a34b8b6f0880d6f36c91"
+    },
+    {
+      "file": "src/jww/conformance.test.js",
+      "bytes": 2026,
+      "sha256": "d96283344cd4123660a6d20a32f930c2886b37cd2019de21346caa71e4761fd4"
+    },
+    {
       "file": "src/jww/coreOpenSummary.js",
       "bytes": 1623,
       "sha256": "81adf25f1857970c8916f4f23fb2969291e8f1ac43cdf482062e28e133b2a6f9"
@@ -288,6 +323,11 @@
       "sha256": "58ebc89fe92c49bbede50e9f7a5348364cb1d93776b6aff7955f12d9b17e2d86"
     },
     {
+      "file": "src/jww/defaultJwwSaveTemplatePrefix.js",
+      "bytes": 23547,
+      "sha256": "30f11ddd9435a15d482b3209627b06024443ccca34fff20fb0e7166b17c6c03b"
+    },
+    {
       "file": "src/jww/environment.js",
       "bytes": 10031,
       "sha256": "28f58279302afbbd0d4c5d6ee0410c25758ec1bfa65905d53a75365fa6470304"
@@ -299,18 +339,28 @@
     },
     {
       "file": "src/jww/gatewayManifest.js",
-      "bytes": 14586,
-      "sha256": "f04bbcd8f0b8d0317323a328540ec76849031585baa2f38359725334b8b22cdd"
+      "bytes": 16777,
+      "sha256": "1e9958e599f12f901d27e2a481471b50aeba16379c0176c36402e7a99b530099"
     },
     {
       "file": "src/jww/gatewayManifest.test.js",
-      "bytes": 24448,
-      "sha256": "61145d06c0c2ec8da7eb55d69ff2f8498c8b6b2f2c7206d17cfff4b8ec08041d"
+      "bytes": 25328,
+      "sha256": "35db996c169b0ed3ca6687d7ac491a7fe9d8d7f21c3600e9cb758a058e916775"
     },
     {
       "file": "src/jww/gatewayPackageFiles.js",
-      "bytes": 3404,
-      "sha256": "95094941dc09fe007c6c01a4f61c7564648795be6e59ff43aea8f3c62f2e90f6"
+      "bytes": 4021,
+      "sha256": "b8e56723fc90d894fe69a7a2e51ececd5b5f98e74974f05ad4c07055c0d9e07c"
+    },
+    {
+      "file": "src/jww/internalSettings.js",
+      "bytes": 1628,
+      "sha256": "635bbe6c08e478e15b5c557ff0373b21a12c527abe773b1e5a56c2d4ea838351"
+    },
+    {
+      "file": "src/jww/internalSettings.test.js",
+      "bytes": 2229,
+      "sha256": "1089312c4dd22d38ddc203cf20d0b96c967acba7d9f44858ea17c22aa49469f9"
     },
     {
       "file": "src/jww/jwf.js",
@@ -349,8 +399,8 @@
     },
     {
       "file": "src/jww/parser.js",
-      "bytes": 32660,
-      "sha256": "e51e7d7c204048ffb1015a38787aac5b465888f2f641bde79f9fb59560e62f89"
+      "bytes": 36535,
+      "sha256": "62454cbbd27310d105ea148e4b3518f0adcac1d670d72244aef96a2d714c26b0"
     },
     {
       "file": "src/jww/parser.test.js",
@@ -359,8 +409,18 @@
     },
     {
       "file": "src/jww/schemaValidator.test.js",
-      "bytes": 4546,
-      "sha256": "4fe9e2ab11a3c04e747e487ab14d062e8efec19112d4ae651ab17b0a8d028360"
+      "bytes": 5924,
+      "sha256": "0e0703979f7dbd0f5d44a5eac0e4d74f8f232aa7ae7c97bf23c388db55ea8581"
+    },
+    {
+      "file": "src/jww/semanticDiff.js",
+      "bytes": 10459,
+      "sha256": "d3b5f0e34b5b6ed9a572d82e0fe1755f24207ef1a1d3b290d4bbafc138fa8dc5"
+    },
+    {
+      "file": "src/jww/semanticDiff.test.js",
+      "bytes": 4100,
+      "sha256": "394f948da1c59a5bc2d2118baf062c374bd6c68bf71e4f2715e10976cef1e808"
     },
     {
       "file": "src/jww/shared.js",
@@ -388,9 +448,24 @@
       "sha256": "0158f301cd08354267d905df531d6ca795948fe928c8b4988b43204634f725f0"
     },
     {
+      "file": "src/jww/writer.js",
+      "bytes": 35624,
+      "sha256": "1c10402d1bed9563b3661e01b8eed6dad0c3ef583c0e582cae78acd7e29824ef"
+    },
+    {
+      "file": "src/jww/writer.test.js",
+      "bytes": 8761,
+      "sha256": "90016bf600fae70b20e2377ba7a1da36ba597216aa2367fb3426b1de9d1fbdac"
+    },
+    {
       "file": "tools/jwf-parse.mjs",
       "bytes": 2325,
       "sha256": "e777656353c69671e0088ba5f953fb4f866d0240269459797c714fa2e99ebcce"
+    },
+    {
+      "file": "tools/jww-conformance.mjs",
+      "bytes": 4699,
+      "sha256": "f4de473c32a1cd924082616e898542f01286b75e770492645fbff9646951c587"
     },
     {
       "file": "tools/jww-core-open-summary.mjs",
@@ -414,8 +489,8 @@
     },
     {
       "file": "tools/jww-diagnostics.mjs",
-      "bytes": 34028,
-      "sha256": "26462cf8d5de1ed082445445f407f33b6b3b2e9dfb6656283396e52ecd59cbbb"
+      "bytes": 34435,
+      "sha256": "4ef5cd53270fe017d46f902fcd982ecd18d35c96608d417991c36cbbb138c8ea"
     },
     {
       "file": "tools/jww-env-scan.mjs",
@@ -429,13 +504,13 @@
     },
     {
       "file": "tools/jww-gateway-report-index.mjs",
-      "bytes": 9252,
-      "sha256": "98bb4f2555aaa581ebbac16d9c026d2d162796a2a452441770cca55f6a49808c"
+      "bytes": 9544,
+      "sha256": "f4c4946e40d5bc59c19fa87b2d4947122118c6e5862f98e024b57a8eff4330a4"
     },
     {
       "file": "tools/jww-gateway-smoke.mjs",
-      "bytes": 22944,
-      "sha256": "b462dccab67e09f9bffef73b03c26018b609f8fef1eec35811d31abf70fbfc0c"
+      "bytes": 23931,
+      "sha256": "d01389a92d1da76781c23c6a6a92be5f84e7d14d5114a0dcd4c7d07fb203ed56"
     },
     {
       "file": "tools/jww-gateway-status.mjs",
@@ -454,8 +529,8 @@
     },
     {
       "file": "tools/jww-gateway.mjs",
-      "bytes": 11718,
-      "sha256": "17abb1527b1c88af13e05483bf61cd9e93beb2cfd317ef6447eaa6d902a9f696"
+      "bytes": 18840,
+      "sha256": "972a401e2bd590c046a40f0fd782bce5e4856fc4dfea5a1c36e399315426ad8f"
     },
     {
       "file": "tools/jww-jwf-compare.mjs",
@@ -489,8 +564,13 @@
     },
     {
       "file": "tools/jww-schema-validate.mjs",
-      "bytes": 13939,
-      "sha256": "eeff9d0dbb683fdcd0f7964379851a47c741b610fbcf4354c8101a6c82147bef"
+      "bytes": 16144,
+      "sha256": "77a46d86b7c8dc3c6057f6b396010505a76cbf441eabae7eae7fdff08240b913"
+    },
+    {
+      "file": "tools/jww-semantic-diff.mjs",
+      "bytes": 3453,
+      "sha256": "db2f5d6463ec17a8cb282c53a41caae868ffa36236835e76a2b0cbfc3b562ff1"
     },
     {
       "file": "tools/jww-special-color-audit.mjs",
@@ -506,6 +586,16 @@
       "file": "tools/jww-value-scan-summary.mjs",
       "bytes": 8660,
       "sha256": "c38ba12bc0d4427dc41f9284e3188d70fd58fa40f22226308b1aeb3beaf46793"
+    },
+    {
+      "file": "tools/jww-writer.mjs",
+      "bytes": 3090,
+      "sha256": "7d58c397bc5659615f5f418193a16686c3aaf1fb2837a7a3b075d583071b42c5"
+    },
+    {
+      "file": "tools/jww-roundtrip-corpus.mjs",
+      "bytes": 6361,
+      "sha256": "877173218435a81f7c1a9557753264f2a3d641e9722cfb770ad4eace276a5ecb"
     }
   ],
   "handoff": {
@@ -526,6 +616,8 @@
     "diagnosticsDiff": true,
     "schemaValidate": true,
     "environmentScan": true,
+    "conformanceAudit": true,
+    "semanticDiff": true,
     "jwfParse": true,
     "jwfCompare": true,
     "jwfValueScan": true,
@@ -539,7 +631,7 @@
     "samplePlan": true,
     "openItemsReport": true,
     "reportIndex": true,
-    "jwwWrite": false
+    "jwwWrite": true
   },
   "unresolvedEnvironmentKeys": [
     "LTYPE_HC",
@@ -555,15 +647,27 @@
   "openItems": [
     {
       "id": "jww-write",
-      "status": "not-supported",
+      "status": "partial-supported",
       "category": "output",
-      "classification": "separate-project",
-      "conversionImpact": "none for import; required only for round-trip JWW editing",
-      "releaseDecision": "not a release blocker for read-only Gateway",
+      "classification": "bounded-writer",
+      "conversionImpact": "enables explicit v600/v700 output for supported entities; unsupported entities fail by default",
+      "releaseDecision": "publish as a bounded writer without a universal JWW compatibility claim",
       "title": "JWW save/write",
-      "detail": "Gateway is read/import only. Editing results are exported as JWW Gateway JSON and do not update the source JWW file.",
-      "evidence": "capabilities.jwwWrite is fixed to false and verify:handoff checks that the read-only contract is explicit.",
-      "nextAction": "Keep JWW write disabled until a separate writer format and round-trip test suite exist."
+      "detail": "Gateway writes internal versions 600 and 700 from Gateway JSON, including native CDataSunpou dimensions, CDataBlock/CDataList blocks, external image references, and v700 embedded image payloads.",
+      "evidence": "writer tests and the generated entity-family corpus parse and semantically compare v600/v700 output; Jw_cad 10.02.1 also reopened native block and embedded-image fixtures.",
+      "nextAction": "Add independently authored real drawings and record Jw_cad reopen/resave evidence for every supported entity family and target Jw_cad release."
+    },
+    {
+      "id": "jww-version-conformance",
+      "status": "sample-blocked",
+      "category": "compatibility",
+      "classification": "sample-blocked",
+      "conversionImpact": "high for exact import claims; current bundled samples do not cover current Jw_cad versions or the full entity set",
+      "releaseDecision": "do not claim version-wide or round-trip compatibility from the bundled corpus",
+      "title": "JWW version and entity conformance corpus",
+      "detail": "The generated round-trip corpus covers seven v600 and eight v700 fixtures across line, arc/circle/ellipse, text/point, solid, dimension, block, and image families. Local Jw_cad drawings remain separate and are not redistributed.",
+      "evidence": "npm run roundtrip:corpus requires parser-clean drawing and document semantic equality for every generated fixture; npm run verify:conformance separately records observed real-file parse coverage.",
+      "nextAction": "Add Jw_cad-produced fixtures for each target application version and entity family, then record reopen and resave evidence separately."
     },
     {
       "id": "LTYPE_HC",
@@ -627,7 +731,8 @@
     }
   ],
   "notes": [
-    "JWW save/write is not supported.",
+    "JWW write is limited to internal versions 600 and 700 and supported entities; unsupported entity types fail by default.",
+    "Exact compatibility claims require separate Jw_cad reopen/resave evidence.",
     "LTYPE_HC and LCOLLOR_M remain unresolved until real files show stable direct matches.",
     "Open items include classification, conversion impact, evidence, and release decision fields so sample-blocked research is not mistaken for a release blocker."
   ]

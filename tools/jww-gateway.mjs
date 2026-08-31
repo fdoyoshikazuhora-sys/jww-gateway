@@ -4,7 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "../src/jww/parser.js";
 import { buildJwwArcDiagnostics } from "../src/jww/arcDiagnostics.js";
+import { buildJwwArcGeometry } from "../src/jww/arcGeometry.js";
 import { buildJwwEnvironment } from "../src/jww/environment.js";
+import { partitionJwwInternalSettings } from "../src/jww/internalSettings.js";
 import {
   JWW_LINE_TYPE_NAMES,
   getJwwScreenColorHex,
@@ -49,29 +51,8 @@ function numberOrZero(value) {
 }
 
 function jwwArcAnglesForDxf(value = {}) {
-  const rawStartAngle = Number(value.start_angle) || 0;
-  const arcAngle = Number(value.arc_angle) || 0;
-  const tiltAngle = Number(value.tilt_angle) || 0;
-  const center = point(value.center_x || 0, value.center_y || 0);
-  const radius = Math.abs(numberOrZero(value.radius || 0));
-
-  const pointAtJwwAngle = (angle) => {
-    const localX = Math.cos(angle) * radius;
-    const localY = Math.sin(angle) * radius;
-    return {
-      x:
-        center.x +
-        localX * Math.cos(tiltAngle) -
-        localY * Math.sin(tiltAngle),
-      y:
-        center.y +
-        localX * Math.sin(tiltAngle) +
-        localY * Math.cos(tiltAngle),
-    };
-  };
-
-  const jwwStartPoint = pointAtJwwAngle(rawStartAngle);
-  const jwwEndPoint = pointAtJwwAngle(rawStartAngle + arcAngle);
+  const geometry = buildJwwArcGeometry(value);
+  const { center, startPoint: jwwStartPoint, endPoint: jwwEndPoint } = geometry;
   const startAngle = Math.atan2(
     jwwEndPoint.y - center.y,
     jwwEndPoint.x - center.x
@@ -86,11 +67,13 @@ function jwwArcAnglesForDxf(value = {}) {
     endAngle,
     jwwStartPoint,
     jwwEndPoint,
+    geometry,
   };
 }
 
 function baseAttrs(base = {}) {
   return {
+    group: Number(base.group) || 0,
     layerGroup: Number(base.layer_group) || 0,
     layer: Number(base.layer) || 0,
     penColor: Number(base.pen_color) || 0,
@@ -98,6 +81,57 @@ function baseAttrs(base = {}) {
     penWidth: Number(base.pen_width) || 0,
     flag: Number(base.flag) || 0,
   };
+}
+
+function nativeLine(value = {}) {
+  return {
+    jww: baseAttrs(value.base || {}),
+    start: point(value.start_x, value.start_y),
+    end: point(value.end_x, value.end_y),
+  };
+}
+
+function nativePoint(value = {}) {
+  return {
+    jww: baseAttrs(value.base || {}),
+    position: point(value.x, value.y),
+    isTemporary: Boolean(value.is_temporary),
+    code: numberOrZero(value.code),
+    angle: numberOrZero(value.angle),
+    scale: numberOrZero(value.scale || 1),
+  };
+}
+
+function nativeText(value = {}) {
+  return {
+    jww: baseAttrs(value.base || {}),
+    position: point(value.start_x, value.start_y),
+    endPoint: point(value.end_x, value.end_y),
+    textType: numberOrZero(value.text_type),
+    sizeX: numberOrZero(value.size_x),
+    sizeY: numberOrZero(value.size_y),
+    spacing: numberOrZero(value.spacing),
+    angle: numberOrZero(value.angle),
+    fontName: value.font_name || "MS Gothic",
+    text: value.raw_content || value.content || "",
+  };
+}
+
+function jwwImageReference(text) {
+  const match = /^\^@BM(.+?),\s*([-+]?\d+(?:\.\d+)?),\s*([-+]?\d+(?:\.\d+)?)(.*)$/i.exec(
+    String(text || "")
+  );
+  if (!match) return null;
+  return {
+    fileName: match[1],
+    width: numberOrZero(match[2]),
+    height: numberOrZero(match[3]),
+    suffix: match[4] || "",
+  };
+}
+
+function blockDisplayName(name) {
+  return String(name || "").replace(/@@SfigorgFlag@@\d+$/, "");
 }
 
 function makeEntity(doc, value, id, type, entity) {
@@ -142,8 +176,44 @@ function convertEntity(doc, source, index) {
   if (!value || typeof value !== "object") return [];
 
   const converted = [];
-  if (value.dimension_line) {
-    converted.push(...convertEntity(doc, { value: value.dimension_line }, `${index}-dimension-line`));
+  if (value.jww_dimension) {
+    const rawDimension = value.jww_dimension;
+    const native = rawDimension.native || {};
+    return [
+      makeEntity(doc, value, index, "DIMENSION", {
+        text: value.content || "",
+        rawText: value.raw_content || value.content || "",
+        position: point(value.start_x, value.start_y),
+        startPoint: point(value.start_x, value.start_y),
+        endPoint: point(value.end_x, value.end_y),
+        paperTextWidth: Math.abs(numberOrZero(value.size_x)),
+        paperTextHeight: Math.abs(numberOrZero(value.size_y)),
+        paperTextSpacing: numberOrZero(value.spacing),
+        jwwTextType: numberOrZero(value.text_type),
+        rotation: numberOrZero(value.angle),
+        fontFamily: value.font_name || "MS Gothic",
+        jwwDimension: {
+          base: baseAttrs(rawDimension.base || {}),
+          line: nativeLine(rawDimension.line || value.dimension_line || {}),
+          text: nativeText(rawDimension.text || value),
+          native: native
+            ? {
+                sxfMode: numberOrZero(native.sxf_mode),
+                extensionLines: [
+                  nativeLine(native.extension_line_1 || {}),
+                  nativeLine(native.extension_line_2 || {}),
+                ],
+                points: [
+                  nativePoint(native.dimension_point_1 || {}),
+                  nativePoint(native.dimension_point_2 || {}),
+                  nativePoint(native.extension_point_1 || {}),
+                  nativePoint(native.extension_point_2 || {}),
+                ],
+              }
+            : null,
+        },
+      }),
+    ];
   }
 
   if ("content" in value) {
@@ -162,15 +232,30 @@ function convertEntity(doc, source, index) {
         ? { jwwTextSegments: value.jww_text_segments }
         : {}),
     };
+    const imageReference = jwwImageReference(value.raw_content || value.content);
     converted.push(
-      makeEntity(doc, value, index, "TEXT", {
+      makeEntity(doc, value, index, imageReference ? "IMAGE" : "TEXT", {
         text: value.content || "",
         position: point(value.start_x, value.start_y),
         startPoint: point(value.start_x, value.start_y),
+        endPoint: point(value.end_x, value.end_y),
         height: Math.max(0.5, Math.abs(numberOrZero(value.size_y || value.size_x || 2))),
         textHeight: Math.max(0.5, Math.abs(numberOrZero(value.size_y || value.size_x || 2))),
+        paperTextWidth: Math.abs(numberOrZero(value.size_x)),
+        paperTextHeight: Math.abs(numberOrZero(value.size_y)),
+        paperTextSpacing: numberOrZero(value.spacing),
+        jwwTextType: numberOrZero(value.text_type),
         rotation: Number(value.angle) || 0,
         fontFamily: value.font_name || "MS Gothic",
+        ...(imageReference
+          ? {
+              fileName: imageReference.fileName,
+              width: Math.abs(imageReference.width),
+              height: Math.abs(imageReference.height),
+              jwwImageText: value.raw_content || value.content,
+              imageReferenceSuffix: imageReference.suffix,
+            }
+          : {}),
         ...textMetadata,
       })
     );
@@ -188,10 +273,13 @@ function convertEntity(doc, source, index) {
         endAngle: arcAngles.endAngle,
         jwwStartPoint: arcAngles.jwwStartPoint,
         jwwEndPoint: arcAngles.jwwEndPoint,
+        jwwArcGeometry: arcAngles.geometry,
         jwwStartAngle: Number(value.start_angle) || 0,
         jwwArcAngle: Number(value.arc_angle) || 0,
         jwwTiltAngle: Number(value.tilt_angle) || 0,
-        jwwFlatness: Number(value.flatness) || 1,
+        jwwFlatness: Number.isFinite(Number(value.flatness))
+          ? Number(value.flatness)
+          : 1,
       })
     );
     return converted;
@@ -210,12 +298,42 @@ function convertEntity(doc, source, index) {
   if ("point1_x" in value) {
     converted.push(
       makeEntity(doc, value, index, "SOLID", {
+        jwwSourceVertices: [
+          point(value.point1_x, value.point1_y),
+          point(value.point4_x, value.point4_y),
+          point(value.point2_x, value.point2_y),
+          point(value.point3_x, value.point3_y),
+        ],
         vertices: normalizeSolidVertexOrder([
           point(value.point1_x, value.point1_y),
           point(value.point2_x, value.point2_y),
           point(value.point3_x, value.point3_y),
           point(value.point4_x, value.point4_y),
         ]),
+        jwwSolidColor: numberOrZero(value.color),
+      })
+    );
+    return converted;
+  }
+
+  if ("ref_x" in value && "def_number" in value) {
+    const definition = (doc.block_defs || []).find(
+      (item) => Number(item.number) === Number(value.def_number)
+    );
+    converted.push(
+      makeEntity(doc, value, index, "INSERT", {
+        position: point(value.ref_x, value.ref_y),
+        blockName: blockDisplayName(definition?.name || `Block${value.def_number}`),
+        xScale: numberOrZero(value.scale_x || 1),
+        yScale: numberOrZero(value.scale_y || 1),
+        rotation: numberOrZero(value.rotation),
+        jwwBlock: {
+          reference: point(value.ref_x, value.ref_y),
+          scaleX: numberOrZero(value.scale_x || 1),
+          scaleY: numberOrZero(value.scale_y || 1),
+          rotation: numberOrZero(value.rotation),
+          definitionNumber: numberOrZero(value.def_number),
+        },
       })
     );
     return converted;
@@ -225,6 +343,10 @@ function convertEntity(doc, source, index) {
     converted.push(
       makeEntity(doc, value, index, "POINT", {
         position: point(value.x, value.y),
+        isTemporaryPoint: Boolean(value.is_temporary),
+        jwwPointCode: numberOrZero(value.code),
+        jwwPointAngle: numberOrZero(value.angle),
+        jwwPointScale: numberOrZero(value.scale || 1),
       })
     );
   }
@@ -236,14 +358,21 @@ function boundsFor(entities) {
   const points = [];
   for (const item of entities) {
     const entity = item.entity || {};
-    for (const key of ["start", "end", "center", "position", "startPoint"]) {
+    const pointKeys = entity.jwwArcGeometry
+      ? ["start", "end", "position", "startPoint", "endPoint"]
+      : ["start", "end", "center", "position", "startPoint", "endPoint"];
+    for (const key of pointKeys) {
       const p = entity[key];
       if (Number.isFinite(p?.x) && Number.isFinite(p?.y)) points.push(p);
     }
     for (const p of entity.vertices || []) {
       if (Number.isFinite(p?.x) && Number.isFinite(p?.y)) points.push(p);
     }
-    if (entity.center && Number(entity.radius) > 0) {
+    if (entity.jwwArcGeometry?.bounds) {
+      const bounds = entity.jwwArcGeometry.bounds;
+      points.push({ x: bounds.minX, y: bounds.minY });
+      points.push({ x: bounds.maxX, y: bounds.maxY });
+    } else if (entity.center && Number(entity.radius) > 0) {
       points.push({
         x: entity.center.x - entity.radius,
         y: entity.center.y - entity.radius,
@@ -276,9 +405,59 @@ export function convertJwwBytes(bytes, options = {}) {
     },
   });
   const rawEntities = Array.isArray(doc.entities) ? doc.entities : [];
-  const entities = rawEntities.flatMap((entity, index) =>
-    convertEntity(doc, entity, index)
+  const {
+    drawingEntities,
+    drawingEntityIndexes,
+    settings: internalSettings,
+  } = partitionJwwInternalSettings(rawEntities);
+  const entities = drawingEntities.flatMap((entity, index) =>
+    convertEntity(doc, entity, drawingEntityIndexes[index])
   );
+  const jwwBlockDefinitions = (doc.block_defs || []).map((definition, index) => ({
+    number: numberOrZero(definition.number),
+    referred: Boolean(definition.referred),
+    createdAt: numberOrZero(definition.created_at),
+    name: blockDisplayName(definition.name || `Block${index}`),
+    rawName: definition.name || `Block${index}`,
+    jww: baseAttrs(definition.base || {}),
+    entities: (definition.entities || []).flatMap((entity, entityIndex) =>
+      convertEntity(doc, entity, `block-${index}-${entityIndex}`)
+    ),
+  }));
+  const jwwEmbeddedImages = (doc.embedded_images || []).map((image) => ({
+    fileName: image.file_name || "",
+    declaredSize: numberOrZero(image.declared_size),
+    dataBase64: Buffer.from(image.bytes || []).toString("base64"),
+    truncated: Boolean(image.truncated),
+  }));
+  const jwwInternalSettings = {
+    sentinel: {
+      start: point(0, -1000),
+      end: point(0, -1000),
+    },
+    records: internalSettings.map((setting) => {
+      const value = setting.value;
+      return {
+        id: `jww-internal-setting-${setting.sourceIndex}`,
+        sourceIndex: setting.sourceIndex,
+        key: setting.key,
+        settingValue: setting.settingValue,
+        text: setting.text,
+        rawText: value.raw_content || setting.text,
+        resolvedText: value.resolved_content || setting.text,
+        startPoint: point(value.start_x, value.start_y),
+        endPoint: point(value.end_x, value.end_y),
+        textType: Number(value.text_type) || 0,
+        sizeX: numberOrZero(value.size_x),
+        sizeY: numberOrZero(value.size_y),
+        spacing: numberOrZero(value.spacing),
+        angle: numberOrZero(value.angle),
+        fontFamily: value.font_name || "MS Gothic",
+        layer: getJwwLayerName(doc, value.base || {}),
+        jww: baseAttrs(value.base || {}),
+      };
+    }),
+  };
   const groupScaleState = getJwwGroupScaleLabels(doc);
   const arcDiagnostics = buildJwwArcDiagnostics(entities);
   const unresolvedColorNumbers = Array.from(
@@ -310,6 +489,9 @@ export function convertJwwBytes(bytes, options = {}) {
       paperSize,
       colorSettings: doc.color_settings || { screenColors: {} },
       lineTypeSettings: doc.line_type_settings || null,
+      jwwBlockDefinitions,
+      jwwEmbeddedImages,
+      jwwInternalSettings,
       layerNamesExtracted: doc.layer_names_extracted !== false,
       layerNameFallbacks: doc.layer_name_fallbacks || [],
       environmentRegion: doc.environment_region || null,

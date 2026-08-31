@@ -48,6 +48,12 @@ LAYTYP_F = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
 `);
 
     expect(parsed.entries.LAYCOL_F.definition.label).toBe("default layer color");
+    expect(parsed.entries.LAYCOL_F.definition.scope).toBe("operation");
+    expect(parsed.entries.LAYCOL_F.definition.note).toContain(
+      "not serialized into JWW"
+    );
+    expect(parsed.entries.LAYWID_F.definition.scope).toBe("operation");
+    expect(parsed.entries.LAYTYP_F.definition.scope).toBe("operation");
     expect(parsed.entries.LAYWID_F.definition.note).toContain(
       "-2 keeps current width"
     );
@@ -127,7 +133,7 @@ KEY_A = 1 2 3
     });
   });
 
-  it("normalizes explicit JWF colors and unresolved core line type rows without promoting JWW extraction", () => {
+  it("normalizes JWF-only zoom text and helper/endpoint operation settings", () => {
     const parsed = parseJwfText(`
 LCOLLOR_B = 2 6 23
 LCOLLOR_Z = 64 128 192
@@ -150,8 +156,10 @@ LTYPE_HC = 1 1 0 2 1 0
       pointRadius: 0.2,
     });
     expect(parsed.entries.LTYPE_HC.definition.label).toBe(
-      "line type helper / endpoint setting"
+      "selection/crossline helper and endpoint setting"
     );
+    expect(parsed.entries.LTYPE_HC.definition.scope).toBe("operation");
+    expect(parsed.entries.LCOLLOR_M.definition.scope).toBe("operation");
     expect(parsed.entries.LTYPE_HC.definition.valueSchema).toEqual([
       "selectionTemporaryLineTypeNo",
       "crosslineCursorLineTypeNo",
@@ -168,6 +176,9 @@ LTYPE_HC = 1 1 0 2 1 0
       1,
       0,
     ]);
+    expect(parsed.normalizedSettings.lineTypes.helperEndpoint).toEqual(
+      parsed.normalizedSettings.lineTypes.hatchCandidate
+    );
   });
 
   it("normalizes operation-only JWF settings for connected app persistence", () => {

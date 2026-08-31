@@ -103,6 +103,9 @@ function buildComparison(converted, parsedJwf, sources) {
   const environmentRegion = converted.meta?.environmentRegion || null;
   const supported = new Set(environment.coverage?.supportedKeys || []);
   const missing = new Set(environment.coverage?.missingJwfKeys || []);
+  const nonSerialized = new Set(
+    environment.coverage?.nonSerializedJwfKeys || []
+  );
   const jwfKeys = parsedJwf.keys || [];
   const rows = jwfKeys.map((key) => ({
     key,
@@ -110,6 +113,8 @@ function buildComparison(converted, parsedJwf, sources) {
     definition: parsedJwf.entries?.[key]?.definition || null,
     status: supported.has(key)
       ? "extracted"
+      : nonSerialized.has(key)
+        ? "not-serialized"
       : missing.has(key)
         ? "missing"
         : "not-tracked",

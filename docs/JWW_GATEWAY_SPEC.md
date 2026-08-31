@@ -1,16 +1,17 @@
 # JWW Gateway Specification
 
-Last updated: 2026-05-11
+Last updated: 2026-08-27
 
 ## 目的
 
-JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、JWW Gateway JSONへ変換するための読み込み・診断レイヤーです。
+JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、JWW Gateway JSONとの間で変換するための読み込み・診断・限定書き出しレイヤーです。
 
-現時点では JWW の保存は対象外です。主目的は次の3つです。
+主目的は次の4つです。
 
 - JWW 図面をアプリへ読み込む
 - JWW 固有情報をできるだけ保持して、表示・印刷・診断に渡す
 - 読み込み結果の問題点を単体コマンドとアプリ内診断で確認できるようにする
+- 対応エンティティを内部バージョン600/700のJWWへ厳格に書き戻す
 
 ## 構成
 
@@ -20,8 +21,11 @@ JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、JWW Gateway JSON�
 | `src/jww/decoder.js`        | Shift_JIS 等の文字列変換、JWW 特殊文字の解釈         |
 | `src/jww/shared.js`         | 用紙名、線色、線種、縮尺、JWW レイヤ名などの共有処理 |
 | `src/jww/arcDiagnostics.js` | 弧・楕円の変換診断                                   |
+| `src/jww/writer.js`         | v600/v700限定JWW writer                              |
+| `src/jww/semanticDiff.js`   | 図面意味・文書メタ・内部設定の正規化差分             |
 | `tools/jww-gateway.mjs`     | パーサー結果をJWW Gateway JSONへ変換するCLI        |
 | `tools/jww-diagnostics.mjs` | JWW 読み込み結果を診断する CLI                       |
+| `tools/jww-roundtrip-corpus.mjs` | エンティティ種別ごとのv600/v700往復検証       |
 
 ## 対応入力
 
@@ -29,9 +33,9 @@ JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、JWW Gateway JSON�
 | ------------ | -------------------------------------------- |
 | 拡張子       | `.jww`                                       |
 | 文字コード   | `shift_jis`, `utf-8`, `utf-16le`, `utf-16be` |
-| 主な想定     | Jw_cad 7系相当のJWW                          |
+| 主な想定     | JWW内部バージョン600/700                     |
 | 読み込み方向 | JWW からJWW Gateway JSON                  |
-| 書き出し方向 | JWW 保存は未対応                             |
+| 書き出し方向 | JWW Gateway JSONからv600/v700（対応型限定）   |
 
 単体CLIでは `--encoding` で読み込み文字コードを指定します。ブラウザのローカル保存、ファイル名ごとのプリセット、`Open JWW` ダイアログは元アプリ側のUI機能であり、この配布フォルダには含めません。
 
@@ -45,7 +49,11 @@ JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、JWW Gateway JSON�
 | 点             | `POINT`         | 位置を保持                                 |
 | ソリッド       | `SOLID`         | 4頂点を保持                                |
 | 文字           | `TEXT`          | 変換済み文字、元文字、特殊文字メタを保持   |
-| 寸法線付き文字 | `TEXT` + `LINE` | 寸法線が取れる場合は補助線として追加       |
+| 寸法           | `DIMENSION`    | `CDataSunpou` の線・文字・補助線・4点を保持 |
+| ブロック参照   | `INSERT`       | `CDataBlock` と変換属性を保持               |
+| ブロック定義   | 文書メタ       | `CDataList` と内包エンティティを保持         |
+| 画像参照       | `IMAGE`        | `^@BM` 参照名・幅・高さを保持                |
+| v700埋込画像   | 文書メタ       | 名前・宣言サイズ・バイナリ本体を保持         |
 
 未対応クラスは `diagnostics.unsupportedClasses` に件数を記録します。
 
@@ -61,6 +69,18 @@ JWW Gateway は、Jw_cad の `.jww` ファイルを解析し、JWW Gateway JSON�
 | `meta.colorDiagnostics`     | 未解決線色番号                              |
 | `meta.diagnostics`          | 未対応クラス、スキップ数                    |
 | `meta.arcDiagnostics`       | 弧・円・楕円系の変換確認情報                |
+| `meta.jwwInternalSettings`  | Jw_cad内部の印刷・表示設定文字列            |
+| `meta.jwwBlockDefinitions`  | ネイティブブロック定義と内包エンティティ     |
+| `meta.jwwEmbeddedImages`    | v700埋込画像名・サイズ・バイナリ本体          |
+
+## 仕様根拠
+
+- Jw_cad公式データ形式: https://www.jwcad.net/jwdatafmt.txt
+- Jw_cad公式バージョン履歴: https://www.jwcad.net/download/versioninfo.htm
+
+公式データ形式に記載された主エンティティリスト、ブロック定義リスト、v700画像リスト、`CDataSunpou`、`CDataBlock`、`CDataList` の直列化順を実装根拠とします。未確認フィールドは新しい意味へ推測変換せず、raw値または未対応診断として保持します。
+
+Jw_cad 10.02.1での再保存時に確認した6種類の内部設定文字列は、開始・終了座標がともに`(0, -1000)`で、既知のキー名と数値代入形式が一致する場合だけ図形`TEXT`から分離します。元の文字列、値、座標、文字属性、レイヤ属性は`meta.jwwInternalSettings.records`へ保持します。同じ文字列が通常の図面座標にある場合や未確認のキーは、表示対象の`TEXT`として残します。
 
 ## 色の扱い
 
@@ -97,10 +117,10 @@ JWW はファイルごとに基本線色が変わるため、読み込み時に 
 - 装飾範囲を `jwwTextSegments` として通常文字/装飾文字に分割保持
 - 未解決文字は診断で検出
 
-制限:
+責任境界:
 
-- `^o`, `^w`, `^b`, `^B`, `^n` などの見た目そのものの重ね描画は、現状 `jwwSpecialRuns` / `jwwTextSegments` の保持が中心です。
-- アプリ内表示で完全なJw_cad文字装飾再現を保証するものではありません。
+- `^o`, `^w`, `^b`, `^B`, `^n` などのraw制御列、`jwwSpecialRuns`、`jwwTextSegments`はGateway JSONとnative rebuild保存で保持します。
+- 見た目そのものの重ね描画とJw_cadとの視覚比較は、Gatewayではなく下流rendererの責任です。`JWW_TEXT_DECORATION_CONTRACT.md`を参照してください。
 
 ## 弧・楕円の扱い
 
@@ -200,7 +220,7 @@ npm run validate -- output.json
 npm run validate -- output.json --json
 ```
 
-`validate` は `format`、`formatVersion`、`sourceFormat`、`encoding`、`meta`、`bounds`、`entities` の最低限の互換性を確認します。`LINE`、`POINT`、`TEXT`、`CIRCLE`、`ARC`、`SOLID` は代表的な座標・半径・文字値もチェックします。加えて、`meta.colorSettings`、`meta.lineTypeSettings`、`meta.jwwEnvironment.coverage` は最低限の型と色HEX形式を固定し、JWW Gateway単体パッケージの smoke check と `test:jww` で回帰確認します。
+`validate` は `format`、`formatVersion`、`sourceFormat`、`encoding`、`meta`、`bounds`、`entities` の最低限の互換性を確認します。`LINE`、`POINT`、`TEXT`、`CIRCLE`、`ARC`、`SOLID` は代表的な座標・半径・文字値もチェックします。加えて、`meta.colorSettings`、`meta.lineTypeSettings`、`meta.jwwEnvironment.coverage`、`meta.jwwInternalSettings`は最低限の型と色HEX形式を固定し、JWW Gateway単体パッケージの smoke check と `test:jww` で回帰確認します。
 
 元プロジェクト側から単体利用用のJWW Gatewayパッケージを作る場合:
 
@@ -210,7 +230,7 @@ npm run jww:package:smoke
 ```
 
 出力先は `..\JWW_Gateway` です。パッケージ内には `tools`、`src/jww`、`package.json`、`README.md` を含み、JWW変換、診断、診断差分のCLIをアプリ本体から切り離して実行できます。
-`JWW_GATEWAY_MANIFEST.json` には、対応CLI、対応エンコーディング、出力スキーマ、機能有無、JWW書き込み非対応、未確定環境キー、配布ファイル一覧を出力します。manifest の形は `docs/jww-gateway-manifest.schema.json` に固定し、生成・検証ルールは `src/jww/gatewayManifest.js` にまとめます。外部アプリはこのmanifestを読めば、JWW Gatewayを接続する前に利用可能機能と制限を確認できます。
+`JWW_GATEWAY_MANIFEST.json` には、対応CLI、対応エンコーディング、出力スキーマ、機能有無、bounded JWW writer、未確定環境キー、配布ファイル一覧を出力します。manifest の形は `docs/jww-gateway-manifest.schema.json` に固定し、生成・検証ルールは `src/jww/gatewayManifest.js` にまとめます。外部アプリはこのmanifestを読めば、JWW Gatewayを接続する前に利用可能機能と制限を確認できます。
 `capabilities.valueScanSummary` と `capabilities.promotionCandidateGate` が `true` の場合、複数の value-scan JSON を横断集計し、未抽出の matched 行が残った時に検証を失敗させるゲートを利用できます。
 manifest validator は、capability だけでなく必須 `commands` と `binaries` の実体名も確認します。これにより、機能フラグだけ true で CLI が欠けている配布物を検出できます。
 `npm run manifest:validate -- JWW_GATEWAY_MANIFEST.json` または単体配布側の `npm run manifest:validate` で manifest の構造を検証できます。`--check-files` を付けると、manifest の `packageFiles` に載っているファイルが実際に存在するかも確認します。
@@ -266,20 +286,19 @@ JWF相当の環境情報については `docs/JWW_JWF_ENV_AUDIT.md` に、現在
 
 - JWW保存は未対応
 - JWW完全互換ビューアではない
-- 楕円・複雑な特殊文字装飾は再現差が残る可能性がある
+- 下流rendererが明示的な楕円弧geometry契約を使用しない場合と、複雑な特殊文字装飾には再現差が残る可能性がある
 - JWW仕様は公式に完全公開されていない領域があるため、実ファイルでの検証を前提にする
 - 読み込み結果の削除・修正は元JWWファイルへは反映されない
 
 ## 今後の改善候補
 
-- JWW文字装飾の実描画再現
-- 楕円弧の実ファイル比較テスト追加
+- 実Jw_cad 6.x環境での編集・再読込証拠、および非privateの実在v600 DIMENSION/BLOCK/IMAGE sample
 
 ## Raw Environment Region
 
 Converted JSON exposes `meta.environmentRegion` for JWF/JWW environment research. It is a diagnostic block, not a normalized setting table.
 It reports the byte region between the layer/group-name area and the entity list marker, including repeated unsigned-32-bit pair runs and numeric double samples.
-Use it to compare real files before mapping additional JWF keys such as `LAYCOL_*`, `LAYWID_*`, `LAYTYP_*`, text presets, hatch presets, and command settings.
+Use it to compare real files before mapping additional serialized JWF-like keys such as text presets, hatch presets, and command settings. `LAYCOL_*`, `LAYWID_*`, and `LAYTYP_*` are JWF-only write-layer operation defaults and are not mapping candidates for JWW.
 
 ## Environment Region Scan CLI
 
@@ -297,7 +316,7 @@ Use it before promoting raw candidate bytes to named JWF settings.
 npm run jwf:compare -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end
 npm run jwf:compare -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --html -o jwf-compare.html
 npm run jwf:compare -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --scope drawing --status missing --html -o drawing-missing.html
-npm run jwf:compare -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --family layerColors,layerLineTypes --html -o layer-defaults.html
+npm run jwf:compare -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --family layerColors,layerLineTypes,layerWidths --status not-serialized --html -o layer-defaults.html
 npm run jwf:compare -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --key LTYPE_HC,LCOLLOR_M --html -o core-open.html
 ```
 
@@ -312,29 +331,29 @@ npm run jwf:value-scan -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-
 npm run jwf:value-scan -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --html -o value-scan.html
 npm run jwf:value-scan -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --scope drawing --status missing,ambiguous --html -o drawing-open.html
 npm run jwf:value-scan -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --scope drawing --gateway-status missing --html -o drawing-gateway-missing.html
-npm run jwf:value-scan -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --family layerColors,layerLineTypes --html -o layer-defaults-scan.html
+npm run jwf:value-scan -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --family layerColors,layerLineTypes,layerWidths --gateway-status not-serialized --html -o layer-defaults-scan.html
 npm run jwf:value-scan -- "C:\path\to\file.jww" "C:\path\to\file.jwf" --include-after-end --key LTYPE_HC,LCOLLOR_M --html -o core-open-scan.html
 npm run layer-defaults:summary -- layer-a.json layer-b.json --html -o layer-summary.html
 npm run layer-defaults:summary -- layer-a.json layer-b.json --fail-on-promotion-candidates
 ```
 
-This investigation command searches the JWW bytes for exact numeric and color byte patterns derived from JWF entries. It checks color byte rows, RGB triplets, and `u8`, `u16`, `i16`, `u32`, `i32`, and `f64` numeric sequences. JSON/CSV/HTML output includes `testedPatterns`, `gatewayCandidate`, `gatewayCandidateComparison`, `scopeStatusCounts`, and `familyStatusCounts`, so a missing row still shows which byte layouts were tested, whether Gateway has a nearby diagnostic candidate, whether that candidate directly matches the JWF values, and which setting family is still open. Matches are candidates for parser work, not final decoded settings.
-For focused `LAYCOL_*`, `LAYWID_*`, and `LAYTYP_*` checks, write each `layer-defaults:audit --json` result to a file and pass those files to `layer-defaults:summary`. Add `--fail-on-promotion-candidates` when the command is used as a guard before handoff.
-Use `--html` when reviewing ambiguous rows such as all-zero `LAYCOL_*` / `LAYTYP_*` with a user-facing report. `--family` narrows the report to JWF families such as `layerColors`, `layerLineTypes`, `layerWidths`, `screenColors`, or `lineTypes`. `gatewayStatus` shows whether Gateway already extracts the JWF key, so exact byte mismatches do not get mistaken for parser gaps.
+This investigation command searches the JWW bytes for exact numeric and color byte patterns derived from JWF entries. It checks color byte rows, RGB triplets, and `u8`, `u16`, `i16`, `u32`, `i32`, and `f64` numeric sequences. JSON/CSV/HTML output includes `testedPatterns`, `gatewayCandidate`, `gatewayCandidateComparison`, `scopeStatusCounts`, and `familyStatusCounts`. Keys proven to be JWF-only report `gatewayStatus: not-serialized` and `comparisonRequired: false`; any incidental byte match for such a key is not a parser candidate.
+For historical or controlled `LAYCOL_*`, `LAYWID_*`, and `LAYTYP_*` evidence, write each `layer-defaults:audit --json` result to a file and pass those files to `layer-defaults:summary`. Current audits count these rows as `nonSerialized` and exclude them from promotion candidates.
+Use `--html` when reviewing historical ambiguous rows such as all-zero `LAYCOL_*` / `LAYTYP_*`. `--family` narrows the report to JWF families such as `layerColors`, `layerLineTypes`, `layerWidths`, `screenColors`, or `lineTypes`. `gatewayStatus` distinguishes extracted, missing, and non-serialized keys.
 Use `value-scan:summary` to summarize multiple value-scan JSON reports by status, family, and key before promoting any candidate into the parser.
 The summary also reports `promotionCandidates`: matched rows whose JWF key is not yet extracted by Gateway. Keep this at zero before treating a scan set as stable. Use `--summary --fail-on-promotion-candidates` in verification scripts to write a compact gate report and fail when unreviewed matched rows remain.
-Use `layer-defaults:summary --fail-on-direct-matches` when checking `LAYCOL_*`, `LAYWID_*`, and `LAYTYP_*` samples. This fails only when a direct candidate appears, while low-information ambiguous rows remain review evidence rather than parser-ready data.
+`layer-defaults:summary --fail-on-direct-matches` remains available for old audit JSON, but current non-serialized rows are excluded from direct/promotion candidate gates.
 In the standalone package, write generated review files under `reports\`, for example `-o reports\full-summary.txt`. The package generator recreates this folder, so persistent evidence should be copied into the source project or a dated backup.
 The packaged `reports\README.md` and source `docs/JWW_GATEWAY_REPORTS.md` summarize the expected report types.
 Use `npm run verify:report -- -o reports\verify-report.txt`, `npm run verify:report -- --json -o reports\verify-report.json`, `npm run verify:report -- --csv -o reports\verify-report.csv`, or `npm run verify:report -- --html -o reports\verify-report.html` to create a compact handoff report for manifest validity, required files, scripts, binaries, capabilities, and unresolved keys.
 Use `npm run open-items -- --html -o reports\open-items.html` to export known limitations and remaining research items recorded in the manifest.
 Use `npm run reports:index -- --html -o reports\index.html` to generate a one-page map of the generated handoff artifacts.
-Use `npm run verify:report -- --expect-unresolved LTYPE_HC,LCOLLOR_M` when the expected unresolved-key set should be enforced during handoff.
+Use `npm run verify:report -- --expect-no-unresolved` when the empty unresolved-key set should be enforced during handoff. `LTYPE_HC` and `LCOLLOR_M` are reported separately as JWF-only operation keys.
 Use `npm run coverage -- "C:\path\to\file.jww" --scope drawing --status missing --html -o coverage.html` in the standalone package to report extracted and missing JWF-like environment keys for one JWW file.
 Use `npm run coverage:summary -- coverage-a.json coverage-b.json --summary` to summarize multiple coverage reports. The summary includes `alwaysMissingDrawing` and splits those drawing gaps into `core`, `layerDefaults`, and `other`. `--fail-on-always-missing-drawing` can be used as a focused gate for drawing-related gaps without failing on document or operation environment settings.
 Use `npm run verify:reports` in the standalone package to generate all four handoff report formats at once.
 Use `npm run verify:all` to run package verification and generate all four handoff reports in one command.
-Use `npm run verify:handoff` to run `verify:all` and then enforce that unresolved keys are still only `LTYPE_HC` and `LCOLLOR_M`.
+Use `npm run verify:handoff` to run `verify:all` and then enforce that the unresolved environment-key set remains empty. `LTYPE_HC` and `LCOLLOR_M` are checked separately through `jwfOnlyOperationKeys`.
 Use `npm run status` to print a compact readiness summary for the standalone package.
 On Windows, `jww-gateway-status.cmd`, `jww-gateway-verify-all.cmd`, `jww-gateway-verify-handoff.cmd`, `jww-gateway-open-items.cmd`, and `jww-gateway-report-index.cmd` provide direct shortcuts from the standalone folder.
 `jww-gateway-convert.cmd`, `jww-gateway-coverage.cmd`, and `jww-gateway-diagnose.cmd` provide Windows pass-through shortcuts for common import, coverage, and diagnostic runs.
@@ -363,10 +382,10 @@ npm run special-color:summary -- special-a.json special-b.json --html -o special
 npm run special-color:summary -- special-a.json special-b.json --fail-on-direct-matches
 ```
 
-This command summarizes multiple `--key LTYPE_HC,LCOLLOR_M --json` value-scan reports into one cross-sample table. Key-level totals include missing/matched counts and direct-match true/false counts. Use it to confirm that unresolved core keys remain consistently unmatched before deciding whether a candidate can be promoted. Add `--fail-on-direct-matches` when using it as a guard for new samples.
+This command summarizes multiple historical `--key LTYPE_HC,LCOLLOR_M --json` value-scan reports into one cross-sample table. Key-level totals include missing/matched counts and direct-match true/false counts. These reports supplied the negative evidence later confirmed by controlled Jw_cad Save As tests: both keys are JWF-only operation/display settings and are not serialized into JWW.
 Use `special-color:audit` when investigating `LCOLLOR_M`; it scans RGB triplets near the detected JWW color table and ranks nearby candidates by distance from the JWF M color. `special-color:summary` groups those audit JSON files by relative offset and candidate color so repeated near-matches can be reviewed separately from direct-match promotion.
 
-Gateway currently extracts the structured line type rows `LTYPE_02..09`, `LTYPE_R1..R5`, and `LTYPE_L1..L4` when a plausible JWW line-type table is found. Public JWF references define `LTYPE_HC` as six integer fields, so the 24 bytes immediately after `LTYPE_L4` are exposed as `meta.lineTypeSettings.tailCandidate` and `meta.jwwEnvironment.lineTypes.LTYPE_HC_candidate` with `valueSchema` and `u32Semantic` field names. It is still reported as unresolved for promotion until real JWW/JWF samples provide a stable direct match.
+Gateway currently extracts the structured line type rows `LTYPE_02..09`, `LTYPE_R1..R5`, and `LTYPE_L1..L4` when a plausible JWW line-type table is found. Public JWF references define `LTYPE_HC` as six operation/display fields. Controlled Jw_cad 10.02.1 single-change Save As tests prove that they are not serialized into JWW. The 24 bytes immediately after `LTYPE_L4` do not track those six fields and are exposed only as the neutral `meta.jwwEnvironment.lineTypes.postLineTypeTailCandidate` diagnostic value.
 
 Print color tables are read from the richer `RGB + width + pointRadius` row format when available. In that case `meta.colorSettings.printColors[n].pointRadius` is included for `PCOLLOR_1..8`.
 
