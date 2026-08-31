@@ -203,7 +203,7 @@ function parseSunpouSettings(reader) {
     sunpou4: reader.readDword(),
     sunpou5: reader.readDword(),
     dummy: reader.readDword(),
-    max_line_width: reader.readDword(),
+    max_line_width: reader.readDword() | 0,
   };
 }
 
@@ -1486,7 +1486,13 @@ export function parse(input, options = {}) {
   const paper_size = reader.readDword();
   const write_layer_group = reader.readDword();
   let layer_groups = parseLayerGroups(reader);
+  const sunpouSettingsStart = reader.pos;
   const sunpou_settings = parseSunpouSettings(reader);
+  const sunpou_settings_source_span = {
+    start: sunpouSettingsStart,
+    end: reader.pos,
+    byteLength: reader.pos - sunpouSettingsStart,
+  };
   const printSettingsStart = reader.pos;
   const print_settings = parsePrintSettings(reader);
   const print_settings_source_span = {
@@ -1626,6 +1632,7 @@ export function parse(input, options = {}) {
     print_settings_source_span,
     grid_settings,
     sunpou_settings,
+    sunpou_settings_source_span,
     diagnostics,
   };
 }

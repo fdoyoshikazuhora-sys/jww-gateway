@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-08-31T09:58:12.129Z",
+  "generatedAt": "2026-08-31T13:01:27.262Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -44,8 +44,8 @@
     },
     {
       "file": "README.md",
-      "bytes": 12608,
-      "sha256": "39203933ce9570e56af68f671a7ceac20dd5e6304620a44510b947a2bf8eec36"
+      "bytes": 12892,
+      "sha256": "d32b0baa928b69618458d4ab0cacec56522cd812714118c12eb059777cb56f25"
     },
     {
       "file": "docs/JWW_GATEWAY_HANDOFF.md",
@@ -59,8 +59,8 @@
     },
     {
       "file": "docs/JWW_GATEWAY_RELEASE_NOTES.md",
-      "bytes": 5156,
-      "sha256": "ce6baabbaf1c308a614079e7b677211446aca4ed81d509a7800b23b33bf653de"
+      "bytes": 5803,
+      "sha256": "d0000616911d5ad7895c1c5cdd0aaab014779d3b216b2d43d896dc68db0bfb04"
     },
     {
       "file": "docs/JWW_GATEWAY_REPORTS.md",
@@ -89,8 +89,8 @@
     },
     {
       "file": "docs/JWW_NATIVE_API.md",
-      "bytes": 14069,
-      "sha256": "1bbfeaf21dcea250e3c901022fb05757c90f00c7989cdac72782584de3f3aab0"
+      "bytes": 14761,
+      "sha256": "4f38fac5638d0306894786042b0de6388215ccc8b75f56053e68045ffdb3474e"
     },
     {
       "file": "docs/JWW_GATEWAY_SAMPLE_SETS.example.json",
@@ -364,8 +364,8 @@
     },
     {
       "file": "src/jww/environment.js",
-      "bytes": 10796,
-      "sha256": "117cafee015f5127ba13a67c1b6e63cb060a5653f737bf05231d57846043bdda"
+      "bytes": 10767,
+      "sha256": "bfaef0dd6f85d5fbe044717fd544dea4c911120f852c92166c6452c6756dbf48"
     },
     {
       "file": "src/jww/environment.test.js",
@@ -439,18 +439,18 @@
     },
     {
       "file": "src/jww/native.js",
-      "bytes": 88167,
-      "sha256": "5cef0b5804ee3a52ab360cf082a9a2e2863a48fd8f3fd76aa43361d70d61a6e9"
+      "bytes": 90537,
+      "sha256": "e3a6a64d3227c88ef54a83d08853ed8dfe2b7dcdbe06e09a8a4502076d55a473"
     },
     {
       "file": "src/jww/native.test.js",
-      "bytes": 97194,
-      "sha256": "9cbb285a27f883149b17fbf79c635ca909a5e8206a8436744bae7d79f4b9d844"
+      "bytes": 98648,
+      "sha256": "8e0536ba19ad240f9b0c5968da14723a640042cb29fac141ed9ab408bf6b32fd"
     },
     {
       "file": "src/jww/parser.js",
-      "bytes": 49060,
-      "sha256": "29668c965d89ed2a6b3a55145f4757ca75ee52018954373634ece051c5d8afff"
+      "bytes": 49274,
+      "sha256": "ac654e3e3e1a720cbd5ed0f956fb46ef7721776f1c0c9227c731dfeb189fc74f"
     },
     {
       "file": "src/jww/parser.test.js",
@@ -464,13 +464,13 @@
     },
     {
       "file": "src/jww/semanticDiff.js",
-      "bytes": 11048,
-      "sha256": "f9cb82ab6fb08c38c1b1f94ff8e9e0425b1e8b557009b68f526caa9e081f5f41"
+      "bytes": 11123,
+      "sha256": "55217e9a88232d4d40e9cec13fc432acf4ade3e3a23c6b1607a36d5f2a5f2771"
     },
     {
       "file": "src/jww/semanticDiff.test.js",
-      "bytes": 6138,
-      "sha256": "5fa842babf7cc9016593d1f45e3fd3134d4f00a8000d1c3695f76e4c75ac84ed"
+      "bytes": 7169,
+      "sha256": "15f09dc587f45be42fdcb616d64e6102b55f7378480e640c8374f09ce963c1e8"
     },
     {
       "file": "src/jww/shared.js",
@@ -499,13 +499,13 @@
     },
     {
       "file": "src/jww/writer.js",
-      "bytes": 81225,
-      "sha256": "da55f5435d9b382492e26d3caa11e33769255ad2b5f0f92fec36d7f71f1f04da"
+      "bytes": 83572,
+      "sha256": "c2b626ec6a5d7f690fb670a87b9121a4ca12b947e4dc4113905e873710e874d1"
     },
     {
       "file": "src/jww/writer.test.js",
-      "bytes": 47216,
-      "sha256": "376dce05edd645e26fe546358b31d88a1f371a8e7f6688b1db8496546c32cfeb"
+      "bytes": 48585,
+      "sha256": "f4bc6e5b5aad1e2f9c7871ac5c0f5f41e50cbcd96706b3d9a708a800cc36655e"
     },
     {
       "file": "tools/jwf-parse.mjs",
@@ -579,8 +579,8 @@
     },
     {
       "file": "tools/jww-gateway.mjs",
-      "bytes": 19409,
-      "sha256": "54f71d8632cbc7185a61ef9b9adce7795c80d2fc07c52eaf2d26918ad18cf18c"
+      "bytes": 19460,
+      "sha256": "da83059c4fe5d33938d9d7570e0416d4ca3efb8e084e7fdede731bfa7af2e2c4"
     },
     {
       "file": "tools/jww-jwf-compare.mjs",

@@ -77,12 +77,14 @@ function nativeDocument() {
         rotation_setting: 1,
       },
       dimension: {
-        sunpou1: 1,
-        sunpou2: 2,
-        sunpou3: 3,
-        sunpou4: 4,
-        sunpou5: 5,
-        max_line_width: 30,
+        id: "jww:dimension-settings",
+        sunpou1: 2001422,
+        sunpou2: 3,
+        sunpou3: 50150025,
+        sunpou4: 11000000,
+        sunpou5: 4100,
+        max_line_width: -300,
+        sourceSpan: { start: 100, end: 184, byteLength: 84 },
       },
     },
     diagnostics: {
@@ -113,11 +115,11 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 7,
+      formatVersion: 8,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
-        version: 5,
+        version: 6,
         mode: "native-metadata-safe",
         writablePaths: [
           "header.memo",
@@ -133,6 +135,11 @@ describe("buildJwwBasicSettingsProjection", () => {
           "settings.print.origin_y",
           "settings.print.scale",
           "settings.print.rotation_setting",
+          "settings.dimension.sunpou1",
+          "settings.dimension.sunpou2",
+          "settings.dimension.sunpou3",
+          "settings.dimension.sunpou4",
+          "settings.dimension.sunpou5",
         ],
         managedInvariantPaths: ["layerGroups[].layers[].state"],
       },
@@ -163,6 +170,24 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(byId.background.value).toContain("#FFFFFF");
     expect(byId["text-fonts"].value).toBe("MS Gothic");
     expect(byId["dimension-count"].value).toBe("1");
+    expect(byId["dimension-line-color"].edit).toMatchObject({
+      key: "dimensionLineColor",
+      control: "select",
+      value: 2,
+    });
+    expect(byId["dimension-value-offset"].edit).toMatchObject({
+      key: "dimensionValueOffset",
+      control: "number",
+      value: 0.3,
+    });
+    expect(byId["dimension-arrow-angle"].edit).toMatchObject({
+      key: "dimensionArrowAngle",
+      value: 15,
+    });
+    expect(byId["dimension-max-line-width"]).toMatchObject({
+      value: "-300",
+      edit: null,
+    });
     expect(byId.memo.edit).toMatchObject({
       key: "memo",
       control: "textarea",

@@ -343,8 +343,8 @@ export function buildJwwEnvironment(doc = {}) {
     dimensions: {
       sunpouSettings: doc.sunpou_settings || {},
       missing: {
-        S_STR: "dimension entities are partially extracted, dimension setting table is not",
-        S_SET: "dimension entities are partially extracted, dimension setting table is not",
+        S_STR: "JWF dimension-string preset is not mapped to a JWW-native field",
+        S_SET: "JWF dimension preset is not mapped to a JWW-native field",
       },
     },
     lineTypes: {

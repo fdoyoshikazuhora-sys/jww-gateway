@@ -31,15 +31,24 @@ length changes. JWW has no persistent per-record UUID, so create/delete rebuilds
 may renumber records that move to a different serialized-list position.
 
 Fixed prefix metadata also has stable patch targets: `header.id` is
-`jww:header`, print placement has `id: jww:print-settings`, and each layer group
-has `id: jww:layer-group:<index>`. A
+`jww:header`, print placement has `id: jww:print-settings`, native dimension
+settings have `id: jww:dimension-settings`, and each layer group has
+`id: jww:layer-group:<index>`. A
 `replace` patch may change `header.memo`, `header.paperSize`,
 `header.writeLayerGroup`, a layer group's `scale`, its `write_layer`,
 group/layer state codes, group/layer protection codes, or the printer output
-origin, scale, and rotation/reference code together with the required
+origin, scale, and rotation/reference code, or `sunpou1..5` together with the required
 current-row invariants. Printer placement is the official fixed 28-byte region:
 two origin `double` values, one scale `double`, and one `DWORD` whose ones digit
 selects 0°/90° and tens digit selects the output reference position. Official
+dimension settings occupy a fixed 84-byte prefix region: 14 leading dummy
+DWORDs, five documented decimal-digit packed DWORDs, one preserved dummy DWORD,
+and a signed maximum draw-width DWORD. Native dimension edits replace only the
+five documented DWORDs. The dummy values and maximum draw-width code are
+retained; the maximum draw-width code is not editable through Basic Settings.
+The named Basic Settings controls decode and re-encode only the ranges defined
+by `jwdatafmt.txt`. A source value with out-of-range or undocumented packed
+digits is rejected by preflight instead of being normalized or dropped. Official
 JWW 7.02 state codes are `0` hidden, `1` visible only, `2` editable, and `3`
 current. Direct state edits accept only `0..2` on non-current rows; current rows
 remain `3`, and protection code `2` (display state fixed) rejects the edit.

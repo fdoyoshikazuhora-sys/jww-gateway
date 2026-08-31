@@ -2700,4 +2700,47 @@ describe("JWW native document API", () => {
       document.originalBytes.slice(print.sourceSpan.end)
     );
   });
+
+  it("source-splices stable native dimension settings and retains signed width metadata", async () => {
+    const document = await openNativeJww(fixture(700));
+    const dimension = document.settings.dimension;
+    const patches = [{
+      op: "replace",
+      targetId: dimension.id,
+      record: {
+        ...dimension,
+        sunpou1: dimension.sunpou1 + 1,
+        sunpou2: 1025,
+      },
+    }];
+    const dirty = applyNativeJwwPatches(document, patches);
+    const preflight = preflightNativeJwwSave(dirty);
+    const saved = saveNativeJww(dirty);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(dimension).toMatchObject({
+      id: "jww:dimension-settings",
+      max_line_width: -300,
+      sourceSpan: { byteLength: 84 },
+    });
+    expect(dirty.pendingPrefixMetadataTargetIds).toContain(dimension.id);
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    expect(reopened.settings.dimension).toMatchObject({
+      sunpou1: dimension.sunpou1 + 1,
+      sunpou2: 1025,
+      dummy: dimension.dummy,
+      max_line_width: -300,
+    });
+    expect(saved.bytes.slice(0, dimension.sourceSpan.start)).toEqual(
+      document.originalBytes.slice(0, dimension.sourceSpan.start)
+    );
+    expect(saved.bytes.slice(dimension.sourceSpan.end)).toEqual(
+      document.originalBytes.slice(dimension.sourceSpan.end)
+    );
+  });
 });

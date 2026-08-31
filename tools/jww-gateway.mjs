@@ -489,6 +489,7 @@ export function convertJwwBytes(bytes, options = {}) {
       paperSize,
       colorSettings: doc.color_settings || { screenColors: {} },
       printSettings: doc.print_settings || null,
+      dimensionSettings: doc.sunpou_settings || null,
       lineTypeSettings: doc.line_type_settings || null,
       jwwBlockDefinitions,
       jwwEmbeddedImages,

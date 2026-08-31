@@ -12,6 +12,7 @@ export const JWW_NATIVE_DOCUMENT_KIND = "jww-native";
 export const JWW_NATIVE_CONTRACT_VERSION = 1;
 export const JWW_NATIVE_HEADER_ID = "jww:header";
 export const JWW_NATIVE_PRINT_SETTINGS_ID = "jww:print-settings";
+export const JWW_NATIVE_DIMENSION_SETTINGS_ID = "jww:dimension-settings";
 
 export function jwwNativeLayerGroupId(index) {
   return `jww:layer-group:${Number(index)}`;
@@ -394,7 +395,13 @@ function buildNativeDocument(
             sourceSpan: parsed.print_settings_source_span || null,
           }
         : null,
-      dimension: parsed.sunpou_settings || null,
+      dimension: parsed.sunpou_settings
+        ? {
+            ...parsed.sunpou_settings,
+            id: JWW_NATIVE_DIMENSION_SETTINGS_ID,
+            sourceSpan: parsed.sunpou_settings_source_span || null,
+          }
+        : null,
       environmentRegion: parsed.environment_region || null,
       layerNamesExtracted: parsed.layer_names_extracted !== false,
       layerNameFallbacks: parsed.layer_name_fallbacks || [],
@@ -458,6 +465,7 @@ function nativeTargetIdExists(document, targetId) {
   return Boolean(
     targetId === document.header?.id ||
       targetId === document.settings?.print?.id ||
+      targetId === document.settings?.dimension?.id ||
       (document.layerGroups || []).some((item) => item.id === targetId) ||
       nativeRecordById(document, targetId) ||
       (document.blockDefinitions || []).some((item) => item.id === targetId) ||
@@ -617,6 +625,35 @@ function replaceNativePrintSettings(next, patch) {
   next.settings = {
     ...next.settings,
     print: { ...previous, origin_x: originX, origin_y: originY, scale, rotation_setting: rotationSetting },
+  };
+}
+
+function replaceNativeDimensionSettings(next, patch) {
+  const previous = next.settings?.dimension;
+  const value = cloneValue(unwrap(patch.record));
+  if (!previous || !value || typeof value !== "object") {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW native dimension settings replacement requires a metadata object"
+    );
+  }
+  const packedKeys = ["sunpou1", "sunpou2", "sunpou3", "sunpou4", "sunpou5"];
+  rejectChangedMetadataFields(previous, value, new Set(packedKeys), previous.id);
+  const packed = Object.fromEntries(
+    packedKeys.map((key) => {
+      const number = Number(value[key]);
+      if (!Number.isInteger(number) || number < 0 || number > 0xffffffff) {
+        throw nativePatchError(
+          "JWW_NATIVE_METADATA_PATCH_INVALID",
+          `JWW ${key} must be an unsigned 32-bit integer: ${value[key]}`
+        );
+      }
+      return [key, number];
+    })
+  );
+  next.settings = {
+    ...next.settings,
+    dimension: { ...previous, ...packed },
   };
 }
 
@@ -1388,11 +1425,17 @@ export function applyNativeJwwPatches(document, patches = []) {
     const nestedLocation = nestedBlockRecordLocation(next, patch.targetId);
     const headerTarget = patch.targetId === next.header?.id;
     const printSettingsTarget = patch.targetId === next.settings?.print?.id;
+    const dimensionSettingsTarget = patch.targetId === next.settings?.dimension?.id;
     const layerGroupIndex = next.layerGroups.findIndex(
       (item) => item.id === patch.targetId
     );
     if (patch.op === "delete") {
-      if (headerTarget || printSettingsTarget || layerGroupIndex >= 0) {
+      if (
+        headerTarget ||
+        printSettingsTarget ||
+        dimensionSettingsTarget ||
+        layerGroupIndex >= 0
+      ) {
         throw nativePatchError(
           "JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED",
           `JWW native fixed metadata cannot be deleted: ${patch.targetId}`
@@ -1458,6 +1501,9 @@ export function applyNativeJwwPatches(document, patches = []) {
         }
       } else if (printSettingsTarget) {
         replaceNativePrintSettings(next, patch);
+        pendingPrefixMetadataTargetIds.add(patch.targetId);
+      } else if (dimensionSettingsTarget) {
+        replaceNativeDimensionSettings(next, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (layerGroupIndex >= 0) {
         replaceNativeLayerGroup(next, layerGroupIndex, patch);
@@ -1767,6 +1813,7 @@ function nativeRebuildWriteOptions(
       )
     ),
     printSettings: revised.settings?.print || null,
+    dimensionSettings: revised.settings?.dimension || null,
     templatePrefix: document.originalBytes.slice(0, prefixEnd),
     meta: {
       jwwBlockDefinitions: revised.blockDefinitions.map((definition) =>
@@ -1872,6 +1919,7 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
   const allowedIds = new Set([
     document.header?.id,
     document.settings?.print?.id,
+    document.settings?.dimension?.id,
     ...(document.layerGroups || []).map((group) => group.id),
   ]);
   const invalidTargetId = targetIds.find((targetId) => !allowedIds.has(targetId));
@@ -1932,6 +1980,9 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
         layerProtections,
         printSettings: targetIdSet.has(revised.settings?.print?.id)
           ? revised.settings.print
+          : null,
+        dimensionSettings: targetIdSet.has(revised.settings?.dimension?.id)
+          ? revised.settings.dimension
           : null,
       }
     );
@@ -2045,6 +2096,20 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
     if (!retained) {
       const error = new Error(
         "Saved JWW print settings were not retained after reparse"
+      );
+      error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
+      throw error;
+    }
+  }
+  if (targetIdSet.has(revisedDocument.settings?.dimension?.id)) {
+    const saved = savedDocument.settings?.dimension;
+    const revised = revisedDocument.settings?.dimension;
+    const retained = [1, 2, 3, 4, 5].every(
+      (number) => saved?.[`sunpou${number}`] === revised?.[`sunpou${number}`]
+    );
+    if (!retained) {
+      const error = new Error(
+        "Saved JWW dimension settings were not retained after reparse"
       );
       error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
       throw error;

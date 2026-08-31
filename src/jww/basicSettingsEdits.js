@@ -1,6 +1,10 @@
 import { preflightNativeJwwSave, saveNativeJww } from "./native.js";
+import {
+  encodeJwwDimensionSettings,
+  JWW_DIMENSION_EDIT_KEYS,
+} from "./dimensionSettings.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 5;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 6;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -34,6 +38,7 @@ const EDIT_KEYS = new Set([
   "printOriginY",
   "printScale",
   "printRotationSetting",
+  ...JWW_DIMENSION_EDIT_KEYS,
 ]);
 
 function normalizedMemo(value) {
@@ -539,6 +544,41 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
         op: "replace",
         targetId: print.id,
         record: { ...print, origin_x: originX, origin_y: originY, scale, rotation_setting: rotationSetting },
+      });
+    }
+  }
+
+  const dimensionEditRequested = JWW_DIMENSION_EDIT_KEYS.some((key) =>
+    Object.hasOwn(edits, key)
+  );
+  if (dimensionEditRequested) {
+    const dimension = document.settings?.dimension;
+    if (!dimension?.id) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        "JWW native dimension settings patch target is unavailable"
+      );
+    }
+    let revisedDimension;
+    try {
+      revisedDimension = encodeJwwDimensionSettings(dimension, edits);
+    } catch (error) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        error?.message || String(error)
+      );
+    }
+    if (
+      [1, 2, 3, 4, 5].some(
+        (number) =>
+          Number(revisedDimension[`sunpou${number}`]) !==
+          Number(dimension[`sunpou${number}`])
+      )
+    ) {
+      patches.push({
+        op: "replace",
+        targetId: dimension.id,
+        record: revisedDimension,
       });
     }
   }

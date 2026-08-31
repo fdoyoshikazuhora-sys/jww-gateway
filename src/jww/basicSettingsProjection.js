@@ -2,10 +2,11 @@ import {
   JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION,
   JWW_BASIC_SETTINGS_PAPER_OPTIONS,
 } from "./basicSettingsEdits.js";
+import { decodeJwwDimensionSettings } from "./dimensionSettings.js";
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 7;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 8;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -51,6 +52,67 @@ const PRINT_ROTATION_OPTIONS = Object.freeze(
     { value: position * 10 + 1, label: `${label} · 90° (${position * 10 + 1})` },
   ])
 );
+
+const DIMENSION_COLOR_OPTIONS = Object.freeze(
+  Array.from({ length: 10 }, (_, value) => ({
+    value,
+    label: value === 0 ? "Not stored / inherited (0)" : `Color ${value}`,
+  }))
+);
+
+const DIMENSION_TEXT_TYPE_OPTIONS = Object.freeze(
+  Array.from({ length: 11 }, (_, value) => ({
+    value,
+    label: value === 0 ? "Not stored / inherited (0)" : `Text type ${value}`,
+  }))
+);
+
+const DIMENSION_DECIMAL_OPTIONS = Object.freeze(
+  Array.from({ length: 4 }, (_, value) => ({ value, label: String(value) }))
+);
+
+const DIMENSION_ANGLE_DECIMAL_OPTIONS = Object.freeze(
+  Array.from({ length: 7 }, (_, value) => ({ value, label: String(value) }))
+);
+
+const DIMENSION_UNIT_OPTIONS = Object.freeze([
+  { value: 0, label: "Millimetres (0)" },
+  { value: 1, label: "Metres (1)" },
+]);
+
+const DIMENSION_ENDPOINT_OPTIONS = Object.freeze([
+  { value: 0, label: "Point (0)" },
+  { value: 1, label: "Arrow (1)" },
+  { value: 2, label: "Reverse arrow (2)" },
+]);
+
+const DIMENSION_BINARY_OPTIONS = Object.freeze([
+  { value: 0, label: "Off (0)" },
+  { value: 1, label: "On (1)" },
+]);
+
+const DIMENSION_DIRECTION_OPTIONS = Object.freeze([
+  { value: 0, label: "Correct direction (0)" },
+  { value: 1, label: "Do not correct (1)" },
+]);
+
+const DIMENSION_RADIUS_MARK_OPTIONS = Object.freeze([
+  { value: 0, label: "Hidden (0)" },
+  { value: 1, label: "Prefix R (1)" },
+  { value: 2, label: "Suffix R (2)" },
+]);
+
+const DIMENSION_ANGLE_UNIT_OPTIONS = Object.freeze([
+  { value: 0, label: "Decimal degrees with symbol (0)" },
+  { value: 1, label: "Degrees, minutes, seconds (1)" },
+  { value: 2, label: "Decimal degrees without symbol (2)" },
+]);
+
+const DIMENSION_DECIMAL_HANDLING_OPTIONS = Object.freeze([
+  { value: 0, label: "Round (0)" },
+  { value: 1, label: "Truncate (1)" },
+  { value: 2, label: "Round up (2)" },
+]);
 
 const PAPER_NAMES = Object.freeze({
   0: "A0",
@@ -595,35 +657,130 @@ function buildTextTab(document) {
   ]);
 }
 
+function dimensionSelectField(id, label, key, value, options, source, note = "") {
+  const selected = options.find((option) => Number(option.value) === Number(value));
+  return field({
+    id,
+    label,
+    value: selected?.label || displayNumber(value),
+    source,
+    note,
+    edit: { key, control: "select", value, options },
+  });
+}
+
+function dimensionNumberField(
+  id,
+  label,
+  key,
+  value,
+  source,
+  { min, max, step = 0.1, note = "" } = {}
+) {
+  return field({
+    id,
+    label,
+    value: displayNumber(value),
+    source,
+    note,
+    edit: { key, control: "number", value, min, max, step },
+  });
+}
+
+function rawDimensionRows(settings, note = "Official JWW fixed-prefix DWORD.") {
+  return [1, 2, 3, 4, 5].map((number) =>
+    field({
+      id: `sunpou-${number}`,
+      label: `Packed dimension setting ${number}`,
+      value: displayNumber(settings[`sunpou${number}`]),
+      source: `settings.dimension.sunpou${number}`,
+      note,
+    })
+  );
+}
+
 function buildDimensionTab(document) {
   const settings = document.settings?.dimension || {};
   const dimensionCount = (document.nativeEntities || []).filter(
     (record) => record.kind === "DIMENSION"
   ).length;
-  const rows = [1, 2, 3, 4, 5].map((number) =>
-    field({
-      id: `sunpou-${number}`,
-      label: `Native dimension setting ${number}`,
-      value: displayNumber(settings[`sunpou${number}`]),
-      source: `settings.dimension.sunpou${number}`,
-      note: "Native field retained; an unverified Jw_cad UI label is intentionally not assigned.",
-    })
+  let decoded;
+  let decodeError = "";
+  try {
+    decoded = decodeJwwDimensionSettings(settings);
+  } catch (error) {
+    decodeError = error?.message || String(error);
+  }
+  const coverage = fieldsSection("dimension-coverage", "Coverage", [
+    field({ id: "dimension-count", label: "Native dimension record count", value: String(dimensionCount), status: STATUS.DERIVED, source: "nativeEntities[kind=DIMENSION]" }),
+    unavailableField("s-str", "Dimension string preset (S_STR)", "JWF environment profile", "S_STR is not a confirmed JWW-native field and is not applied automatically."),
+    unavailableField("s-set", "Dimension setting preset (S_SET)", "JWF environment profile", "S_SET is not a confirmed JWW-native field and is not applied automatically."),
+  ]);
+  const rawRows = rawDimensionRows(
+    settings,
+    decodeError || "Official JWW fixed-prefix DWORD; edited through the named fields above."
   );
-  rows.push(
+  rawRows.push(
     field({
       id: "dimension-max-line-width",
-      label: "Maximum line width",
+      label: "Maximum draw width code",
       value: displayNumber(settings.max_line_width),
       source: "settings.dimension.max_line_width",
+      note: "Signed JWW code. Negative values encode 1/100 mm mode and the previous maximum width; retained read-only in this milestone.",
     })
   );
+  if (!decoded) {
+    return tab("dimensions", "Dimensions", [
+      fieldsSection(
+        "native-dimension-settings",
+        "Native dimension settings",
+        rawRows,
+        `Named editing is unavailable because the packed values did not match the documented JWW encoding: ${decodeError}`
+      ),
+      coverage,
+    ]);
+  }
   return tab("dimensions", "Dimensions", [
-    fieldsSection("native-dimension-settings", "Native dimension settings", rows),
-    fieldsSection("dimension-coverage", "Coverage", [
-      field({ id: "dimension-count", label: "Native dimension record count", value: String(dimensionCount), status: STATUS.DERIVED, source: "nativeEntities[kind=DIMENSION]" }),
-      unavailableField("s-str", "Dimension string preset (S_STR)", "JWW environment", "No confirmed JWW field mapping is exposed."),
-      unavailableField("s-set", "Dimension setting preset (S_SET)", "JWW environment", "No confirmed JWW field mapping is exposed."),
+    fieldsSection("dimension-attributes", "Lines, points and text type", [
+      dimensionSelectField("dimension-line-color", "Dimension line color", "dimensionLineColor", decoded.lineColor, DIMENSION_COLOR_OPTIONS, "settings.dimension.sunpou1"),
+      dimensionSelectField("dimension-extension-color", "Extension line color", "dimensionExtensionLineColor", decoded.extensionLineColor, DIMENSION_COLOR_OPTIONS, "settings.dimension.sunpou1"),
+      dimensionSelectField("dimension-point-color", "Dimension point color", "dimensionPointColor", decoded.pointColor, DIMENSION_COLOR_OPTIONS, "settings.dimension.sunpou1"),
+      dimensionSelectField("dimension-endpoint", "Line endpoint", "dimensionEndpointStyle", decoded.endpointStyle, DIMENSION_ENDPOINT_OPTIONS, "settings.dimension.sunpou1"),
+      dimensionSelectField("dimension-text-type", "Dimension text type", "dimensionTextType", decoded.textType, DIMENSION_TEXT_TYPE_OPTIONS, "settings.dimension.sunpou1"),
     ]),
+    fieldsSection("dimension-values", "Value format and placement", [
+      dimensionSelectField("dimension-decimals", "Decimal places", "dimensionDecimalPlaces", decoded.decimalPlaces, DIMENSION_DECIMAL_OPTIONS, "settings.dimension.sunpou1"),
+      dimensionSelectField("dimension-unit", "Unit", "dimensionUnit", decoded.unit, DIMENSION_UNIT_OPTIONS, "settings.dimension.sunpou1"),
+      dimensionNumberField("dimension-value-offset", "Value-to-line offset", "dimensionValueOffset", decoded.valueOffset, "settings.dimension.sunpou2", { min: -99.9, max: 99.9 }),
+      dimensionNumberField("dimension-extension-projection", "Extension-line projection", "dimensionExtensionProjection", decoded.extensionProjection, "settings.dimension.sunpou2", { min: -99.9, max: 99.9 }),
+    ]),
+    fieldsSection("dimension-arrows", "Arrow geometry", [
+      dimensionNumberField("dimension-arrow-length", "Arrow length", "dimensionArrowLength", decoded.arrowLength, "settings.dimension.sunpou3", { min: 0, max: 99.9 }),
+      dimensionNumberField("dimension-arrow-angle", "Arrow angle", "dimensionArrowAngle", decoded.arrowAngle, "settings.dimension.sunpou3", { min: 0.1, max: 80 }),
+      dimensionNumberField("dimension-reverse-arrow", "Reverse-arrow projection", "dimensionReverseArrowProjection", decoded.reverseArrowProjection, "settings.dimension.sunpou3", { min: 0, max: 99.9 }),
+    ]),
+    fieldsSection("dimension-text-format", "Text and radius format", [
+      dimensionSelectField("dimension-direction-correction", "Text direction correction", "dimensionDirectionCorrection", decoded.directionCorrection, DIMENSION_DIRECTION_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-full-width-text", "Full-width dimension value", "dimensionFullWidthText", decoded.fullWidthText, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-comma-space", "Replace comma with space", "dimensionCommaAsSpace", decoded.commaAsSpace, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-full-width-comma", "Full-width comma", "dimensionFullWidthComma", decoded.fullWidthComma, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-full-width-decimal", "Full-width decimal point", "dimensionFullWidthDecimalPoint", decoded.fullWidthDecimalPoint, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-show-unit", "Show unit", "dimensionShowUnit", decoded.showUnit, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-radius-mark", "Radius R position", "dimensionRadiusMarkPosition", decoded.radiusMarkPosition, DIMENSION_RADIUS_MARK_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-radius-comma", "Radius comma", "dimensionRadiusComma", decoded.radiusComma, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-radius-zero", "Radius trailing zero", "dimensionRadiusTrailingZero", decoded.radiusTrailingZero, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou4"),
+      dimensionSelectField("dimension-italic", "Italic dimension value", "dimensionItalicText", decoded.italicText, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou5"),
+      dimensionSelectField("dimension-bold", "Bold dimension value", "dimensionBoldText", decoded.boldText, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou5"),
+      dimensionSelectField("dimension-angle-unit", "Angle unit", "dimensionAngleUnit", decoded.angleUnit, DIMENSION_ANGLE_UNIT_OPTIONS, "settings.dimension.sunpou5"),
+      dimensionSelectField("dimension-angle-decimals", "Angle decimal places", "dimensionAngleDecimalPlaces", decoded.angleDecimalPlaces, DIMENSION_ANGLE_DECIMAL_OPTIONS, "settings.dimension.sunpou5"),
+      dimensionSelectField("dimension-decimal-handling", "Displayed decimal handling", "dimensionDecimalHandling", decoded.decimalHandling, DIMENSION_DECIMAL_HANDLING_OPTIONS, "settings.dimension.sunpou5"),
+    ]),
+    fieldsSection("dimension-behaviour", "Dimension object behaviour", [
+      dimensionSelectField("dimension-create-entity", "Create dimension entity", "dimensionCreateEntity", decoded.createEntity, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou5"),
+      dimensionSelectField("dimension-select-attributes", "Select by line color/type", "dimensionSelectByLineAttributes", decoded.selectByLineAttributes, DIMENSION_BINARY_OPTIONS, "settings.dimension.sunpou5"),
+    ]),
+    fieldsSection("native-dimension-settings", "Native packed values", rawRows),
+    coverage,
   ]);
 }
 
@@ -835,6 +992,11 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
         "settings.print.origin_y",
         "settings.print.scale",
         "settings.print.rotation_setting",
+        "settings.dimension.sunpou1",
+        "settings.dimension.sunpou2",
+        "settings.dimension.sunpou3",
+        "settings.dimension.sunpou4",
+        "settings.dimension.sunpou5",
       ],
       managedInvariantPaths: ["layerGroups[].layers[].state"],
     },

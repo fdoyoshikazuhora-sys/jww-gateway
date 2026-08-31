@@ -5,6 +5,7 @@ import {
   preflightJwwBasicSettingsSave,
   saveJwwBasicSettings,
 } from "./basicSettingsEdits.js";
+import { decodeJwwDimensionSettings } from "./dimensionSettings.js";
 
 const fixture = () =>
   buildJwwBytes({
@@ -497,6 +498,84 @@ describe("JWW Basic Settings native edits", () => {
 
     expect(preflightJwwBasicSettingsSave(document, {
       layerGroupWriteLayers: { 0: 7 },
+    })).toMatchObject({
+      ok: false,
+      code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      willWriteBytes: false,
+    });
+  });
+
+  it("edits and reparses the official packed dimension settings", async () => {
+    const document = await openNativeJww(fixture());
+    const dimension = document.settings.dimension;
+    const edits = {
+      dimensionLineColor: 4,
+      dimensionDecimalPlaces: 3,
+      dimensionUnit: 1,
+      dimensionEndpointStyle: 2,
+      dimensionTextType: 8,
+      dimensionValueOffset: -2.5,
+      dimensionExtensionProjection: 4.5,
+      dimensionArrowLength: 3.5,
+      dimensionArrowAngle: 20,
+      dimensionReverseArrowProjection: 6,
+      dimensionBoldText: 1,
+      dimensionCreateEntity: 1,
+      dimensionDecimalHandling: 2,
+    };
+
+    expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      patchCount: 1,
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(document, edits);
+    const reopened = await openNativeJww(saved.bytes);
+    const decoded = decodeJwwDimensionSettings(reopened.settings.dimension);
+
+    expect(decoded).toMatchObject({
+      lineColor: 4,
+      decimalPlaces: 3,
+      unit: 1,
+      endpointStyle: 2,
+      textType: 8,
+      valueOffset: -2.5,
+      extensionProjection: 4.5,
+      arrowLength: 3.5,
+      arrowAngle: 20,
+      reverseArrowProjection: 6,
+      boldText: 1,
+      createEntity: 1,
+      decimalHandling: 2,
+    });
+    expect(reopened.settings.dimension).toMatchObject({
+      id: "jww:dimension-settings",
+      dummy: dimension.dummy,
+      max_line_width: dimension.max_line_width,
+      sourceSpan: { byteLength: 84 },
+    });
+    expect(saved.bytes.slice(0, dimension.sourceSpan.start)).toEqual(
+      document.originalBytes.slice(0, dimension.sourceSpan.start)
+    );
+    expect(saved.bytes.slice(dimension.sourceSpan.end)).toEqual(
+      document.originalBytes.slice(dimension.sourceSpan.end)
+    );
+  });
+
+  it("rejects invalid or undocumented dimension settings before writing", async () => {
+    const document = await openNativeJww(fixture());
+    expect(preflightJwwBasicSettingsSave(document, {
+      dimensionArrowAngle: 80.1,
+    })).toMatchObject({
+      ok: false,
+      code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      willWriteBytes: false,
+    });
+    document.settings.dimension.sunpou4 += 300000000;
+    expect(preflightJwwBasicSettingsSave(document, {
+      dimensionLineColor: 4,
     })).toMatchObject({
       ok: false,
       code: "JWW_BASIC_SETTINGS_EDIT_INVALID",

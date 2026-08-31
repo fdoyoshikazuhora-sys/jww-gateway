@@ -776,6 +776,61 @@ function patchTemplateLayerStates(templatePrefix, layerStates) {
   return bytes;
 }
 
+function normalizeDimensionSettings(value) {
+  if (value === null || value === undefined) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("JWW dimension settings must be an object");
+  }
+  const settings = {};
+  for (const key of ["sunpou1", "sunpou2", "sunpou3", "sunpou4", "sunpou5"]) {
+    const number = Number(value[key]);
+    if (!Number.isInteger(number) || number < 0 || number > 0xffffffff) {
+      throw new Error(`JWW ${key} must be an unsigned 32-bit integer: ${value[key]}`);
+    }
+    settings[key] = number;
+  }
+  const maxLineWidth = Number(value.max_line_width);
+  if (
+    !Number.isInteger(maxLineWidth) ||
+    maxLineWidth < -0x80000000 ||
+    maxLineWidth > 0x7fffffff
+  ) {
+    throw new Error(
+      `JWW maximum line width must be a signed 32-bit integer: ${value.max_line_width}`
+    );
+  }
+  settings.max_line_width = maxLineWidth;
+  return settings;
+}
+
+function patchTemplateDimensionSettings(templatePrefix, dimensionSettings) {
+  const settings = normalizeDimensionSettings(dimensionSettings);
+  if (!settings) return templatePrefix;
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const dimensionSettingsOffset = layerGroupsOffset + 16 * layerGroupStride;
+  const dimensionSettingsByteLength = (14 + 7) * 4;
+  if (dimensionSettingsOffset + dimensionSettingsByteLength > bytes.length) {
+    throw new Error("JWW template prefix ended before the dimension settings fields");
+  }
+  [1, 2, 3, 4, 5].forEach((number, index) => {
+    writeDwordAt(
+      bytes,
+      dimensionSettingsOffset + (14 + index) * 4,
+      settings[`sunpou${number}`]
+    );
+  });
+  writeDwordAt(
+    bytes,
+    dimensionSettingsOffset + 20 * 4,
+    settings.max_line_width
+  );
+  return bytes;
+}
+
 function normalizePrintSettings(value) {
   if (value === null || value === undefined) return null;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -847,6 +902,7 @@ export function patchJwwTemplatePrefixMetadata(
     layerStates = null,
     layerGroupProtections = null,
     layerProtections = null,
+    dimensionSettings = null,
     printSettings = null,
   } = {}
 ) {
@@ -860,6 +916,7 @@ export function patchJwwTemplatePrefixMetadata(
   bytes = patchTemplateLayerProtections(bytes, layerProtections);
   bytes = patchTemplateLayerGroupStates(bytes, layerGroupStates);
   bytes = patchTemplateLayerStates(bytes, layerStates);
+  bytes = patchTemplateDimensionSettings(bytes, dimensionSettings);
   bytes = patchTemplatePrintSettings(bytes, printSettings);
   return bytes;
 }
@@ -2133,6 +2190,7 @@ export function buildJwwRecordPayload(
 export function preflightJwwWrite({
   entities,
   templatePrefix = null,
+  dimensionSettings = null,
   dxfMeta = {},
   meta = {},
   version = null,
@@ -2185,6 +2243,12 @@ export function preflightJwwWrite({
         `JWW writer supports versions ${JWW_WRITE_VERSIONS.join(", ")}; received ${template.version}`
       );
     }
+    if (dimensionSettings !== null) {
+      if (!template.bytes) {
+        throw new Error("JWW dimension settings require a template prefix");
+      }
+      patchTemplateDimensionSettings(template.bytes, dimensionSettings);
+    }
     if (template.version < 700 && embeddedImages.length) {
       throw new Error("Embedded JWW images require version 700");
     }
@@ -2217,6 +2281,7 @@ export function buildJwwWriteResult({
   layerStates = null,
   layerGroupProtections = null,
   layerProtections = null,
+  dimensionSettings = null,
   printSettings = null,
   templatePrefix = null,
   dxfMeta = {},
@@ -2275,6 +2340,7 @@ export function buildJwwWriteResult({
           layerStates,
           layerGroupProtections,
           layerProtections,
+          dimensionSettings,
           printSettings,
         }
       )

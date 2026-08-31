@@ -1368,6 +1368,44 @@ describe("JWW writer", () => {
     expect(result.reasons[0]).toContain("Unsupported JWW write entity types: MESH");
   });
 
+  it("patches only the official fixed-width dimension settings fields", () => {
+    const source = buildJwwBytes({ version: 700, entities: [] });
+    const before = parse(source);
+    const span = before.sunpou_settings_source_span;
+    const prefixEnd = before.entity_list_offset;
+    const patchedPrefix = patchJwwTemplatePrefixMetadata(
+      source.slice(0, prefixEnd),
+      {
+        dimensionSettings: {
+          ...before.sunpou_settings,
+          sunpou1: 8213444,
+          sunpou2: 451025,
+          sunpou3: 60200035,
+          sunpou4: 111100001,
+          sunpou5: 2116111,
+        },
+      }
+    );
+    const bytes = new Uint8Array(patchedPrefix.length + source.length - prefixEnd);
+    bytes.set(patchedPrefix);
+    bytes.set(source.slice(prefixEnd), patchedPrefix.length);
+    const after = parse(bytes);
+
+    expect(span).toMatchObject({ byteLength: 84 });
+    expect(after.sunpou_settings).toMatchObject({
+      sunpou1: 8213444,
+      sunpou2: 451025,
+      sunpou3: 60200035,
+      sunpou4: 111100001,
+      sunpou5: 2116111,
+      dummy: before.sunpou_settings.dummy,
+      max_line_width: before.sunpou_settings.max_line_width,
+    });
+    expect(before.sunpou_settings.max_line_width).toBe(-300);
+    expect(bytes.slice(0, span.start)).toEqual(source.slice(0, span.start));
+    expect(bytes.slice(span.end)).toEqual(source.slice(span.end));
+  });
+
   it("patches only the official fixed-width print settings span", () => {
     const source = buildJwwBytes({ version: 700, entities: [] });
     const before = parse(source);

@@ -104,6 +104,40 @@ describe("JWW semantic diff", () => {
     expect(result.metadata.after.printSettings.rotation_setting).toBe(51);
   });
 
+  it("reports native dimension-setting changes without reporting drawing changes", () => {
+    const before = document([lineA], {
+      dimensionSettings: {
+        sunpou1: 2001422,
+        sunpou2: 3,
+        sunpou3: 50150025,
+        sunpou4: 11000000,
+        sunpou5: 4100,
+        dummy: 9000,
+        max_line_width: -300,
+      },
+    });
+    const after = document([lineB], {
+      dimensionSettings: {
+        sunpou1: 2001423,
+        sunpou2: 1025,
+        sunpou3: 50150025,
+        sunpou4: 11000000,
+        sunpou5: 4100,
+        dummy: 9000,
+        max_line_width: -300,
+      },
+    });
+
+    const result = buildJwwSemanticDiff(before, after);
+
+    expect(result.drawingSemanticEqual).toBe(true);
+    expect(result.drawingRoundTripCompatible).toBe(true);
+    expect(result.documentMetadataEqual).toBe(false);
+    expect(result.roundTripCompatible).toBe(false);
+    expect(result.metadata.before.dimensionSettings.sunpou1).toBe(2001422);
+    expect(result.metadata.after.dimensionSettings.sunpou2).toBe(1025);
+  });
+
   it("ignores parser byte offsets while comparing metadata values", () => {
     const before = document([lineA], {
       colorSettings: {

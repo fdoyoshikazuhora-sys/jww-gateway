@@ -234,6 +234,7 @@ function documentMetadata(document = {}, tolerance) {
     layerGroups: document.layerGroups || [],
     colorSettings: semanticMetadataValue(meta.colorSettings || null),
     printSettings: semanticMetadataValue(meta.printSettings || null),
+    dimensionSettings: semanticMetadataValue(meta.dimensionSettings || null),
     lineTypeSettings: semanticMetadataValue(meta.lineTypeSettings || null),
     blockDefinitions: semanticMetadataValue(meta.jwwBlockDefinitions || []),
     embeddedImages: semanticMetadataValue(meta.jwwEmbeddedImages || []),
