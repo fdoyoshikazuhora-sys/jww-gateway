@@ -107,16 +107,21 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 3,
+      formatVersion: 5,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
+        version: 3,
         mode: "native-metadata-safe",
         writablePaths: [
           "header.paperSize",
           "header.writeLayerGroup",
           "layerGroups[].scale",
           "layerGroups[].write_layer",
+          "layerGroups[].state",
+          "layerGroups[].protect",
+          "layerGroups[].layers[].state",
+          "layerGroups[].layers[].protect",
         ],
         managedInvariantPaths: ["layerGroups[].layers[].state"],
       },
@@ -178,6 +183,68 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(layerGroupRow.edits[5]).toMatchObject({
       key: "layerGroupWriteLayers.1",
       value: 3,
+    });
+    expect(layerGroupRow.cells[2]).toBe("Visible only (1)");
+    expect(layerGroupRow.cells[3]).toBe("None (0)");
+    expect(layerGroupRow.edits[2]).toBe(undefined);
+    expect(layerGroupRow.edits[3]).toBe(undefined);
+
+    const nonCurrentGroupRow = projection.tabs
+      .find((tab) => tab.id === "layers")
+      .sections.find((section) => section.id === "layer-groups")
+      .rows[0];
+    expect(nonCurrentGroupRow.cells[2]).toBe("Hidden (0)");
+    expect(nonCurrentGroupRow.edits[2]).toMatchObject({
+      key: "layerGroupStates.0",
+      value: 0,
+    });
+    expect(nonCurrentGroupRow.edits[3]).toMatchObject({
+      key: "layerGroupProtections.0",
+      value: 0,
+    });
+
+    const layerRows = projection.tabs
+      .find((tab) => tab.id === "layers")
+      .sections.find((section) => section.id === "layers-1").rows;
+    expect(layerRows[3].cells[2]).toBe("Current (3)");
+    expect(layerRows[3].edits[2]).toBe(undefined);
+    expect(layerRows[3].edits[3]).toBe(undefined);
+    expect(layerRows[1].cells[2]).toBe("Visible only (1)");
+    expect(layerRows[1].edits[2]).toMatchObject({
+      key: "layerStates.1.1",
+      value: 1,
+    });
+    expect(layerRows[1].edits[3]).toMatchObject({
+      key: "layerProtections.1.1",
+      value: 0,
+    });
+  });
+
+  it("shows protection 1 and 2 controls while locking state 2 rows", () => {
+    const document = nativeDocument();
+    document.layerGroups[0].protect = 1;
+    document.layerGroups[0].layers[1].protect = 2;
+    const projection = buildJwwBasicSettingsProjection(document);
+    const groupRow = projection.tabs
+      .find((tab) => tab.id === "layers")
+      .sections.find((section) => section.id === "layer-groups")
+      .rows[0];
+    const layerRow = projection.tabs
+      .find((tab) => tab.id === "layers")
+      .sections.find((section) => section.id === "layers-0")
+      .rows[1];
+
+    expect(groupRow.cells[3]).toBe("Protected; display state can change (1)");
+    expect(Boolean(groupRow.edits[2])).toBe(true);
+    expect(groupRow.edits[3]).toMatchObject({
+      key: "layerGroupProtections.0",
+      value: 1,
+    });
+    expect(layerRow.cells[3]).toBe("Protected; display state fixed (2)");
+    expect(layerRow.edits[2]).toBe(undefined);
+    expect(layerRow.edits[3]).toMatchObject({
+      key: "layerProtections.0.1",
+      value: 2,
     });
   });
 

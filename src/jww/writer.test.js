@@ -30,6 +30,23 @@ function withLayerGroupState(bytes, groupIndex, state) {
   return output;
 }
 
+function withLayerState(bytes, groupIndex, layerIndex, state) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoOffset = 12;
+  const memoLength = output[memoOffset];
+  if (memoLength === 0xff) {
+    throw new Error("Expected a compact memo in the test fixture");
+  }
+  const paperOffset = memoOffset + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const layersOffset =
+    layerGroupsOffset + groupIndex * layerGroupStride + 4 + 4 + 8 + 4;
+  view.setUint32(layersOffset + layerIndex * 8, state, true);
+  return output;
+}
+
 describe("JWW writer", () => {
   it("writes and reparses an empty drawing with complete native list boundaries", () => {
     for (const version of JWW_WRITE_VERSIONS) {
@@ -464,6 +481,115 @@ describe("JWW writer", () => {
     expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
   });
 
+  it("patches official non-current group and layer state codes without touching entity bytes", () => {
+    const source = buildJwwBytes({
+      version: 700,
+      entities: [{
+        type: "LINE",
+        entity: { start: { x: 1, y: 2 }, end: { x: 3, y: 4 } },
+      }],
+    });
+    const before = parse(source);
+    const prefixEnd = before.entity_list_offset;
+    const groupStates = Array(16).fill(null);
+    groupStates[1] = 1;
+    groupStates[2] = 2;
+    const prefix = patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+      layerGroupStates: groupStates,
+      layerStates: { "0.1": 1, "0.2": 2 },
+    });
+    const bytes = new Uint8Array(prefix.length + source.length - prefixEnd);
+    bytes.set(prefix, 0);
+    bytes.set(source.slice(prefixEnd), prefix.length);
+    const after = parse(bytes);
+
+    expect(after.layer_groups[1].state).toBe(1);
+    expect(after.layer_groups[2].state).toBe(2);
+    expect(after.layer_groups[0].layers[1].state).toBe(1);
+    expect(after.layer_groups[0].layers[2].state).toBe(2);
+    expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
+  });
+
+  it("patches official non-current protection codes 1 and 2 without touching entity bytes", () => {
+    const source = buildJwwBytes({
+      version: 700,
+      entities: [{
+        type: "LINE",
+        entity: { start: { x: 1, y: 2 }, end: { x: 3, y: 4 } },
+      }],
+    });
+    const before = parse(source);
+    const prefixEnd = before.entity_list_offset;
+    const prefix = patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+      layerGroupProtections: { 1: 1, 2: 2 },
+      layerProtections: { "0.1": 1, "0.2": 2 },
+    });
+    const bytes = new Uint8Array(prefix.length + source.length - prefixEnd);
+    bytes.set(prefix, 0);
+    bytes.set(source.slice(prefixEnd), prefix.length);
+    const after = parse(bytes);
+
+    expect(after.layer_groups[1].protect).toBe(1);
+    expect(after.layer_groups[2].protect).toBe(2);
+    expect(after.layer_groups[0].layers[1].protect).toBe(1);
+    expect(after.layer_groups[0].layers[2].protect).toBe(2);
+    expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
+  });
+
+  it("rejects protection codes outside 0..2 and nonzero current-row protection", () => {
+    const source = buildJwwBytes({ version: 700, entities: [] });
+    const parsed = parse(source);
+    const prefix = source.slice(0, parsed.entity_list_offset);
+    const currentGroup = parsed.write_layer_group;
+    const currentLayer = parsed.layer_groups[0].write_layer;
+    const messageFor = (options) => {
+      try {
+        patchJwwTemplatePrefixMetadata(prefix, options);
+        return "";
+      } catch (error) {
+        return error?.message || String(error);
+      }
+    };
+
+    expect(messageFor({ layerGroupProtections: { 1: 3 } })).toContain(
+      "Unsupported JWW layer protection"
+    );
+    expect(messageFor({ layerGroupProtections: { [currentGroup]: 1 } })).toContain(
+      "Current JWW layer group cannot be protected"
+    );
+    expect(messageFor({ layerProtections: { [`0.${currentLayer}`]: 2 } })).toContain(
+      "Current JWW layer cannot be protected"
+    );
+  });
+
+  it("rejects state 3 for non-current rows and non-3 for current rows", () => {
+    const source = buildJwwBytes({ version: 700, entities: [] });
+    const parsed = parse(source);
+    const prefix = source.slice(0, parsed.entity_list_offset);
+    const currentGroup = parsed.write_layer_group;
+    const currentLayer = parsed.layer_groups[0].write_layer;
+    const invalidGroupStates = Array(16).fill(null);
+    invalidGroupStates[currentGroup] = 2;
+
+    const messageFor = (options) => {
+      try {
+        patchJwwTemplatePrefixMetadata(prefix, options);
+        return "";
+      } catch (error) {
+        return error?.message || String(error);
+      }
+    };
+    expect(messageFor({ layerGroupStates: invalidGroupStates })).toContain(
+      "Current JWW layer group must retain state 3"
+    );
+    expect(messageFor({ layerStates: { [`0.${currentLayer}`]: 2 } })).toContain(
+      "Current JWW layer must retain state 3"
+    );
+    expect(messageFor({ layerStates: { "0.1": 3 } })).toContain(
+      "Non-current JWW layer cannot use state 3"
+    );
+  });
+
   it("patches a hidden target group to the write group without touching entity bytes", () => {
     const source = withLayerGroupState(buildJwwBytes({
       version: 700,
@@ -489,6 +615,54 @@ describe("JWW writer", () => {
     expect(after.layer_groups[before.write_layer_group].state).toBe(2);
     expect(after.layer_groups[8].state).toBe(3);
     expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
+  });
+
+  for (const initialState of [0, 1]) {
+    it(`patches a state ${initialState} target layer to the write layer without touching entity bytes`, () => {
+      const source = withLayerState(buildJwwBytes({
+        version: 700,
+        entities: [
+          {
+            type: "LINE",
+            entity: { start: { x: 1, y: 2 }, end: { x: 3, y: 4 } },
+          },
+        ],
+      }), 0, 7, initialState);
+      const before = parse(source);
+      const prefixEnd = before.entity_list_offset;
+      const prefix = patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+        layerGroupWriteLayers: { 0: 7 },
+      });
+      const bytes = new Uint8Array(prefix.length + source.length - prefixEnd);
+      bytes.set(prefix, 0);
+      bytes.set(source.slice(prefixEnd), prefix.length);
+      const after = parse(bytes);
+
+      expect(before.layer_groups[0].write_layer).toBe(0);
+      expect(before.layer_groups[0].layers[0].state).toBe(3);
+      expect(before.layer_groups[0].layers[7].state).toBe(initialState);
+      expect(after.layer_groups[0].write_layer).toBe(7);
+      expect(after.layer_groups[0].layers[0].state).toBe(2);
+      expect(after.layer_groups[0].layers[7].state).toBe(3);
+      expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
+    });
+  }
+
+  it("rejects unverified current-layer state transitions", () => {
+    const source = withLayerState(buildJwwBytes({ version: 700, entities: [] }), 0, 7, 4);
+    const prefixEnd = parse(source).entity_list_offset;
+    let message = "";
+    try {
+      patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+        layerGroupWriteLayers: { 0: 7 },
+      });
+    } catch (error) {
+      message = error?.message || String(error);
+    }
+
+    expect(message).toContain(
+      "JWW write layer transition from state 4 is not verified: 0.7"
+    );
   });
 
   it("aligns the default template write group and layers with new entities", () => {

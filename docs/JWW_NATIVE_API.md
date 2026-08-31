@@ -33,17 +33,36 @@ may renumber records that move to a different serialized-list position.
 Fixed prefix metadata also has stable patch targets: `header.id` is
 `jww:header`, and each layer group has `id: jww:layer-group:<index>`. A
 `replace` patch may change `header.paperSize`, `header.writeLayerGroup`, a
-layer group's `scale`, or its `write_layer` together with the required layer
-state transition. Jw_cad 10.02.1 evidence shows that changing
+layer group's `scale`, its `write_layer`, or non-current group/layer state codes
+together with the required current-row invariants. Official JWW 7.02 state
+codes are `0` hidden, `1` visible only, `2` editable, and `3` current. Direct
+state edits accept only `0..2` on non-current rows; current rows remain `3`, and
+protection code `2` (display state fixed) rejects the edit. Protection edits
+accept only `0` (none), `1` (protected; display state can change), and `2`
+(protected; display state fixed) on non-current groups and layers. Current-row
+protection writes remain rejected because that transition has not been proven.
+Jw_cad 10.02.1 displayed Gateway-written code `1` as `/`, code `2` as `X`,
+allowed the code-`1` display state to change, kept the code-`2` display state
+fixed, and preserved all four tested group/layer protection DWORDs after Save As.
+Changing
 `writeLayerGroup` sets the previous write group state from `3` to `2` and the
 selected group state from `0`, `1`, or `2` to `3`. Changing `write_layer` sets the
-previous write layer state to `2` and the selected layer state to `3`.
+previous write layer state from `3` to `2` and the selected layer state from
+`0`, `1`, or `2` to `3`. Other source states are rejected before writing.
 These fields use a fixed-length `prefix-splice`; entity, block, embedded-image,
 unknown, and trailing byte regions remain unchanged. Protected groups/layers
 are rejected. Header version/memo and other layer-group fields return
 `JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED` instead of being silently
 rebuilt. The `state: 0` transition was verified by selecting a hidden group in
 Jw_cad 10.02.1, saving under a new name, and reparsing the result.
+
+Current-layer transitions were verified separately with public Jw_cad 6.20
+sample drawings. Jw_cad changed a hidden (`state: 0`) target layer to `3` and
+the previous layer from `3` to `2` on Save As. For a `state: 1` target, Gateway
+changed only the group `write_layer`, target state, and previous state bytes;
+Jw_cad 10.02.1 opened that exact output as `[0-0]`, saved it under a new name,
+and Gateway reparsed the result with the target at `3`, the previous layer at
+`2`, and clean diagnostics.
 
 The native document is the save authority. A renderer may derive a view scene,
 but that scene must not replace the native records. `saveNativeJww()` returns

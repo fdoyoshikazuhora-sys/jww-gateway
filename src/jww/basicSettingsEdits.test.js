@@ -47,6 +47,51 @@ function withLayerGroupState(bytes, groupIndex, state) {
   return output;
 }
 
+function withLayerState(bytes, groupIndex, layerIndex, state) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoOffset = 12;
+  const memoLength = output[memoOffset];
+  if (memoLength === 0xff) {
+    throw new Error("Expected a compact memo in the test fixture");
+  }
+  const paperOffset = memoOffset + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const layersOffset =
+    layerGroupsOffset + groupIndex * layerGroupStride + 4 + 4 + 8 + 4;
+  view.setUint32(layersOffset + layerIndex * 8, state, true);
+  return output;
+}
+
+function withLayerGroupProtection(bytes, groupIndex, protect) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoLength = output[12];
+  const paperOffset = 12 + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  view.setUint32(
+    layerGroupsOffset + groupIndex * layerGroupStride + 16,
+    protect,
+    true
+  );
+  return output;
+}
+
+function withLayerProtection(bytes, groupIndex, layerIndex, protect) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoLength = output[12];
+  const paperOffset = 12 + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const layerOffset =
+    layerGroupsOffset + groupIndex * layerGroupStride + 20 + layerIndex * 8;
+  view.setUint32(layerOffset + 4, protect, true);
+  return output;
+}
+
 describe("JWW Basic Settings native edits", () => {
   it("returns no patches when editable values are unchanged", async () => {
     const document = await openNativeJww(fixture());
@@ -55,6 +100,8 @@ describe("JWW Basic Settings native edits", () => {
       writeLayerGroup: document.header.writeLayerGroup,
       layerGroupScales: { 0: document.layerGroups[0].scale },
       layerGroupWriteLayers: { 0: document.layerGroups[0].write_layer },
+      layerGroupProtections: { 1: document.layerGroups[1].protect },
+      layerProtections: { "0.1": document.layerGroups[0].layers[1].protect },
     });
 
     expect(patches).toEqual([]);
@@ -116,6 +163,122 @@ describe("JWW Basic Settings native edits", () => {
     expect(reopened.layerGroups[10].layers[0].state).toBe(2);
     expect(reopened.layerGroups[10].layers[3].state).toBe(3);
     expect(reopened.nativeEntities.length).toBe(document.nativeEntities.length);
+  });
+
+  it("edits official non-current group and layer state codes by prefix splice", async () => {
+    const document = await openNativeJww(fixture());
+    const prefixEnd = document.preservedRegions.prefix.end;
+    const saved = saveJwwBasicSettings(document, {
+      layerGroupStates: { 1: 1, 2: 2 },
+      layerStates: { "0.1": 1, "0.2": 2 },
+    });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(saved.strategy).toBe("prefix-splice");
+    expect(reopened.layerGroups[1].state).toBe(1);
+    expect(reopened.layerGroups[2].state).toBe(2);
+    expect(reopened.layerGroups[0].layers[1].state).toBe(1);
+    expect(reopened.layerGroups[0].layers[2].state).toBe(2);
+    expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
+  });
+
+  it("edits official non-current protection codes 1 and 2 by prefix splice", async () => {
+    const document = await openNativeJww(fixture());
+    const prefixEnd = document.preservedRegions.prefix.end;
+    const saved = saveJwwBasicSettings(document, {
+      layerGroupProtections: { 1: 1, 2: 2 },
+      layerProtections: { "0.1": 1, "0.2": 2 },
+    });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(saved.strategy).toBe("prefix-splice");
+    expect(reopened.layerGroups[1].protect).toBe(1);
+    expect(reopened.layerGroups[2].protect).toBe(2);
+    expect(reopened.layerGroups[0].layers[1].protect).toBe(1);
+    expect(reopened.layerGroups[0].layers[2].protect).toBe(2);
+    expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
+  });
+
+  it("enforces protection 1 as state-editable and protection 2 as state-fixed", async () => {
+    const protectedOne = await openNativeJww(
+      withLayerProtection(withLayerGroupProtection(fixture(), 1, 1), 0, 1, 1)
+    );
+    const saved = saveJwwBasicSettings(protectedOne, {
+      layerGroupStates: { 1: 1 },
+      layerStates: { "0.1": 1 },
+    });
+    const reopened = await openNativeJww(saved.bytes);
+    expect(reopened.layerGroups[1]).toMatchObject({ state: 1, protect: 1 });
+    expect(reopened.layerGroups[0].layers[1]).toMatchObject({
+      state: 1,
+      protect: 1,
+    });
+
+    expect(preflightJwwBasicSettingsSave(protectedOne, {
+      layerGroupProtections: { 1: 2 },
+      layerGroupStates: { 1: 1 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+    expect(preflightJwwBasicSettingsSave(protectedOne, {
+      layerProtections: { "0.1": 2 },
+      layerStates: { "0.1": 1 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+  });
+
+  it("allows protection 2 to be cleared before changing the same row state", async () => {
+    const protectedTwo = await openNativeJww(
+      withLayerProtection(withLayerGroupProtection(fixture(), 1, 2), 0, 1, 2)
+    );
+    const saved = saveJwwBasicSettings(protectedTwo, {
+      layerGroupProtections: { 1: 0 },
+      layerGroupStates: { 1: 1 },
+      layerProtections: { "0.1": 0 },
+      layerStates: { "0.1": 1 },
+    });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.layerGroups[1]).toMatchObject({ state: 1, protect: 0 });
+    expect(reopened.layerGroups[0].layers[1]).toMatchObject({
+      state: 1,
+      protect: 0,
+    });
+  });
+
+  it("rejects nonzero current-row and invalid protection edits before save", async () => {
+    const document = await openNativeJww(fixture());
+    const currentGroup = document.header.writeLayerGroup;
+    const currentLayer = document.layerGroups[0].write_layer;
+
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerGroupProtections: { [currentGroup]: 1 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerProtections: { [`0.${currentLayer}`]: 2 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerGroupProtections: { 1: 3 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+  });
+
+  it("rejects state edits for current and display-fixed rows", async () => {
+    const document = await openNativeJww(fixture());
+    const currentGroup = document.header.writeLayerGroup;
+    const currentLayer = document.layerGroups[0].write_layer;
+
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerGroupStates: { [currentGroup]: 2 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerStates: { [`0.${currentLayer}`]: 2 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+
+    document.layerGroups[1].protect = 2;
+    document.layerGroups[0].layers[1].protect = 2;
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerGroupStates: { 1: 1 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerStates: { "0.1": 1 },
+    })).toMatchObject({ ok: false, willWriteBytes: false });
   });
 
   it("rejects unproven fields and invalid native metadata before save", async () => {
@@ -192,5 +355,42 @@ describe("JWW Basic Settings native edits", () => {
     expect(reopened.layerGroups[previousWriteLayerGroup].state).toBe(2);
     expect(reopened.layerGroups[10].state).toBe(3);
     expect(saved.bytes.slice(prefixEnd)).toEqual(hiddenDocument.originalBytes.slice(prefixEnd));
+  });
+
+  for (const initialState of [0, 1]) {
+    it(`allows a Jw_cad-proven state ${initialState} current-layer transition`, async () => {
+      const document = await openNativeJww(withLayerState(fixture(), 0, 7, initialState));
+      const previousWriteLayer = document.layerGroups[0].write_layer;
+      const prefixEnd = document.preservedRegions.prefix.end;
+
+      expect(preflightJwwBasicSettingsSave(document, {
+        layerGroupWriteLayers: { 0: 7 },
+      })).toMatchObject({
+        ok: true,
+        strategy: "prefix-splice",
+        willWriteBytes: true,
+      });
+      const saved = saveJwwBasicSettings(document, {
+        layerGroupWriteLayers: { 0: 7 },
+      });
+      const reopened = await openNativeJww(saved.bytes);
+
+      expect(reopened.layerGroups[0].write_layer).toBe(7);
+      expect(reopened.layerGroups[0].layers[previousWriteLayer].state).toBe(2);
+      expect(reopened.layerGroups[0].layers[7].state).toBe(3);
+      expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
+    });
+  }
+
+  it("rejects an unverified Basic Settings current-layer state", async () => {
+    const document = await openNativeJww(withLayerState(fixture(), 0, 7, 4));
+
+    expect(preflightJwwBasicSettingsSave(document, {
+      layerGroupWriteLayers: { 0: 7 },
+    })).toMatchObject({
+      ok: false,
+      code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      willWriteBytes: false,
+    });
   });
 });

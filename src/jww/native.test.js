@@ -55,6 +55,51 @@ function withLayerGroupState(bytes, groupIndex, state) {
   return output;
 }
 
+function withLayerState(bytes, groupIndex, layerIndex, state) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoOffset = 12;
+  const memoLength = output[memoOffset];
+  if (memoLength === 0xff) {
+    throw new Error("Expected a compact memo in the test fixture");
+  }
+  const paperOffset = memoOffset + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const layersOffset =
+    layerGroupsOffset + groupIndex * layerGroupStride + 4 + 4 + 8 + 4;
+  view.setUint32(layersOffset + layerIndex * 8, state, true);
+  return output;
+}
+
+function withLayerGroupProtection(bytes, groupIndex, protect) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoLength = output[12];
+  const paperOffset = 12 + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  view.setUint32(
+    layerGroupsOffset + groupIndex * layerGroupStride + 16,
+    protect,
+    true
+  );
+  return output;
+}
+
+function withLayerProtection(bytes, groupIndex, layerIndex, protect) {
+  const output = Uint8Array.from(bytes);
+  const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
+  const memoLength = output[12];
+  const paperOffset = 12 + 1 + memoLength;
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const layerOffset =
+    layerGroupsOffset + groupIndex * layerGroupStride + 20 + layerIndex * 8;
+  view.setUint32(layerOffset + 4, protect, true);
+  return output;
+}
+
 const fullFixture = () => {
   const base = { penColor: 3, penStyle: 2, penWidth: 4, layerGroup: 1, layer: 2 };
   return buildJwwBytes({
@@ -281,6 +326,183 @@ describe("JWW native document API", () => {
     expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
   });
 
+  it("source-splices official non-current group and layer state codes", async () => {
+    const document = await openNativeJww(fixture(700));
+    const layers = document.layerGroups[0].layers.map((layer) => ({ ...layer }));
+    layers[1].state = 1;
+    layers[2].state = 2;
+    const patches = [
+      {
+        op: "replace",
+        targetId: document.layerGroups[0].id,
+        record: { ...document.layerGroups[0], layers },
+      },
+      {
+        op: "replace",
+        targetId: document.layerGroups[1].id,
+        record: { ...document.layerGroups[1], state: 1 },
+      },
+    ];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+    const prefixEnd = document.preservedRegions.prefix.end;
+
+    expect(preflight).toMatchObject({ ok: true, strategy: "prefix-splice" });
+    expect(reopened.layerGroups[1].state).toBe(1);
+    expect(reopened.layerGroups[0].layers[1].state).toBe(1);
+    expect(reopened.layerGroups[0].layers[2].state).toBe(2);
+    expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
+  });
+
+  it("source-splices official non-current group and layer protection codes", async () => {
+    const document = await openNativeJww(fixture(700));
+    const layers = document.layerGroups[0].layers.map((layer) => ({ ...layer }));
+    layers[1].protect = 1;
+    layers[2].protect = 2;
+    const patches = [
+      {
+        op: "replace",
+        targetId: document.layerGroups[0].id,
+        record: { ...document.layerGroups[0], layers },
+      },
+      {
+        op: "replace",
+        targetId: document.layerGroups[1].id,
+        record: { ...document.layerGroups[1], protect: 1 },
+      },
+      {
+        op: "replace",
+        targetId: document.layerGroups[2].id,
+        record: { ...document.layerGroups[2], protect: 2 },
+      },
+    ];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+    const prefixEnd = document.preservedRegions.prefix.end;
+
+    expect(preflight).toMatchObject({ ok: true, strategy: "prefix-splice" });
+    expect(reopened.layerGroups[1].protect).toBe(1);
+    expect(reopened.layerGroups[2].protect).toBe(2);
+    expect(reopened.layerGroups[0].layers[1].protect).toBe(1);
+    expect(reopened.layerGroups[0].layers[2].protect).toBe(2);
+    expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
+  });
+
+  it("uses revised protection codes when validating state changes", async () => {
+    const protectedDocument = await openNativeJww(
+      withLayerProtection(
+        withLayerGroupProtection(fixture(700), 1, 2),
+        0,
+        1,
+        2
+      )
+    );
+    const layers = protectedDocument.layerGroups[0].layers.map((layer) => ({
+      ...layer,
+    }));
+    layers[1] = { ...layers[1], state: 1, protect: 0 };
+    const patches = [
+      {
+        op: "replace",
+        targetId: protectedDocument.layerGroups[0].id,
+        record: { ...protectedDocument.layerGroups[0], layers },
+      },
+      {
+        op: "replace",
+        targetId: protectedDocument.layerGroups[1].id,
+        record: {
+          ...protectedDocument.layerGroups[1],
+          state: 1,
+          protect: 0,
+        },
+      },
+    ];
+    const saved = saveNativeJww(protectedDocument, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.layerGroups[1]).toMatchObject({ state: 1, protect: 0 });
+    expect(reopened.layerGroups[0].layers[1]).toMatchObject({
+      state: 1,
+      protect: 0,
+    });
+  });
+
+  it("rejects invalid and nonzero current-row protection patches", async () => {
+    const document = await openNativeJww(fixture(700));
+    const currentGroup = document.header.writeLayerGroup;
+    const currentLayer = document.layerGroups[0].write_layer;
+    const currentLayers = document.layerGroups[0].layers.map((layer) => ({
+      ...layer,
+    }));
+    currentLayers[currentLayer].protect = 1;
+
+    expect(preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: document.layerGroups[currentGroup].id,
+        record: { ...document.layerGroups[currentGroup], protect: 1 },
+      }],
+    })).toMatchObject({ ok: false, code: "JWW_NATIVE_METADATA_PATCH_INVALID" });
+    expect(preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: document.layerGroups[0].id,
+        record: { ...document.layerGroups[0], layers: currentLayers },
+      }],
+    })).toMatchObject({ ok: false, code: "JWW_NATIVE_METADATA_PATCH_INVALID" });
+    expect(preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: document.layerGroups[1].id,
+        record: { ...document.layerGroups[1], protect: 3 },
+      }],
+    })).toMatchObject({ ok: false, code: "JWW_NATIVE_METADATA_PATCH_INVALID" });
+  });
+
+  it("rejects state edits for current and display-fixed native rows", async () => {
+    const document = await openNativeJww(fixture(700));
+    const currentGroup = document.header.writeLayerGroup;
+    const currentLayer = document.layerGroups[0].write_layer;
+    const currentLayers = document.layerGroups[0].layers.map((layer) => ({ ...layer }));
+    currentLayers[currentLayer].state = 2;
+
+    expect(preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: document.layerGroups[currentGroup].id,
+        record: { ...document.layerGroups[currentGroup], state: 2 },
+      }],
+    })).toMatchObject({ ok: false, code: "JWW_NATIVE_METADATA_PATCH_INVALID" });
+    expect(preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: document.layerGroups[0].id,
+        record: { ...document.layerGroups[0], layers: currentLayers },
+      }],
+    })).toMatchObject({ ok: false, code: "JWW_NATIVE_METADATA_PATCH_INVALID" });
+
+    document.layerGroups[1].protect = 2;
+    document.layerGroups[0].layers[1].protect = 2;
+    const protectedLayers = document.layerGroups[0].layers.map((layer) => ({ ...layer }));
+    protectedLayers[1].state = 1;
+    expect(preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: document.layerGroups[1].id,
+        record: { ...document.layerGroups[1], state: 1 },
+      }],
+    })).toMatchObject({ ok: false, code: "JWW_NATIVE_METADATA_PATCH_INVALID" });
+    expect(preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: document.layerGroups[0].id,
+        record: { ...document.layerGroups[0], layers: protectedLayers },
+      }],
+    })).toMatchObject({ ok: false, code: "JWW_NATIVE_METADATA_PATCH_INVALID" });
+  });
+
   it("source-splices the Jw_cad-proven hidden write-group transition", async () => {
     const bytes = withLayerGroupState(fixture(700), 8, 0);
     const document = await openNativeJww(bytes);
@@ -305,8 +527,66 @@ describe("JWW native document API", () => {
     expect(saved.bytes.slice(prefixEnd)).toEqual(bytes.slice(prefixEnd));
   });
 
+  for (const initialState of [0, 1]) {
+    it(`source-splices the Jw_cad-proven state ${initialState} write-layer transition`, async () => {
+      const bytes = withLayerState(fixture(700), 0, 7, initialState);
+      const document = await openNativeJww(bytes);
+      const previousWriteLayer = document.layerGroups[0].write_layer;
+      const layers = document.layerGroups[0].layers.map((layer) => ({ ...layer }));
+      layers[previousWriteLayer].state = 2;
+      layers[7].state = 3;
+      const patches = [
+        {
+          op: "replace",
+          targetId: document.layerGroups[0].id,
+          record: { ...document.layerGroups[0], write_layer: 7, layers },
+        },
+      ];
+      const preflight = preflightNativeJwwSave(document, { patches });
+      const saved = saveNativeJww(document, { patches });
+      const reopened = await openNativeJww(saved.bytes);
+      const prefixEnd = document.preservedRegions.prefix.end;
+
+      expect(document.layerGroups[0].layers[7].state).toBe(initialState);
+      expect(preflight).toMatchObject({ ok: true, strategy: "prefix-splice" });
+      expect(reopened.layerGroups[0].write_layer).toBe(7);
+      expect(reopened.layerGroups[0].layers[previousWriteLayer].state).toBe(2);
+      expect(reopened.layerGroups[0].layers[7].state).toBe(3);
+      expect(saved.bytes.slice(prefixEnd)).toEqual(bytes.slice(prefixEnd));
+    });
+  }
+
+  it("rejects an unverified native write-layer state transition", async () => {
+    const document = await openNativeJww(withLayerState(fixture(700), 0, 7, 4));
+    const previousWriteLayer = document.layerGroups[0].write_layer;
+    const layers = document.layerGroups[0].layers.map((layer) => ({ ...layer }));
+    layers[previousWriteLayer].state = 2;
+    layers[7].state = 3;
+    const preflight = preflightNativeJwwSave(document, {
+      patches: [
+        {
+          op: "replace",
+          targetId: document.layerGroups[0].id,
+          record: { ...document.layerGroups[0], write_layer: 7, layers },
+        },
+      ],
+    });
+
+    expect(preflight).toMatchObject({
+      ok: false,
+      code: "JWW_NATIVE_METADATA_PATCH_INVALID",
+      willWriteBytes: false,
+    });
+    expect(preflight.reasons[0]).toContain(
+      "JWW write layer transition from state 4 is not verified"
+    );
+  });
+
   it("applies native prefix metadata during a required structural rebuild", async () => {
     const document = await openNativeJww(fixture(700));
+    const groupOneLayers = document.layerGroups[1].layers.map((layer) => ({ ...layer }));
+    groupOneLayers[1].state = 1;
+    groupOneLayers[1].protect = 1;
     const patches = [
       {
         op: "replace",
@@ -317,6 +597,16 @@ describe("JWW native document API", () => {
         op: "replace",
         targetId: document.layerGroups[10].id,
         record: { ...document.layerGroups[10], state: 3, scale: 30 },
+      },
+      {
+        op: "replace",
+        targetId: document.layerGroups[1].id,
+        record: {
+          ...document.layerGroups[1],
+          state: 1,
+          protect: 1,
+          layers: groupOneLayers,
+        },
       },
       {
         op: "create",
@@ -339,6 +629,11 @@ describe("JWW native document API", () => {
     expect(reopened.layerGroups[document.header.writeLayerGroup].state).toBe(2);
     expect(reopened.layerGroups[10].state).toBe(3);
     expect(reopened.layerGroups[10].scale).toBe(30);
+    expect(reopened.layerGroups[1]).toMatchObject({ state: 1, protect: 1 });
+    expect(reopened.layerGroups[1].layers[1]).toMatchObject({
+      state: 1,
+      protect: 1,
+    });
     expect(reopened.nativeEntities.length).toBe(document.nativeEntities.length + 1);
   });
 

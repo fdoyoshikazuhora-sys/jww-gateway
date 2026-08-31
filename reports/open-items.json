@@ -1,131 +1,38 @@
 {
   "format": "jww-gateway-open-items",
-  "generatedAt": "2026-08-27T15:07:53.745Z",
+  "generatedAt": "2026-08-31T06:48:22.774Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
   "manifestGeneratedAt": "2026-06-04T23:08:20.848Z",
-  "unresolvedEnvironmentKeys": [
-    "LTYPE_HC",
-    "LCOLLOR_M"
-  ],
+  "unresolvedEnvironmentKeys": [],
   "counts": {
-    "total": 7,
+    "total": 1,
     "byStatus": {
-      "partial-supported": 1,
-      "sample-blocked": 3,
-      "audit-only": 1,
-      "downstream-renderer": 1,
-      "needs-samples": 1
+      "external-runtime-blocked": 1
     },
     "byCategory": {
-      "output": 1,
-      "compatibility": 1,
-      "jwf-environment": 3,
-      "renderer": 1,
-      "geometry": 1
+      "compatibility": 1
     },
     "byClassification": {
-      "bounded-writer": 1,
-      "sample-blocked": 3,
-      "audit-only": 1,
-      "metadata-ready": 1,
-      "sample-comparison": 1
+      "old-release-runtime": 1
     },
     "byReleaseDecision": {
-      "publish as a bounded writer without a universal JWW compatibility claim": 1,
-      "do not claim version-wide or round-trip compatibility from the bundled corpus": 1,
-      "keep open until direct matches repeat in real files": 1,
-      "keep open until exact RGB matches repeat in real files": 1,
-      "not promoted until a stable storage pattern is found": 1,
-      "not a parser blocker because decoration metadata is exported": 1,
-      "not promoted further without confirmed before/after examples": 1
+      "claim only the recorded Jw_cad 10.02.1 and bounded v600/v700 results; do not claim version-wide or Jw_cad 6.x runtime compatibility": 1
     }
   },
   "openItems": [
     {
-      "id": "jww-write",
-      "status": "partial-supported",
-      "category": "output",
-      "classification": "bounded-writer",
-      "conversionImpact": "enables explicit v600/v700 output for supported entities; unsupported entities fail by default",
-      "releaseDecision": "publish as a bounded writer without a universal JWW compatibility claim",
-      "title": "JWW save/write",
-      "detail": "Gateway writes internal versions 600 and 700 from Gateway JSON, including native CDataSunpou dimensions, CDataBlock/CDataList blocks, external image references, and v700 embedded image payloads.",
-      "evidence": "writer tests and the generated entity-family corpus parse and semantically compare v600/v700 output; Jw_cad 10.02.1 also reopened native block and embedded-image fixtures.",
-      "nextAction": "Add independently authored real drawings and record Jw_cad reopen/resave evidence for every supported entity family and target Jw_cad release."
-    },
-    {
       "id": "jww-version-conformance",
-      "status": "sample-blocked",
+      "status": "external-runtime-blocked",
       "category": "compatibility",
-      "classification": "sample-blocked",
-      "conversionImpact": "high for exact import claims; current bundled samples do not cover current Jw_cad versions or the full entity set",
-      "releaseDecision": "do not claim version-wide or round-trip compatibility from the bundled corpus",
+      "classification": "old-release-runtime",
+      "conversionImpact": "bounded for current Jw_cad 10.02.1 claims; old-release runtime behavior and independently sourced v600 DIMENSION/BLOCK/IMAGE remain unverified",
+      "releaseDecision": "claim only the recorded Jw_cad 10.02.1 and bounded v600/v700 results; do not claim version-wide or Jw_cad 6.x runtime compatibility",
       "title": "JWW version and entity conformance corpus",
-      "detail": "The generated round-trip corpus covers seven v600 and eight v700 fixtures across line, arc/circle/ellipse, text/point, solid, dimension, block, and image families. Local Jw_cad drawings remain separate and are not redistributed.",
-      "evidence": "npm run roundtrip:corpus requires parser-clean drawing and document semantic equality for every generated fixture; npm run verify:conformance separately records observed real-file parse coverage.",
-      "nextAction": "Add Jw_cad-produced fixtures for each target application version and entity family, then record reopen and resave evidence separately."
-    },
-    {
-      "id": "LTYPE_HC",
-      "status": "sample-blocked",
-      "category": "jwf-environment",
-      "classification": "sample-blocked",
-      "conversionImpact": "low for current conversion; candidate bytes are retained for later comparison",
-      "releaseDecision": "keep open until direct matches repeat in real files",
-      "title": "Hatch/line type environment key",
-      "detail": "Candidate bytes after LTYPE_L4 are retained, but tested sample files do not directly match the JWF LTYPE_HC values.",
-      "evidence": "core-open summaries across current sample sets show matched 0 and direct-match false.",
-      "nextAction": "Review new real files that actively use this setting before promoting it to extracted coverage."
-    },
-    {
-      "id": "LCOLLOR_M",
-      "status": "sample-blocked",
-      "category": "jwf-environment",
-      "classification": "sample-blocked",
-      "conversionImpact": "low for entity rendering; affects a JWF special/zoom text color rather than parsed entity colors",
-      "releaseDecision": "keep open until exact RGB matches repeat in real files",
-      "title": "Zoom text/special color environment key",
-      "detail": "Special color audits search nearby RGB triplets, but no stable direct match has been found yet.",
-      "evidence": "special-color audits found no direct LCOLLOR_M match in the current real-file set.",
-      "nextAction": "Promote only after direct matches repeat across real JWW/JWF pairs."
-    },
-    {
-      "id": "LAYCOL_LAYWID_LAYTYP",
-      "status": "audit-only",
-      "category": "jwf-environment",
-      "classification": "audit-only",
-      "conversionImpact": "low for imported drawing display; entity-level color, width, and line type are already read",
-      "releaseDecision": "not promoted until a stable storage pattern is found",
-      "title": "Layer default color, width, and line type settings",
-      "detail": "Entity-level pen color, width, and style are read, but JWF layer default setting rows remain audit-only.",
-      "evidence": "layer-default summaries keep promotionCandidates at 0; non-zero M-08 layer defaults still do not direct-match.",
-      "nextAction": "Use layer-defaults audit/summary reports when new sample sets are added."
-    },
-    {
-      "id": "jww-text-decoration-rendering",
-      "status": "downstream-renderer",
-      "category": "renderer",
-      "classification": "metadata-ready",
-      "conversionImpact": "medium visual-fidelity item; converted metadata exists but Gateway does not draw a view",
-      "releaseDecision": "not a parser blocker because decoration metadata is exported",
-      "title": "JWW text decoration overprint rendering",
-      "detail": "Special text runs and decoration segments are preserved as metadata, but exact visual overprint reproduction is not implemented in Gateway.",
-      "evidence": "Gateway exports jwwSpecialRuns and jwwTextSegments for renderer-side overprint work.",
-      "nextAction": "Implement in the downstream renderer using jwwSpecialRuns and jwwTextSegments."
-    },
-    {
-      "id": "tilted-ellipse-arc-comparison",
-      "status": "needs-samples",
-      "category": "geometry",
-      "classification": "sample-comparison",
-      "conversionImpact": "medium for rare complex arcs; source angles and diagnostics are preserved",
-      "releaseDecision": "not promoted further without confirmed before/after examples",
-      "title": "Tilted arcs and ellipse-like arcs",
-      "detail": "Arc source angles and diagnostics are retained, but complex tilted/ellipse-like cases still require real-file comparison.",
-      "evidence": "Current parser retains JWW and converted angles so future samples can be compared without changing the import contract.",
-      "nextAction": "Add targeted before/after diagnostics when more confirmed JWW examples are available."
+      "detail": "Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse cleanly and survive Gateway template rewrites with drawing and document semantic equality. Jw_cad 10.02.1 opened the representative Gateway output, appended one LINE, saved it as v700, and reopened it; the existing 1,754 drawing entities were unchanged and Gateway's subsequent template rewrite was byte-identical. The installed v600 samples do not contain native DIMENSION, BLOCK/INSERT, or IMAGE records, and no Jw_cad 6.x runtime is available.",
+      "evidence": "JWW_VERSION_CONFORMANCE_EVIDENCE.md separates installed-sample parser/semantic evidence, generated entity-family coverage, current Jw_cad 10.02.1 GUI open/edit/save/reload, and the remaining old-release boundary.",
+      "nextAction": "Obtain an actual Jw_cad 6.x runtime and non-private independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE samples, then record parser, visual, edit, Save As, semantic-diff, and old-release reload evidence separately."
     }
   ]
 }

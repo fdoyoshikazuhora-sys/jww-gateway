@@ -1,6 +1,6 @@
 import { preflightNativeJwwSave, saveNativeJww } from "./native.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 1;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 3;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -25,6 +25,10 @@ const EDIT_KEYS = new Set([
   "writeLayerGroup",
   "layerGroupScales",
   "layerGroupWriteLayers",
+  "layerGroupStates",
+  "layerStates",
+  "layerGroupProtections",
+  "layerProtections",
 ]);
 
 function editError(code, message) {
@@ -155,6 +159,32 @@ function normalizedLayerGroupWriteLayers(document, value) {
         `JWW layer does not exist: ${index}.${writeLayer}`
       );
     }
+    const previousWriteLayer = Number(group.write_layer);
+    if (writeLayer !== previousWriteLayer) {
+      if (
+        !Number.isInteger(previousWriteLayer) ||
+        previousWriteLayer < 0 ||
+        previousWriteLayer > 15 ||
+        !group.layers[previousWriteLayer]
+      ) {
+        throw editError(
+          "JWW_BASIC_SETTINGS_EDIT_INVALID",
+          `Existing JWW write layer metadata is unavailable: ${index}.${group.write_layer}`
+        );
+      }
+      if (Number(group.layers[previousWriteLayer].state) !== 3) {
+        throw editError(
+          "JWW_BASIC_SETTINGS_EDIT_INVALID",
+          `Existing JWW write layer must have state 3: ${index}.${previousWriteLayer}`
+        );
+      }
+      if (![0, 1, 2, 3].includes(Number(group.layers[writeLayer].state))) {
+        throw editError(
+          "JWW_BASIC_SETTINGS_EDIT_INVALID",
+          `JWW write layer transition from state ${group.layers[writeLayer].state} is not verified: ${index}.${writeLayer}`
+        );
+      }
+    }
     if (
       Number(group.protect || 0) !== 0 ||
       Number(group.layers[writeLayer].protect || 0) !== 0
@@ -169,6 +199,218 @@ function normalizedLayerGroupWriteLayers(document, value) {
   return rows.sort((left, right) => left.index - right.index);
 }
 
+function normalizedLayerGroupStates(
+  document,
+  value,
+  writeLayerGroup,
+  protections = new Map()
+) {
+  if (value === undefined) return [];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      "Layer group state edits must be an object keyed by group index"
+    );
+  }
+  const rows = [];
+  for (const [key, rawState] of Object.entries(value)) {
+    if (!/^(?:0|[1-9]\d*)$/.test(key)) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Invalid JWW layer group index: ${key}`
+      );
+    }
+    const index = Number(key);
+    const group = document.layerGroups?.[index];
+    if (!group) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `JWW layer group does not exist: ${index}`
+      );
+    }
+    const state = Number(rawState);
+    const allowed = index === writeLayerGroup ? [3] : [0, 1, 2];
+    if (!Number.isInteger(state) || !allowed.includes(state)) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        index === writeLayerGroup
+          ? `Current JWW layer group must retain state 3: ${index}`
+          : `Non-current JWW layer group state must be 0, 1, or 2: ${index}.${rawState}`
+      );
+    }
+    const protect = protections.get(index) ?? Number(group.protect || 0);
+    if (state !== Number(group.state) && protect === 2) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Display-fixed JWW layer group state cannot be changed: ${index}`
+      );
+    }
+    rows.push({ index, group, state });
+  }
+  return rows.sort((left, right) => left.index - right.index);
+}
+
+function normalizedLayerStates(
+  document,
+  value,
+  writeLayers,
+  protections = new Map()
+) {
+  if (value === undefined) return [];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      "Layer state edits must be an object keyed by group.layer"
+    );
+  }
+  const rows = [];
+  for (const [key, rawState] of Object.entries(value)) {
+    const match = key.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+    if (!match) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Invalid JWW layer state target: ${key}`
+      );
+    }
+    const groupIndex = Number(match[1]);
+    const layerIndex = Number(match[2]);
+    const group = document.layerGroups?.[groupIndex];
+    const layer = group?.layers?.[layerIndex];
+    if (!group || !layer) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `JWW layer does not exist: ${groupIndex}.${layerIndex}`
+      );
+    }
+    const writeLayer = writeLayers.get(groupIndex) ?? Number(group.write_layer);
+    const state = Number(rawState);
+    const allowed = layerIndex === writeLayer ? [3] : [0, 1, 2];
+    if (!Number.isInteger(state) || !allowed.includes(state)) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        layerIndex === writeLayer
+          ? `Current JWW layer must retain state 3: ${groupIndex}.${layerIndex}`
+          : `Non-current JWW layer state must be 0, 1, or 2: ${groupIndex}.${layerIndex}.${rawState}`
+      );
+    }
+    const protect =
+      protections.get(`${groupIndex}.${layerIndex}`) ??
+      Number(layer.protect || 0);
+    if (state !== Number(layer.state) && protect === 2) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Display-fixed JWW layer state cannot be changed: ${groupIndex}.${layerIndex}`
+      );
+    }
+    rows.push({ groupIndex, layerIndex, group, state });
+  }
+  return rows.sort(
+    (left, right) =>
+      left.groupIndex - right.groupIndex || left.layerIndex - right.layerIndex
+  );
+}
+
+function normalizedProtection(value, target) {
+  const protect = Number(value);
+  if (!Number.isInteger(protect) || protect < 0 || protect > 2) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      `JWW protection must be 0, 1, or 2: ${target}.${value}`
+    );
+  }
+  return protect;
+}
+
+function normalizedLayerGroupProtections(document, value, writeLayerGroup) {
+  if (value === undefined) return [];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      "Layer group protection edits must be an object keyed by group index"
+    );
+  }
+  const rows = [];
+  for (const [key, rawProtect] of Object.entries(value)) {
+    if (!/^(?:0|[1-9]\d*)$/.test(key)) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Invalid JWW layer group index: ${key}`
+      );
+    }
+    const index = Number(key);
+    const group = document.layerGroups?.[index];
+    if (!group) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `JWW layer group does not exist: ${index}`
+      );
+    }
+    const protect = normalizedProtection(rawProtect, String(index));
+    if (
+      protect !== Number(group.protect) &&
+      index === writeLayerGroup &&
+      protect !== 0
+    ) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Current JWW layer group cannot be protected: ${index}`
+      );
+    }
+    rows.push({ index, group, protect });
+  }
+  return rows.sort((left, right) => left.index - right.index);
+}
+
+function normalizedLayerProtections(document, value, writeLayers) {
+  if (value === undefined) return [];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw editError(
+      "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      "Layer protection edits must be an object keyed by group.layer"
+    );
+  }
+  const rows = [];
+  for (const [key, rawProtect] of Object.entries(value)) {
+    const match = key.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+    if (!match) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Invalid JWW layer protection target: ${key}`
+      );
+    }
+    const groupIndex = Number(match[1]);
+    const layerIndex = Number(match[2]);
+    const group = document.layerGroups?.[groupIndex];
+    const layer = group?.layers?.[layerIndex];
+    if (!group || !layer) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `JWW layer does not exist: ${groupIndex}.${layerIndex}`
+      );
+    }
+    const protect = normalizedProtection(
+      rawProtect,
+      `${groupIndex}.${layerIndex}`
+    );
+    const writeLayer = writeLayers.get(groupIndex) ?? Number(group.write_layer);
+    if (
+      protect !== Number(layer.protect) &&
+      layerIndex === writeLayer &&
+      protect !== 0
+    ) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        `Current JWW layer cannot be protected: ${groupIndex}.${layerIndex}`
+      );
+    }
+    rows.push({ groupIndex, layerIndex, group, protect });
+  }
+  return rows.sort(
+    (left, right) =>
+      left.groupIndex - right.groupIndex || left.layerIndex - right.layerIndex
+  );
+}
+
 function withWriteLayer(group, writeLayer) {
   if (writeLayer === Number(group.write_layer)) return group;
   const layers = group.layers.map((layer) => ({ ...layer }));
@@ -178,6 +420,20 @@ function withWriteLayer(group, writeLayer) {
   }
   layers[writeLayer].state = 3;
   return { ...group, write_layer: writeLayer, layers };
+}
+
+function withLayerState(group, layerIndex, state) {
+  if (state === Number(group.layers[layerIndex].state)) return group;
+  const layers = group.layers.map((layer) => ({ ...layer }));
+  layers[layerIndex].state = state;
+  return { ...group, layers };
+}
+
+function withLayerProtection(group, layerIndex, protect) {
+  if (protect === Number(group.layers[layerIndex].protect)) return group;
+  const layers = group.layers.map((layer) => ({ ...layer }));
+  layers[layerIndex].protect = protect;
+  return { ...group, layers };
 }
 
 function withWriteGroupState(group, index, previousWriteGroup, writeLayerGroup) {
@@ -217,6 +473,32 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
   }
 
   const layerGroupUpdates = new Map();
+  const writeLayerRows = normalizedLayerGroupWriteLayers(
+    document,
+    edits.layerGroupWriteLayers
+  );
+  const writeLayers = new Map(
+    writeLayerRows.map(({ index, writeLayer }) => [index, writeLayer])
+  );
+  const layerGroupProtectionRows = normalizedLayerGroupProtections(
+    document,
+    edits.layerGroupProtections,
+    writeLayerGroup
+  );
+  const layerProtectionRows = normalizedLayerProtections(
+    document,
+    edits.layerProtections,
+    writeLayers
+  );
+  const layerGroupProtections = new Map(
+    layerGroupProtectionRows.map(({ index, protect }) => [index, protect])
+  );
+  const layerProtections = new Map(
+    layerProtectionRows.map(({ groupIndex, layerIndex, protect }) => [
+      `${groupIndex}.${layerIndex}`,
+      protect,
+    ])
+  );
   for (const { index, group, scale } of normalizedLayerGroupScales(
     document,
     edits.layerGroupScales
@@ -230,10 +512,7 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
     );
     layerGroupUpdates.set(index, { ...current, scale });
   }
-  for (const { index, group, writeLayer } of normalizedLayerGroupWriteLayers(
-    document,
-    edits.layerGroupWriteLayers
-  )) {
+  for (const { index, group, writeLayer } of writeLayerRows) {
     if (writeLayer === Number(group.write_layer)) continue;
     const current =
       layerGroupUpdates.get(index) ||
@@ -244,6 +523,65 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
         writeLayerGroup
       );
     layerGroupUpdates.set(index, withWriteLayer(current, writeLayer));
+  }
+  for (const { index, group, protect } of layerGroupProtectionRows) {
+    if (protect === Number(group.protect)) continue;
+    const current =
+      layerGroupUpdates.get(index) ||
+      withWriteGroupState(
+        group,
+        index,
+        Number(header.writeLayerGroup),
+        writeLayerGroup
+      );
+    layerGroupUpdates.set(index, { ...current, protect });
+  }
+  for (const { groupIndex, layerIndex, group, protect } of layerProtectionRows) {
+    const current =
+      layerGroupUpdates.get(groupIndex) ||
+      withWriteGroupState(
+        group,
+        groupIndex,
+        Number(header.writeLayerGroup),
+        writeLayerGroup
+      );
+    const revised = withLayerProtection(current, layerIndex, protect);
+    if (revised !== current) layerGroupUpdates.set(groupIndex, revised);
+  }
+  for (const { index, group, state } of normalizedLayerGroupStates(
+    document,
+    edits.layerGroupStates,
+    writeLayerGroup,
+    layerGroupProtections
+  )) {
+    const current =
+      layerGroupUpdates.get(index) ||
+      withWriteGroupState(
+        group,
+        index,
+        Number(header.writeLayerGroup),
+        writeLayerGroup
+      );
+    if (state !== Number(current.state)) {
+      layerGroupUpdates.set(index, { ...current, state });
+    }
+  }
+  for (const { groupIndex, layerIndex, group, state } of normalizedLayerStates(
+    document,
+    edits.layerStates,
+    writeLayers,
+    layerProtections
+  )) {
+    const current =
+      layerGroupUpdates.get(groupIndex) ||
+      withWriteGroupState(
+        group,
+        groupIndex,
+        Number(header.writeLayerGroup),
+        writeLayerGroup
+      );
+    const revised = withLayerState(current, layerIndex, state);
+    if (revised !== current) layerGroupUpdates.set(groupIndex, revised);
   }
   for (const [index, record] of [...layerGroupUpdates.entries()].sort(
     (left, right) => left[0] - right[0]

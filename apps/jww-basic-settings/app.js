@@ -26,7 +26,18 @@ const elements = {
 let projection = null;
 let nativeDocument = null;
 let sourceFileName = "";
-let draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+function emptyDraftEdits() {
+  return {
+    layerGroupScales: {},
+    layerGroupWriteLayers: {},
+    layerGroupStates: {},
+    layerStates: {},
+    layerGroupProtections: {},
+    layerProtections: {},
+  };
+}
+
+let draftEdits = emptyDraftEdits();
 let currentPreflight = null;
 let activeTabId = "general";
 
@@ -61,7 +72,14 @@ function editableBadge() {
 }
 
 function draftValue(edit) {
-  const groupFamily = ["layerGroupScales", "layerGroupWriteLayers"].find(
+  const groupFamily = [
+    "layerGroupScales",
+    "layerGroupWriteLayers",
+    "layerGroupStates",
+    "layerStates",
+    "layerGroupProtections",
+    "layerProtections",
+  ].find(
     (family) => edit.key.startsWith(`${family}.`)
   );
   if (groupFamily) {
@@ -74,7 +92,14 @@ function draftValue(edit) {
 }
 
 function setDraftValue(edit, value, { rerender = true } = {}) {
-  const groupFamily = ["layerGroupScales", "layerGroupWriteLayers"].find(
+  const groupFamily = [
+    "layerGroupScales",
+    "layerGroupWriteLayers",
+    "layerGroupStates",
+    "layerStates",
+    "layerGroupProtections",
+    "layerProtections",
+  ].find(
     (family) => edit.key.startsWith(`${family}.`)
   );
   if (groupFamily) {
@@ -85,6 +110,32 @@ function setDraftValue(edit, value, { rerender = true } = {}) {
     };
   } else {
     draftEdits = { ...draftEdits, [edit.key]: value };
+  }
+  if (edit.key === "writeLayerGroup") {
+    const states = { ...draftEdits.layerGroupStates };
+    delete states[String(value)];
+    draftEdits = { ...draftEdits, layerGroupStates: states };
+  } else if (edit.key.startsWith("layerGroupWriteLayers.")) {
+    const groupIndex = edit.key.slice("layerGroupWriteLayers.".length);
+    const states = { ...draftEdits.layerStates };
+    delete states[`${groupIndex}.${value}`];
+    draftEdits = { ...draftEdits, layerStates: states };
+  } else if (
+    edit.key.startsWith("layerGroupProtections.") &&
+    Number(value) === 2
+  ) {
+    const groupIndex = edit.key.slice("layerGroupProtections.".length);
+    const states = { ...draftEdits.layerGroupStates };
+    delete states[groupIndex];
+    draftEdits = { ...draftEdits, layerGroupStates: states };
+  } else if (
+    edit.key.startsWith("layerProtections.") &&
+    Number(value) === 2
+  ) {
+    const coordinate = edit.key.slice("layerProtections.".length);
+    const states = { ...draftEdits.layerStates };
+    delete states[coordinate];
+    draftEdits = { ...draftEdits, layerStates: states };
   }
   refreshEditState();
   refreshProjectionFromDraft();
@@ -339,7 +390,7 @@ async function loadFile(file) {
     });
     if (!nativeDocument.version) throw new Error("The selected file is not a supported JWW document.");
     sourceFileName = file.name;
-    draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+    draftEdits = emptyDraftEdits();
     projection = buildJwwBasicSettingsProjection(nativeDocument, { fileName: file.name });
     renderProjection();
     setStatus(`Loaded ${file.name}. Only proven native metadata fields are editable.`, projection.source.clean ? "ready" : "warning");
@@ -347,7 +398,7 @@ async function loadFile(file) {
     projection = null;
     nativeDocument = null;
     sourceFileName = "";
-    draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+    draftEdits = emptyDraftEdits();
     refreshEditState();
     elements.settingsView.hidden = true;
     elements.emptyState.hidden = false;
@@ -381,7 +432,7 @@ function downloadJww(bytes, fileName) {
 
 function resetChanges() {
   if (!nativeDocument) return;
-  draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+  draftEdits = emptyDraftEdits();
   refreshEditState();
   refreshProjectionFromDraft();
   renderSourceMetrics();
@@ -407,7 +458,7 @@ function saveAsJww() {
     downloadJww(saved.bytes, fileName);
     nativeDocument = saved.document;
     sourceFileName = fileName;
-    draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+    draftEdits = emptyDraftEdits();
     projection = buildJwwBasicSettingsProjection(nativeDocument, { fileName });
     renderProjection();
     setStatus(

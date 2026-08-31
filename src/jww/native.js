@@ -565,9 +565,45 @@ function replaceNativeLayerGroup(next, index, patch) {
   rejectChangedMetadataFields(
     previous,
     value,
-    new Set(["scale", "write_layer", "layers"]),
+    new Set(["state", "protect", "scale", "write_layer", "layers"]),
     previous.id
   );
+  const protect = Number(value.protect);
+  if (!Number.isInteger(protect) || protect < 0 || protect > 2) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `Unsupported JWW layer group protection: ${value.protect}`
+    );
+  }
+  if (
+    protect !== Number(previous.protect) &&
+    index === Number(next.header?.writeLayerGroup) &&
+    protect !== 0
+  ) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `Current JWW layer group cannot be protected: ${index}`
+    );
+  }
+  const state = Number(value.state);
+  if (state !== Number(previous.state)) {
+    const writeLayerGroup = Number(next.header?.writeLayerGroup);
+    const allowed = index === writeLayerGroup ? [3] : [0, 1, 2];
+    if (!Number.isInteger(state) || !allowed.includes(state)) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        index === writeLayerGroup
+          ? `Current JWW layer group must retain state 3: ${index}`
+          : `Non-current JWW layer group state must be 0, 1, or 2: ${index}.${value.state}`
+      );
+    }
+    if (protect === 2) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Display-fixed JWW layer group state cannot be changed: ${index}`
+      );
+    }
+  }
   const scale = Number(value.scale);
   if (!Number.isFinite(scale) || scale <= 0) {
     throw nativePatchError(
@@ -590,6 +626,30 @@ function replaceNativeLayerGroup(next, index, patch) {
   }
   const expectedLayers = cloneValue(previous.layers);
   if (writeLayer !== Number(previous.write_layer)) {
+    const previousWriteLayer = Number(previous.write_layer);
+    if (
+      !Number.isInteger(previousWriteLayer) ||
+      previousWriteLayer < 0 ||
+      previousWriteLayer > 15 ||
+      !expectedLayers[previousWriteLayer]
+    ) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Existing JWW write layer metadata is unavailable: ${previous.id}.${previous.write_layer}`
+      );
+    }
+    if (Number(expectedLayers[previousWriteLayer].state) !== 3) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Existing JWW write layer must have state 3: ${previous.id}.${previousWriteLayer}`
+      );
+    }
+    if (![0, 1, 2, 3].includes(Number(expectedLayers[writeLayer]?.state))) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `JWW write layer transition from state ${expectedLayers[writeLayer]?.state} is not verified: ${previous.id}.${writeLayer}`
+      );
+    }
     if (
       Number(previous.protect || 0) !== 0 ||
       Number(previous.layers[writeLayer]?.protect || 0) !== 0
@@ -599,26 +659,73 @@ function replaceNativeLayerGroup(next, index, patch) {
         `Protected JWW layer group or layer cannot become the write layer: ${previous.id}.${writeLayer}`
       );
     }
-    const previousWriteLayer = Number(previous.write_layer);
-    if (Number.isInteger(previousWriteLayer) && expectedLayers[previousWriteLayer]) {
-      expectedLayers[previousWriteLayer] = {
-        ...expectedLayers[previousWriteLayer],
-        state: 2,
-      };
-    }
+    expectedLayers[previousWriteLayer] = {
+      ...expectedLayers[previousWriteLayer],
+      state: 2,
+    };
     expectedLayers[writeLayer] = {
       ...expectedLayers[writeLayer],
       state: 3,
     };
   }
-  if (!sameNativeMetadataValue(value.layers, expectedLayers)) {
-    throw nativePatchError(
-      "JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED",
-      `JWW native layer states must match the write-layer transition: ${previous.id}`
+  for (let layerIndex = 0; layerIndex < expectedLayers.length; layerIndex += 1) {
+    const expectedLayer = expectedLayers[layerIndex];
+    const revisedLayer = value.layers[layerIndex];
+    rejectChangedMetadataFields(
+      expectedLayer,
+      revisedLayer,
+      new Set(["state", "protect"]),
+      `${previous.id}.layers.${layerIndex}`
     );
+    const revisedProtect = Number(revisedLayer.protect);
+    if (
+      !Number.isInteger(revisedProtect) ||
+      revisedProtect < 0 ||
+      revisedProtect > 2
+    ) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Unsupported JWW layer protection: ${index}.${layerIndex}.${revisedLayer.protect}`
+      );
+    }
+    if (
+      revisedProtect !== Number(expectedLayer.protect) &&
+      layerIndex === writeLayer &&
+      revisedProtect !== 0
+    ) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Current JWW layer cannot be protected: ${index}.${layerIndex}`
+      );
+    }
+    const revisedState = Number(revisedLayer.state);
+    if (revisedState !== Number(expectedLayer.state)) {
+      const allowed = layerIndex === writeLayer ? [3] : [0, 1, 2];
+      if (!Number.isInteger(revisedState) || !allowed.includes(revisedState)) {
+        throw nativePatchError(
+          "JWW_NATIVE_METADATA_PATCH_INVALID",
+          layerIndex === writeLayer
+            ? `Current JWW layer must retain state 3: ${index}.${layerIndex}`
+            : `Non-current JWW layer state must be 0, 1, or 2: ${index}.${layerIndex}.${revisedLayer.state}`
+        );
+      }
+      if (revisedProtect === 2) {
+        throw nativePatchError(
+          "JWW_NATIVE_METADATA_PATCH_INVALID",
+          `Display-fixed JWW layer state cannot be changed: ${index}.${layerIndex}`
+        );
+      }
+    }
+    expectedLayers[layerIndex] = {
+      ...expectedLayer,
+      state: revisedState,
+      protect: revisedProtect,
+    };
   }
   next.layerGroups[index] = {
     ...previous,
+    state,
+    protect,
     scale,
     write_layer: writeLayer,
     layers: expectedLayers,
@@ -1574,6 +1681,32 @@ function nativeRebuildWriteOptions(
     layerGroupWriteLayers: (revised.layerGroups || []).map((group) =>
       Number(group?.write_layer || 0)
     ),
+    layerGroupStates: (revised.layerGroups || []).map((group, index) =>
+      Number(group?.state) === Number(document.layerGroups?.[index]?.state)
+        ? null
+        : Number(group?.state)
+    ),
+    layerStates: (revised.layerGroups || []).map((group, groupIndex) =>
+      (group.layers || []).map((layer, layerIndex) =>
+        Number(layer?.state) ===
+        Number(document.layerGroups?.[groupIndex]?.layers?.[layerIndex]?.state)
+          ? null
+          : Number(layer?.state)
+      )
+    ),
+    layerGroupProtections: (revised.layerGroups || []).map((group, index) =>
+      Number(group?.protect) === Number(document.layerGroups?.[index]?.protect)
+        ? null
+        : Number(group?.protect)
+    ),
+    layerProtections: (revised.layerGroups || []).map((group, groupIndex) =>
+      (group.layers || []).map((layer, layerIndex) =>
+        Number(layer?.protect) ===
+        Number(document.layerGroups?.[groupIndex]?.layers?.[layerIndex]?.protect)
+          ? null
+          : Number(layer?.protect)
+      )
+    ),
     templatePrefix: document.originalBytes.slice(0, prefixEnd),
     meta: {
       jwwBlockDefinitions: revised.blockDefinitions.map((definition) =>
@@ -1693,11 +1826,23 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
   }
   const layerGroupScales = Array(16).fill(null);
   const layerGroupWriteLayers = Array(16).fill(null);
+  const layerGroupStates = Array(16).fill(null);
+  const layerStates = Array.from({ length: 16 }, () => Array(16).fill(null));
+  const layerGroupProtections = Array(16).fill(null);
+  const layerProtections = Array.from({ length: 16 }, () =>
+    Array(16).fill(null)
+  );
   for (let index = 0; index < revised.layerGroups.length; index += 1) {
     const group = revised.layerGroups[index];
     if (targetIdSet.has(group.id)) {
       layerGroupScales[index] = group.scale;
       layerGroupWriteLayers[index] = group.write_layer;
+      layerGroupStates[index] = group.state;
+      layerGroupProtections[index] = group.protect;
+      for (let layerIndex = 0; layerIndex < group.layers.length; layerIndex += 1) {
+        layerStates[index][layerIndex] = group.layers[layerIndex].state;
+        layerProtections[index][layerIndex] = group.layers[layerIndex].protect;
+      }
     }
   }
   let bytes;
@@ -1713,6 +1858,10 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
           : null,
         layerGroupScales,
         layerGroupWriteLayers,
+        layerGroupStates,
+        layerStates,
+        layerGroupProtections,
+        layerProtections,
       }
     );
   } catch (error) {
@@ -1826,6 +1975,7 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
     const metadataMatches =
       savedGroup?.scale === revisedGroup.scale &&
       savedGroup?.write_layer === revisedGroup.write_layer &&
+      savedGroup?.protect === revisedGroup.protect &&
       sameNativeMetadataValue(savedGroup?.layers, revisedGroup.layers);
     if (!metadataMatches) {
       const error = new Error(

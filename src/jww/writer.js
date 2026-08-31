@@ -466,11 +466,289 @@ function patchTemplateLayerGroupWriteLayers(
       );
     }
     const previousWriteLayer = readDwordAt(bytes, groupOffset + 4);
-    if (previousWriteLayer >= 0 && previousWriteLayer < 16) {
+    if (writeLayer !== previousWriteLayer) {
+      if (previousWriteLayer < 0 || previousWriteLayer > 15) {
+        throw new Error(
+          `Existing JWW write layer is invalid: ${groupIndex}.${previousWriteLayer}`
+        );
+      }
+      const previousState = readDwordAt(
+        bytes,
+        layersOffset + previousWriteLayer * 8
+      );
+      if (previousState !== 3) {
+        throw new Error(
+          `Existing JWW write layer must have state 3: ${groupIndex}.${previousWriteLayer}`
+        );
+      }
+      const selectedState = readDwordAt(bytes, layersOffset + writeLayer * 8);
+      if (![0, 1, 2, 3].includes(selectedState)) {
+        throw new Error(
+          `JWW write layer transition from state ${selectedState} is not verified: ${groupIndex}.${writeLayer}`
+        );
+      }
       writeDwordAt(bytes, layersOffset + previousWriteLayer * 8, 2);
     }
     writeDwordAt(bytes, groupOffset + 4, writeLayer);
     writeDwordAt(bytes, layersOffset + writeLayer * 8, 3);
+  });
+  return bytes;
+}
+
+function layerStateCode(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const state = Number(value);
+  if (!Number.isInteger(state) || state < 0 || state > 3) {
+    throw new Error(`Unsupported JWW layer state: ${value}`);
+  }
+  return state;
+}
+
+function layerProtectionCode(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const protect = Number(value);
+  if (!Number.isInteger(protect) || protect < 0 || protect > 2) {
+    throw new Error(`Unsupported JWW layer protection: ${value}`);
+  }
+  return protect;
+}
+
+function normalizeLayerGroupStates(value) {
+  if (value === null || value === undefined) return null;
+  const states = Array(16).fill(null);
+  if (Array.isArray(value)) {
+    value.slice(0, 16).forEach((item, index) => {
+      states[index] = layerStateCode(item);
+    });
+    return states;
+  }
+  if (typeof value !== "object") {
+    throw new Error("JWW layer group states must be an array or object");
+  }
+  Object.entries(value).forEach(([key, item]) => {
+    const index = layerGroupIndex(key);
+    if (index !== null) states[index] = layerStateCode(item);
+  });
+  return states;
+}
+
+function normalizedLayerCoordinate(value) {
+  const text = String(value ?? "").trim().toUpperCase();
+  if (/^(?:[0-9]|1[0-5])$/.test(text)) return Number(text);
+  if (/^[A-F]$/.test(text)) return Number.parseInt(text, 16);
+  return null;
+}
+
+function normalizeLayerStates(value) {
+  if (value === null || value === undefined) return null;
+  const states = Array.from({ length: 16 }, () => Array(16).fill(null));
+  if (Array.isArray(value)) {
+    value.slice(0, 16).forEach((row, groupIndex) => {
+      if (row === null || row === undefined) return;
+      if (!Array.isArray(row) && typeof row !== "object") {
+        throw new Error(`JWW layer states row must be an array or object: ${groupIndex}`);
+      }
+      Object.entries(row).forEach(([key, item]) => {
+        const layerIndex = normalizedLayerCoordinate(key);
+        if (layerIndex !== null) states[groupIndex][layerIndex] = layerStateCode(item);
+      });
+    });
+    return states;
+  }
+  if (typeof value !== "object") {
+    throw new Error("JWW layer states must be an array or object");
+  }
+  Object.entries(value).forEach(([key, item]) => {
+    const match = key.match(/^([0-9A-F]+)\.([0-9A-F]+)$/i);
+    if (!match) return;
+    const groupIndex = normalizedLayerCoordinate(match[1]);
+    const layerIndex = normalizedLayerCoordinate(match[2]);
+    if (groupIndex !== null && layerIndex !== null) {
+      states[groupIndex][layerIndex] = layerStateCode(item);
+    }
+  });
+  return states;
+}
+
+function normalizeLayerGroupProtections(value) {
+  if (value === null || value === undefined) return null;
+  const protections = Array(16).fill(null);
+  if (Array.isArray(value)) {
+    value.slice(0, 16).forEach((item, index) => {
+      protections[index] = layerProtectionCode(item);
+    });
+    return protections;
+  }
+  if (typeof value !== "object") {
+    throw new Error("JWW layer group protections must be an array or object");
+  }
+  Object.entries(value).forEach(([key, item]) => {
+    const index = layerGroupIndex(key);
+    if (index !== null) protections[index] = layerProtectionCode(item);
+  });
+  return protections;
+}
+
+function normalizeLayerProtections(value) {
+  if (value === null || value === undefined) return null;
+  const protections = Array.from({ length: 16 }, () => Array(16).fill(null));
+  if (Array.isArray(value)) {
+    value.slice(0, 16).forEach((row, groupIndex) => {
+      if (row === null || row === undefined) return;
+      if (!Array.isArray(row) && typeof row !== "object") {
+        throw new Error(
+          `JWW layer protections row must be an array or object: ${groupIndex}`
+        );
+      }
+      Object.entries(row).forEach(([key, item]) => {
+        const layerIndex = normalizedLayerCoordinate(key);
+        if (layerIndex !== null) {
+          protections[groupIndex][layerIndex] = layerProtectionCode(item);
+        }
+      });
+    });
+    return protections;
+  }
+  if (typeof value !== "object") {
+    throw new Error("JWW layer protections must be an array or object");
+  }
+  Object.entries(value).forEach(([key, item]) => {
+    const match = key.match(/^([0-9A-F]+)\.([0-9A-F]+)$/i);
+    if (!match) return;
+    const groupIndex = normalizedLayerCoordinate(match[1]);
+    const layerIndex = normalizedLayerCoordinate(match[2]);
+    if (groupIndex !== null && layerIndex !== null) {
+      protections[groupIndex][layerIndex] = layerProtectionCode(item);
+    }
+  });
+  return protections;
+}
+
+function patchTemplateLayerGroupProtections(
+  templatePrefix,
+  layerGroupProtections
+) {
+  const protections = normalizeLayerGroupProtections(layerGroupProtections);
+  if (!protections) return templatePrefix;
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const writeLayerGroup = readDwordAt(bytes, paperOffset + 4);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  protections.forEach((protect, groupIndex) => {
+    if (protect === null) return;
+    const groupOffset = layerGroupsOffset + groupIndex * layerGroupStride;
+    if (groupOffset + layerGroupStride > bytes.length) {
+      throw new Error(`JWW template prefix ended before layer group ${groupIndex}`);
+    }
+    const previousProtect = readDwordAt(bytes, groupOffset + 16);
+    if (protect === previousProtect) return;
+    if (groupIndex === writeLayerGroup && protect !== 0) {
+      throw new Error(
+        `Current JWW layer group cannot be protected: ${groupIndex}`
+      );
+    }
+    writeDwordAt(bytes, groupOffset + 16, protect);
+  });
+  return bytes;
+}
+
+function patchTemplateLayerProtections(templatePrefix, layerProtections) {
+  const protections = normalizeLayerProtections(layerProtections);
+  if (!protections) return templatePrefix;
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  protections.forEach((row, groupIndex) => {
+    const groupOffset = layerGroupsOffset + groupIndex * layerGroupStride;
+    const layersOffset = groupOffset + 20;
+    if (layersOffset + 16 * 8 > bytes.length) {
+      throw new Error(`JWW template prefix ended before layer group ${groupIndex}`);
+    }
+    const writeLayer = readDwordAt(bytes, groupOffset + 4);
+    row.forEach((protect, layerIndex) => {
+      if (protect === null) return;
+      const layerOffset = layersOffset + layerIndex * 8;
+      const previousProtect = readDwordAt(bytes, layerOffset + 4);
+      if (protect === previousProtect) return;
+      if (layerIndex === writeLayer && protect !== 0) {
+        throw new Error(
+          `Current JWW layer cannot be protected: ${groupIndex}.${layerIndex}`
+        );
+      }
+      writeDwordAt(bytes, layerOffset + 4, protect);
+    });
+  });
+  return bytes;
+}
+
+function patchTemplateLayerGroupStates(templatePrefix, layerGroupStates) {
+  const states = normalizeLayerGroupStates(layerGroupStates);
+  if (!states) return templatePrefix;
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const writeLayerGroup = readDwordAt(bytes, paperOffset + 4);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  states.forEach((state, groupIndex) => {
+    if (state === null) return;
+    const groupOffset = layerGroupsOffset + groupIndex * layerGroupStride;
+    if (groupOffset + layerGroupStride > bytes.length) {
+      throw new Error(`JWW template prefix ended before layer group ${groupIndex}`);
+    }
+    const previousState = readDwordAt(bytes, groupOffset);
+    if (state === previousState) return;
+    if (groupIndex === writeLayerGroup ? state !== 3 : state === 3) {
+      throw new Error(
+        groupIndex === writeLayerGroup
+          ? `Current JWW layer group must retain state 3: ${groupIndex}`
+          : `Non-current JWW layer group cannot use state 3: ${groupIndex}`
+      );
+    }
+    if (readDwordAt(bytes, groupOffset + 16) === 2) {
+      throw new Error(`Display-fixed JWW layer group state cannot be changed: ${groupIndex}`);
+    }
+    writeDwordAt(bytes, groupOffset, state);
+  });
+  return bytes;
+}
+
+function patchTemplateLayerStates(templatePrefix, layerStates) {
+  const states = normalizeLayerStates(layerStates);
+  if (!states) return templatePrefix;
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  states.forEach((row, groupIndex) => {
+    const groupOffset = layerGroupsOffset + groupIndex * layerGroupStride;
+    const layersOffset = groupOffset + 20;
+    if (layersOffset + 16 * 8 > bytes.length) {
+      throw new Error(`JWW template prefix ended before layer group ${groupIndex}`);
+    }
+    const writeLayer = readDwordAt(bytes, groupOffset + 4);
+    row.forEach((state, layerIndex) => {
+      if (state === null) return;
+      const layerOffset = layersOffset + layerIndex * 8;
+      const previousState = readDwordAt(bytes, layerOffset);
+      if (state === previousState) return;
+      if (layerIndex === writeLayer ? state !== 3 : state === 3) {
+        throw new Error(
+          layerIndex === writeLayer
+            ? `Current JWW layer must retain state 3: ${groupIndex}.${layerIndex}`
+            : `Non-current JWW layer cannot use state 3: ${groupIndex}.${layerIndex}`
+        );
+      }
+      if (readDwordAt(bytes, layerOffset + 4) === 2) {
+        throw new Error(`Display-fixed JWW layer state cannot be changed: ${groupIndex}.${layerIndex}`);
+      }
+      writeDwordAt(bytes, layerOffset, state);
+    });
   });
   return bytes;
 }
@@ -482,6 +760,10 @@ export function patchJwwTemplatePrefixMetadata(
     writeLayerGroup = null,
     layerGroupScales = null,
     layerGroupWriteLayers = null,
+    layerGroupStates = null,
+    layerStates = null,
+    layerGroupProtections = null,
+    layerProtections = null,
   } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
@@ -489,6 +771,10 @@ export function patchJwwTemplatePrefixMetadata(
   bytes = patchTemplateWriteLayerGroup(bytes, writeLayerGroup);
   bytes = patchTemplateLayerGroupScales(bytes, layerGroupScales);
   bytes = patchTemplateLayerGroupWriteLayers(bytes, layerGroupWriteLayers);
+  bytes = patchTemplateLayerGroupProtections(bytes, layerGroupProtections);
+  bytes = patchTemplateLayerProtections(bytes, layerProtections);
+  bytes = patchTemplateLayerGroupStates(bytes, layerGroupStates);
+  bytes = patchTemplateLayerStates(bytes, layerStates);
   return bytes;
 }
 
@@ -1841,6 +2127,10 @@ export function buildJwwWriteResult({
   paperSize = null,
   layerGroupScales = null,
   layerGroupWriteLayers = null,
+  layerGroupStates = null,
+  layerStates = null,
+  layerGroupProtections = null,
+  layerProtections = null,
   templatePrefix = null,
   dxfMeta = {},
   meta = {},
@@ -1893,6 +2183,10 @@ export function buildJwwWriteResult({
           writeLayerGroup,
           layerGroupScales,
           layerGroupWriteLayers,
+          layerGroupStates,
+          layerStates,
+          layerGroupProtections,
+          layerProtections,
         }
       )
     : null;

@@ -1,8 +1,36 @@
-import { JWW_BASIC_SETTINGS_PAPER_OPTIONS } from "./basicSettingsEdits.js";
+import {
+  JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION,
+  JWW_BASIC_SETTINGS_PAPER_OPTIONS,
+} from "./basicSettingsEdits.js";
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 3;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 5;
+
+const LAYER_STATE_OPTIONS = Object.freeze([
+  { value: 0, label: "Hidden (0)" },
+  { value: 1, label: "Visible only (1)" },
+  { value: 2, label: "Editable (2)" },
+]);
+
+const LAYER_STATE_LABELS = Object.freeze({
+  0: "Hidden (0)",
+  1: "Visible only (1)",
+  2: "Editable (2)",
+  3: "Current (3)",
+});
+
+const LAYER_PROTECTION_LABELS = Object.freeze({
+  0: "None (0)",
+  1: "Protected; display state can change (1)",
+  2: "Protected; display state fixed (2)",
+});
+
+const LAYER_PROTECTION_OPTIONS = Object.freeze([
+  { value: 0, label: LAYER_PROTECTION_LABELS[0] },
+  { value: 1, label: LAYER_PROTECTION_LABELS[1] },
+  { value: 2, label: LAYER_PROTECTION_LABELS[2] },
+]);
 
 const PAPER_NAMES = Object.freeze({
   0: "A0",
@@ -34,6 +62,82 @@ function displayNumber(value) {
 
 function layerLabel(index) {
   return index.toString(16).toUpperCase();
+}
+
+function layerStateDescription(value) {
+  const state = finiteNumber(value);
+  return state === null
+    ? "Not extracted"
+    : LAYER_STATE_LABELS[state] || `Unknown (${state})`;
+}
+
+function layerProtectionDescription(value) {
+  const protect = finiteNumber(value);
+  return protect === null
+    ? "Not extracted"
+    : LAYER_PROTECTION_LABELS[protect] || `Unknown (${protect})`;
+}
+
+function groupStateEdit(group, groupIndex, writeLayerGroup) {
+  if (
+    groupIndex === writeLayerGroup ||
+    Number(group.protect || 0) === 2 ||
+    ![0, 1, 2].includes(Number(group.state))
+  ) {
+    return null;
+  }
+  return {
+    key: `layerGroupStates.${groupIndex}`,
+    control: "select",
+    value: Number(group.state),
+    options: LAYER_STATE_OPTIONS,
+  };
+}
+
+function layerStateEdit(group, groupIndex, layer, layerIndex) {
+  if (
+    layerIndex === Number(group.write_layer) ||
+    Number(layer.protect || 0) === 2 ||
+    ![0, 1, 2].includes(Number(layer.state))
+  ) {
+    return null;
+  }
+  return {
+    key: `layerStates.${groupIndex}.${layerIndex}`,
+    control: "select",
+    value: Number(layer.state),
+    options: LAYER_STATE_OPTIONS,
+  };
+}
+
+function groupProtectionEdit(group, groupIndex, writeLayerGroup) {
+  if (
+    groupIndex === writeLayerGroup ||
+    ![0, 1, 2].includes(Number(group.protect))
+  ) {
+    return null;
+  }
+  return {
+    key: `layerGroupProtections.${groupIndex}`,
+    control: "select",
+    value: Number(group.protect),
+    options: LAYER_PROTECTION_OPTIONS,
+  };
+}
+
+function layerProtectionEdit(group, groupIndex, layer, layerIndex) {
+  if (
+    layerIndex === Number(group.write_layer) ||
+    ![0, 1, 2].includes(Number(layer.protect))
+  ) {
+    return null;
+  }
+  return {
+    key: `layerProtections.${groupIndex}.${layerIndex}`,
+    control: "select",
+    value: Number(layer.protect),
+    options: LAYER_PROTECTION_OPTIONS,
+  };
 }
 
 function writeLayerEdit(group, groupIndex) {
@@ -505,26 +609,36 @@ function buildDimensionTab(document) {
 
 function buildLayersTab(document) {
   const groups = document.layerGroups || [];
+  const writeLayerGroup = finiteNumber(document.header?.writeLayerGroup, 0);
   const groupRows = groups.map((group, index) => ({
     id: group.id || `group-${index}`,
     cells: [
       String(index),
       group.name || `Group ${index}`,
-      displayNumber(group.state),
-      displayNumber(group.protect),
+      layerStateDescription(group.state),
+      layerProtectionDescription(group.protect),
       displayNumber(group.scale),
       displayNumber(group.write_layer),
     ],
     status: STATUS.STORED,
     source: `layerGroups[${index}]`,
-    edits: { 5: writeLayerEdit(group, index) },
+    edits: {
+      ...(groupStateEdit(group, index, writeLayerGroup)
+        ? { 2: groupStateEdit(group, index, writeLayerGroup) }
+        : {}),
+      ...(groupProtectionEdit(group, index, writeLayerGroup)
+        ? { 3: groupProtectionEdit(group, index, writeLayerGroup) }
+        : {}),
+      5: writeLayerEdit(group, index),
+    },
   }));
   const sections = [
     tableSection(
       "layer-groups",
       "Layer groups",
-      ["No.", "Name", "State code", "Protection code", "Scale", "Write layer"],
-      groupRows
+      ["No.", "Name", "State", "Protection", "Scale", "Write layer"],
+      groupRows,
+      "State and protection meanings follow the official JWW 7.02 format. State editing is limited to non-current rows whose display state is not fixed."
     ),
   ];
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
@@ -533,17 +647,32 @@ function buildLayersTab(document) {
       tableSection(
         `layers-${groupIndex}`,
         `${group.name || `Group ${groupIndex}`} layers`,
-        ["Layer", "Name", "State code", "Protection code"],
+        ["Layer", "Name", "State", "Protection"],
         (group.layers || []).map((layer, layerIndex) => ({
           id: `group-${groupIndex}-layer-${layerIndex}`,
           cells: [
             String(layerIndex),
             layer.name || `${groupIndex}-${layerIndex}`,
-            displayNumber(layer.state),
-            displayNumber(layer.protect),
+            layerStateDescription(layer.state),
+            layerProtectionDescription(layer.protect),
           ],
           status: STATUS.STORED,
           source: `layerGroups[${groupIndex}].layers[${layerIndex}]`,
+          edits: {
+            ...(layerStateEdit(group, groupIndex, layer, layerIndex)
+              ? { 2: layerStateEdit(group, groupIndex, layer, layerIndex) }
+              : {}),
+            ...(layerProtectionEdit(group, groupIndex, layer, layerIndex)
+              ? {
+                  3: layerProtectionEdit(
+                    group,
+                    groupIndex,
+                    layer,
+                    layerIndex
+                  ),
+                }
+              : {}),
+          },
         })),
         groupIndex === finiteNumber(document.header?.writeLayerGroup)
           ? "Current document layer group"
@@ -643,13 +772,17 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
     readOnly: false,
     saveAsOnly: true,
     editContract: {
-      version: 1,
+      version: JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION,
       mode: "native-metadata-safe",
       writablePaths: [
         "header.paperSize",
         "header.writeLayerGroup",
         "layerGroups[].scale",
         "layerGroups[].write_layer",
+        "layerGroups[].state",
+        "layerGroups[].protect",
+        "layerGroups[].layers[].state",
+        "layerGroups[].layers[].protect",
       ],
       managedInvariantPaths: ["layerGroups[].layers[].state"],
     },

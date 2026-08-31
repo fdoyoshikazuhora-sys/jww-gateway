@@ -44,7 +44,7 @@
       </tr>
       <tr>
         <th>Package files</th>
-        <td>114</td>
+        <td>124</td>
       </tr>
       <tr>
         <th>Missing files</th>
@@ -76,20 +76,26 @@
       </tr>
       <tr>
         <th>Open items</th>
-        <td>7</td>
+        <td>1</td>
       </tr>
       <tr>
         <th>Unresolved environment keys</th>
-        <td>LTYPE_HC, LCOLLOR_M</td>
+        <td>none</td>
+      </tr>
+      <tr>
+        <th>JWF-only operation keys</th>
+        <td>LTYPE_HC, LCOLLOR_M, LAYCOL_0, LAYWID_0, LAYTYP_0, LAYCOL_1, LAYWID_1, LAYTYP_1, LAYCOL_2, LAYWID_2, LAYTYP_2, LAYCOL_3, LAYWID_3, LAYTYP_3, LAYCOL_4, LAYWID_4, LAYTYP_4, LAYCOL_5, LAYWID_5, LAYTYP_5, LAYCOL_6, LAYWID_6, LAYTYP_6, LAYCOL_7, LAYWID_7, LAYTYP_7, LAYCOL_8, LAYWID_8, LAYTYP_8, LAYCOL_9, LAYWID_9, LAYTYP_9, LAYCOL_A, LAYWID_A, LAYTYP_A, LAYCOL_B, LAYWID_B, LAYTYP_B, LAYCOL_C, LAYWID_C, LAYTYP_C, LAYCOL_D, LAYWID_D, LAYTYP_D, LAYCOL_E, LAYWID_E, LAYTYP_E, LAYCOL_F, LAYWID_F, LAYTYP_F</td>
       </tr>
     </tbody>
   </table>
   <h2>Notes</h2>
   <ul>
     <li>JWW write is limited to internal versions 600 and 700 and supported entities; unsupported entity types fail by default.</li>
-    <li>Exact compatibility claims require separate Jw_cad reopen/resave evidence.</li>
-    <li>LTYPE_HC and LCOLLOR_M remain unresolved until real files show stable direct matches.</li>
-    <li>Open items include classification, conversion impact, evidence, and release decision fields so sample-blocked research is not mistaken for a release blocker.</li>
+    <li>Jw_cad 10.02.1 reopened and edited a v700 Gateway file containing every supported entity family; the normalized Gateway rewrite was byte-identical before the intended edit.</li>
+    <li>JWW text decoration raw controls, special runs, and segments survive Gateway JSON and native rebuild write paths; visual overprint is a downstream renderer responsibility.</li>
+    <li>LTYPE_HC, LCOLLOR_M, and LAYCOL/LAYWID/LAYTYP_0..F are resolved as JWF-only operation/default settings and are not serialized into JWW.</li>
+    <li>Tilted circles and ellipse arcs expose parameter-preserving render geometry and exact bounds; Jw_cad 10.02.1 reopened and resaved the targeted v700 fixture without drawing differences.</li>
+    <li>Open items include classification, conversion impact, evidence, and release decision fields so old-release runtime evidence is not mistaken for current-version parser loss.</li>
   </ul>
   <h2>File Inventory</h2>
   <table>
@@ -99,43 +105,68 @@
     <tbody>
       <tr>
         <td>JWW_GATEWAY_HANDOFF.md</td>
-        <td>2780</td>
-        <td>ed1f27483c3a2e8a1839f99a53b91c510b34bd6c13635f8c054c60b675cc7a45</td>
+        <td>2871</td>
+        <td>61e2cc6ba3dbe3d7fbf515adbfbbcbd67dfa35c31490bd62db734719dfeb387f</td>
       </tr>
       <tr>
         <td>JWW_GATEWAY_MANIFEST.json</td>
-        <td>14055</td>
-        <td>df62b7dc0d696bab67dd15d2e1846f21203d3987d7cfb61c1406ab1274c8a41f</td>
+        <td>11328</td>
+        <td>fa18d4e2ae02dc6fce86b4c078dfcb3ad242c6574c1752ed09812924591ba4e3</td>
       </tr>
       <tr>
         <td>README.ja.md</td>
-        <td>9975</td>
-        <td>181c6097762e11d2e4471da278fa45258c28514a1013007a2d8b160d141e3a32</td>
+        <td>10288</td>
+        <td>a9724f6c265e07609190dbdd419db09374a1af8310b272b9459375dd474a0dec</td>
       </tr>
       <tr>
         <td>README.md</td>
-        <td>12342</td>
-        <td>b62ac54174a3a18a70c1624f867b0877e40be558bd78f44f226bd53945fe1bec</td>
+        <td>12608</td>
+        <td>39203933ce9570e56af68f671a7ceac20dd5e6304620a44510b947a2bf8eec36</td>
       </tr>
       <tr>
         <td>docs/JWW_GATEWAY_HANDOFF.md</td>
-        <td>2780</td>
-        <td>ed1f27483c3a2e8a1839f99a53b91c510b34bd6c13635f8c054c60b675cc7a45</td>
+        <td>3509</td>
+        <td>29ff9aa15bc709b43604c2c45bd67fb089ff4b091f836abb00de6ae1325e9c04</td>
       </tr>
       <tr>
         <td>docs/JWW_GATEWAY_RELEASE_CHECKLIST.md</td>
-        <td>4008</td>
-        <td>eb8f415bc1074c7afc29068096c3fd1812c6ce4722ade09ab2786428a9b38d29</td>
+        <td>4100</td>
+        <td>28447f63d94e2a14562ee40af8742d7e57363f4b7a3e4fb4c4b2045fdb200949</td>
       </tr>
       <tr>
         <td>docs/JWW_GATEWAY_RELEASE_NOTES.md</td>
-        <td>4150</td>
-        <td>f5a2023d17ffcd1de466eb9eec5625835c30436b355bc08841c4df5f13ef69ba</td>
+        <td>5156</td>
+        <td>ce6baabbaf1c308a614079e7b677211446aca4ed81d509a7800b23b33bf653de</td>
       </tr>
       <tr>
         <td>docs/JWW_GATEWAY_REPORTS.md</td>
-        <td>1921</td>
-        <td>86317b6a390db99df4d14818727e6c4d989e9290dfef4fc23032385f91ea495a</td>
+        <td>2091</td>
+        <td>8a402cfa53b250d8bff547c37cecb77b6b88488e0e47a26075263715a8f79dea</td>
+      </tr>
+      <tr>
+        <td>docs/JWW_ELLIPSE_ARC_EVIDENCE.md</td>
+        <td>2835</td>
+        <td>0d29e2572791fcbb5f4119e6c856c9af6719f6c533441067581654b5eace8b9e</td>
+      </tr>
+      <tr>
+        <td>docs/JWW_WRITE_EVIDENCE.md</td>
+        <td>3595</td>
+        <td>09dcf86be5217263cc084941d4b9899969916172a5b7e3f9d4ec032a12217c29</td>
+      </tr>
+      <tr>
+        <td>docs/JWW_VERSION_CONFORMANCE_EVIDENCE.md</td>
+        <td>5474</td>
+        <td>474cca5ea776382cf07682f683a05f3398c4ca3060ed3bee219940de43fe69ef</td>
+      </tr>
+      <tr>
+        <td>docs/JWW_TEXT_DECORATION_CONTRACT.md</td>
+        <td>1274</td>
+        <td>d7ad002980229d9feef9dcb34095967e646bd242a80a877f099bfab3fd4b8383</td>
+      </tr>
+      <tr>
+        <td>docs/JWW_NATIVE_API.md</td>
+        <td>13181</td>
+        <td>53298619df62d6a7ace0f30f553072aea5919c04167d2ace814eae92f014ac8e</td>
       </tr>
       <tr>
         <td>docs/JWW_GATEWAY_SAMPLE_SETS.example.json</td>
@@ -149,8 +180,8 @@
       </tr>
       <tr>
         <td>docs/JWW_GATEWAY_SPEC.md</td>
-        <td>28819</td>
-        <td>4a7838bd6fbd87d28b691e433ea8254ef653de1ae8b9b000819287bb6fc413a0</td>
+        <td>29057</td>
+        <td>74712ae766cde2267ca268f77ce783d948e615fc1c24a793bfd3fd92f816615e</td>
       </tr>
       <tr>
         <td>docs/JWW_GATEWAY_WINDOWS_COMMANDS.md</td>
@@ -159,8 +190,8 @@
       </tr>
       <tr>
         <td>docs/JWW_JWF_ENV_AUDIT.md</td>
-        <td>52750</td>
-        <td>3a8df41aa8a929bd6d75799431ae97c73f4bc9ddb1ddd6a4c6273b21ecaf64ac</td>
+        <td>54044</td>
+        <td>79c57b98b913a9d6c4094c018be8c719047fab71104e371eddb2cd4e0977b927</td>
       </tr>
       <tr>
         <td>docs/jww-gateway-json.schema.json</td>
@@ -169,8 +200,8 @@
       </tr>
       <tr>
         <td>docs/jww-gateway-manifest.schema.json</td>
-        <td>9990</td>
-        <td>0c4e2e68ec30057539c0f7ac17a666fcbfc9994eb0db3240cb4455228b47c7ca</td>
+        <td>11055</td>
+        <td>c5b0913d0c18e1f137aec4e61da0df512a40baf503896ee0eeb775e1faf3a659</td>
       </tr>
       <tr>
         <td>docs/jww-gateway-sample-sets.schema.json</td>
@@ -314,8 +345,8 @@
       </tr>
       <tr>
         <td>package.json</td>
-        <td>5206</td>
-        <td>88076235d7258c880af07da7d73dc9286f5c41b221914de133ba61f6badb4f68</td>
+        <td>5266</td>
+        <td>bcb1d1fc68c81d7b4e8cfd58e29a66cbac19e4c019659981fbc9d25e57390ac3</td>
       </tr>
       <tr>
         <td>reports/.gitkeep</td>
@@ -324,8 +355,8 @@
       </tr>
       <tr>
         <td>reports/README.md</td>
-        <td>2020</td>
-        <td>807813f2ca4fd179b56c4209cc327f320ec89e6e153ced794896607144849237</td>
+        <td>2044</td>
+        <td>fd7e81381f807ab1870b1590cf0e1e6fda1eec65b5cce648aa7d3d6fb8ad3c68</td>
       </tr>
       <tr>
         <td>samples/roundtrip/README.md</td>
@@ -359,8 +390,18 @@
       </tr>
       <tr>
         <td>src/jww/arcDiagnostics.js</td>
-        <td>3042</td>
-        <td>c103c13096599c32385901ecd9a86820ab079a785adca2dea58a0c801360fb25</td>
+        <td>2894</td>
+        <td>14a37b842242d617e6bccb50910a9086f84f366349821a7a84cd3cfe6a9a419f</td>
+      </tr>
+      <tr>
+        <td>src/jww/arcGeometry.js</td>
+        <td>4456</td>
+        <td>948227f0a08b2f382689da6ffc63abee02f25210a55c4ae31c8a3f306544eff1</td>
+      </tr>
+      <tr>
+        <td>src/jww/arcGeometry.test.js</td>
+        <td>4421</td>
+        <td>4d22708f091366d938a23b5d8e47b12d7df498a24f51bd20b56b23e5b8b2e923</td>
       </tr>
       <tr>
         <td>src/jww/conformance.js</td>
@@ -399,28 +440,28 @@
       </tr>
       <tr>
         <td>src/jww/environment.js</td>
-        <td>10031</td>
-        <td>28f58279302afbbd0d4c5d6ee0410c25758ec1bfa65905d53a75365fa6470304</td>
+        <td>10796</td>
+        <td>117cafee015f5127ba13a67c1b6e63cb060a5653f737bf05231d57846043bdda</td>
       </tr>
       <tr>
         <td>src/jww/environment.test.js</td>
-        <td>4015</td>
-        <td>4dd28e34f54071a02f87786adae63234165999e7f79eb526c0a2413efd80f854</td>
+        <td>4250</td>
+        <td>5efb5c74bc5b15c46848467708a70208a29bbd9bfc69c785b35dc4a084af791a</td>
       </tr>
       <tr>
         <td>src/jww/gatewayManifest.js</td>
-        <td>16777</td>
-        <td>1e9958e599f12f901d27e2a481471b50aeba16379c0176c36402e7a99b530099</td>
+        <td>13309</td>
+        <td>b7ac85298a61a3bd68bc59df40202d90eca25781d3e04c1b99d77aa965a86f8f</td>
       </tr>
       <tr>
         <td>src/jww/gatewayManifest.test.js</td>
-        <td>25328</td>
-        <td>35db996c169b0ed3ca6687d7ac491a7fe9d8d7f21c3600e9cb758a058e916775</td>
+        <td>26917</td>
+        <td>acd7e003f7e84276f069912828cee769d454ccad6c616fc5e575b1e604d29f3a</td>
       </tr>
       <tr>
         <td>src/jww/gatewayPackageFiles.js</td>
-        <td>4021</td>
-        <td>b8e56723fc90d894fe69a7a2e51ececd5b5f98e74974f05ad4c07055c0d9e07c</td>
+        <td>4268</td>
+        <td>29003ab949cb650da56125cddaff96156031e252764a510ba97bed2262da8879</td>
       </tr>
       <tr>
         <td>src/jww/internalSettings.js</td>
@@ -433,19 +474,24 @@
         <td>1089312c4dd22d38ddc203cf20d0b96c967acba7d9f44858ea17c22aa49469f9</td>
       </tr>
       <tr>
+        <td>src/jww/index.js</td>
+        <td>92</td>
+        <td>3e6e6332aad02b5a030db11c56fb4c19b071eba9dc7b9027d3d4c5b269a6bcf9</td>
+      </tr>
+      <tr>
         <td>src/jww/jwf.js</td>
-        <td>22831</td>
-        <td>1ecc9655233bc355b21ffc01c5585630ff737d1acb87ed5ecc3db377cacbdcb0</td>
+        <td>23702</td>
+        <td>bcad3495fffb2b4798b2cdf45025d9d279791187fa7509998a9becdb07198312</td>
       </tr>
       <tr>
         <td>src/jww/jwf.test.js</td>
-        <td>7423</td>
-        <td>a50c3301860047ba5397f3e880717e60f9bc04f93e3104b2994515097e5396f7</td>
+        <td>8004</td>
+        <td>795465c063c4cfa9d758c440f231f95f7e24e3eed3ee62de84ea7003f355aaf0</td>
       </tr>
       <tr>
         <td>src/jww/jwfFixturePairs.test.js</td>
-        <td>3135</td>
-        <td>d466216d0c64c8bb186287dcd8a948ebca84b276167d26a09a6e89f03721f052</td>
+        <td>4143</td>
+        <td>6e830090d3ee155dc839f88a38bd10d6f5309ddbdf4969d28f6794e89d81ad75</td>
       </tr>
       <tr>
         <td>src/jww/jwfValueScan.js</td>
@@ -459,23 +505,33 @@
       </tr>
       <tr>
         <td>src/jww/layerDefaultsSummary.js</td>
-        <td>3596</td>
-        <td>d653fbf2dd22cd045659f2ac00e6aefef2a38074eab0d0e6a71b0c617aa8f0fe</td>
+        <td>3965</td>
+        <td>613c72d7d85cfa48fac88f7281d5149c42784c6fd93f2608b2db1876a3bfc3ec</td>
       </tr>
       <tr>
         <td>src/jww/layerDefaultsSummary.test.js</td>
-        <td>3480</td>
-        <td>e37ea8f4b6dce1aebdc938e85f5159779b96b58c87e76ceddc14536844d85d1e</td>
+        <td>4226</td>
+        <td>020f052c4223bebb702a19096586d3303ebe2b047a4fac339931e38552d51ea6</td>
+      </tr>
+      <tr>
+        <td>src/jww/native.js</td>
+        <td>82458</td>
+        <td>f877ba1292752c14c8d773b5f1d2c092d60996a5e87cbd4b1d0e38a326444ed3</td>
+      </tr>
+      <tr>
+        <td>src/jww/native.test.js</td>
+        <td>86592</td>
+        <td>5132bc553d2d07f622a5ab221ba61c72253198066a39f4c41ca6a123b2b041f5</td>
       </tr>
       <tr>
         <td>src/jww/parser.js</td>
-        <td>36535</td>
-        <td>62454cbbd27310d105ea148e4b3518f0adcac1d670d72244aef96a2d714c26b0</td>
+        <td>48040</td>
+        <td>ca30a601016379bc064cdee6aa3766f1d40af1bc10af4a68bd0185479c6d567f</td>
       </tr>
       <tr>
         <td>src/jww/parser.test.js</td>
-        <td>2982</td>
-        <td>afaf2fcd1042c3f2b5dd6fb044e3f8e54850d4601b83c749607b5f0cb0360f4a</td>
+        <td>4341</td>
+        <td>c4feaa2128f0a2751ec4390e6332baffd4657343f448b24b308cc6f6cd0be7c1</td>
       </tr>
       <tr>
         <td>src/jww/schemaValidator.test.js</td>
@@ -484,13 +540,13 @@
       </tr>
       <tr>
         <td>src/jww/semanticDiff.js</td>
-        <td>10459</td>
-        <td>d3b5f0e34b5b6ed9a572d82e0fe1755f24207ef1a1d3b290d4bbafc138fa8dc5</td>
+        <td>10901</td>
+        <td>5071128be4b100ebd174ed579f97734336c07e2141600ee40027b4e13f55e1a4</td>
       </tr>
       <tr>
         <td>src/jww/semanticDiff.test.js</td>
-        <td>4100</td>
-        <td>394f948da1c59a5bc2d2118baf062c374bd6c68bf71e4f2715e10976cef1e808</td>
+        <td>5159</td>
+        <td>c1c1ca8b16831b90782f3371a84a939947cd3aac117924d2a71f9f89515f6065</td>
       </tr>
       <tr>
         <td>src/jww/shared.js</td>
@@ -519,13 +575,13 @@
       </tr>
       <tr>
         <td>src/jww/writer.js</td>
-        <td>35624</td>
-        <td>1c10402d1bed9563b3661e01b8eed6dad0c3ef583c0e582cae78acd7e29824ef</td>
+        <td>76341</td>
+        <td>c8e4a4d02493029dc16903e9f3d6ccda2281487b59aebe5910a84668918d1d8a</td>
       </tr>
       <tr>
         <td>src/jww/writer.test.js</td>
-        <td>8761</td>
-        <td>90016bf600fae70b20e2377ba7a1da36ba597216aa2367fb3426b1de9d1fbdac</td>
+        <td>41913</td>
+        <td>3012023856c1c0f050c99b5a29f01df37ed49eefb1983b693d1474e860e8e80c</td>
       </tr>
       <tr>
         <td>tools/jwf-parse.mjs</td>
@@ -559,8 +615,8 @@
       </tr>
       <tr>
         <td>tools/jww-diagnostics.mjs</td>
-        <td>34435</td>
-        <td>4ef5cd53270fe017d46f902fcd982ecd18d35c96608d417991c36cbbb138c8ea</td>
+        <td>34495</td>
+        <td>5f69ea2b5eea01d0ab2fdb2aa776a8ae857673826bbd57d785050c784b62cade</td>
       </tr>
       <tr>
         <td>tools/jww-env-scan.mjs</td>
@@ -574,18 +630,18 @@
       </tr>
       <tr>
         <td>tools/jww-gateway-report-index.mjs</td>
-        <td>9544</td>
-        <td>f4c4946e40d5bc59c19fa87b2d4947122118c6e5862f98e024b57a8eff4330a4</td>
+        <td>9576</td>
+        <td>08ddd9f7dfdfbbb9961fe8cd63520de045212694eebc6e0f896d7ea1b036542b</td>
       </tr>
       <tr>
         <td>tools/jww-gateway-smoke.mjs</td>
-        <td>23931</td>
-        <td>d01389a92d1da76781c23c6a6a92be5f84e7d14d5114a0dcd4c7d07fb203ed56</td>
+        <td>25086</td>
+        <td>655ab4a96db9c509d629f8e9183e86097c21233cf4a1d7d70f39ecf6775713d2</td>
       </tr>
       <tr>
         <td>tools/jww-gateway-status.mjs</td>
-        <td>2342</td>
-        <td>11d65df817f347d3c028eafe01f19389ab30a4509653fd9cfff8e685a5b32912</td>
+        <td>2426</td>
+        <td>309a0f993e0c1ecc6e3c4e6b7444b19acd6ca94336a0728e6a3358441d3b5bad</td>
       </tr>
       <tr>
         <td>tools/jww-gateway-verify-report-diff.mjs</td>
@@ -594,33 +650,33 @@
       </tr>
       <tr>
         <td>tools/jww-gateway-verify-report.mjs</td>
-        <td>11871</td>
-        <td>d831c2356b83936526ea47f8555414fee7db5745edc9299dd7aef0bfb9971235</td>
+        <td>12355</td>
+        <td>e7b01917d99d90e0a1c96ea8763220f3b7dec991ce8b53c3ccd24b91fe19bb40</td>
       </tr>
       <tr>
         <td>tools/jww-gateway.mjs</td>
-        <td>18840</td>
-        <td>972a401e2bd590c046a40f0fd782bce5e4856fc4dfea5a1c36e399315426ad8f</td>
+        <td>18781</td>
+        <td>f13377a07993ce42ef5775626592b951a586e0b8c21be54c0e5112d7a23f0800</td>
       </tr>
       <tr>
         <td>tools/jww-jwf-compare.mjs</td>
-        <td>14414</td>
-        <td>bf4ee01329e076da92a8c0db952f06bc4c818525814c81d27452d80b1aafc29d</td>
+        <td>14563</td>
+        <td>a248749e88a89bb7b063d9b4b9d4cd4e26296f8024e180832195cf832855345c</td>
       </tr>
       <tr>
         <td>tools/jww-jwf-value-scan.mjs</td>
-        <td>20453</td>
-        <td>98103a5b274725ed1424cecf3b3a19c5ec799f4c5a554d1e6f05db307d699d83</td>
+        <td>20638</td>
+        <td>9e764d23946725c7504829651a3cfcc73031d7941c478516434ba42260ae0ab8</td>
       </tr>
       <tr>
         <td>tools/jww-layer-defaults-audit.mjs</td>
-        <td>10388</td>
-        <td>bffc6e968707161721324c6ec68db50e66aa67e0dddbf3df99ff03a6d3378e41</td>
+        <td>11459</td>
+        <td>749ca97598441d3968a615e6354c721ae5860b576671e3d667ea7a4427a18d8d</td>
       </tr>
       <tr>
         <td>tools/jww-layer-defaults-summary.mjs</td>
-        <td>8232</td>
-        <td>3bcc840a33fc5f81d6d2c22fcdc1d583e2c1cf5a90073859ad12d1a82279ac16</td>
+        <td>8408</td>
+        <td>ca6013677ad60e539c671c597348dbd433f6b2c9d85df82400736a10be6120c8</td>
       </tr>
       <tr>
         <td>tools/jww-manifest-validate.mjs</td>
@@ -649,8 +705,8 @@
       </tr>
       <tr>
         <td>tools/jww-special-color-summary.mjs</td>
-        <td>10744</td>
-        <td>8403bb108e28e21b895398a8979b8bddc38247a7bf1b43454a8173a89a9e7d68</td>
+        <td>10764</td>
+        <td>c5ee56d6369d29292da6b549cc356fa4b46e7ef0357ed48bf7896e5adec56077</td>
       </tr>
       <tr>
         <td>tools/jww-value-scan-summary.mjs</td>
@@ -664,8 +720,8 @@
       </tr>
       <tr>
         <td>tools/jww-roundtrip-corpus.mjs</td>
-        <td>6361</td>
-        <td>877173218435a81f7c1a9557753264f2a3d641e9722cfb770ad4eace276a5ecb</td>
+        <td>6858</td>
+        <td>129d712750970a696796c03e0045a2b4511ff9e9de2810d6180576536c0ef6b3</td>
       </tr>
     </tbody>
   </table>
