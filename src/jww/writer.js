@@ -487,6 +487,15 @@ function patchTemplateLayerGroupWriteLayers(
           `JWW write layer transition from state ${selectedState} is not verified: ${groupIndex}.${writeLayer}`
         );
       }
+      const selectedProtect = readDwordAt(
+        bytes,
+        layersOffset + writeLayer * 8 + 4
+      );
+      if (selectedProtect !== 0) {
+        throw new Error(
+          `Protected JWW layer cannot become the write layer: ${groupIndex}.${writeLayer}`
+        );
+      }
       writeDwordAt(bytes, layersOffset + previousWriteLayer * 8, 2);
     }
     writeDwordAt(bytes, groupOffset + 4, writeLayer);
@@ -633,7 +642,6 @@ function patchTemplateLayerGroupProtections(
   const bytes = templatePrefix.slice();
   const memoOffset = JWW_HEADER.length + 4;
   const paperOffset = serializedStringEnd(bytes, memoOffset);
-  const writeLayerGroup = readDwordAt(bytes, paperOffset + 4);
   const layerGroupsOffset = paperOffset + 8;
   const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
   protections.forEach((protect, groupIndex) => {
@@ -644,11 +652,6 @@ function patchTemplateLayerGroupProtections(
     }
     const previousProtect = readDwordAt(bytes, groupOffset + 16);
     if (protect === previousProtect) return;
-    if (groupIndex === writeLayerGroup && protect !== 0) {
-      throw new Error(
-        `Current JWW layer group cannot be protected: ${groupIndex}`
-      );
-    }
     writeDwordAt(bytes, groupOffset + 16, protect);
   });
   return bytes;
@@ -668,17 +671,11 @@ function patchTemplateLayerProtections(templatePrefix, layerProtections) {
     if (layersOffset + 16 * 8 > bytes.length) {
       throw new Error(`JWW template prefix ended before layer group ${groupIndex}`);
     }
-    const writeLayer = readDwordAt(bytes, groupOffset + 4);
     row.forEach((protect, layerIndex) => {
       if (protect === null) return;
       const layerOffset = layersOffset + layerIndex * 8;
       const previousProtect = readDwordAt(bytes, layerOffset + 4);
       if (protect === previousProtect) return;
-      if (layerIndex === writeLayer && protect !== 0) {
-        throw new Error(
-          `Current JWW layer cannot be protected: ${groupIndex}.${layerIndex}`
-        );
-      }
       writeDwordAt(bytes, layerOffset + 4, protect);
     });
   });

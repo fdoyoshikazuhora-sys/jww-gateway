@@ -243,17 +243,35 @@ describe("JWW Basic Settings native edits", () => {
     });
   });
 
-  it("rejects nonzero current-row and invalid protection edits before save", async () => {
+  it("saves Jw_cad-proven current-row protection edits by prefix splice", async () => {
     const document = await openNativeJww(fixture());
     const currentGroup = document.header.writeLayerGroup;
-    const currentLayer = document.layerGroups[0].write_layer;
-
-    expect(preflightJwwBasicSettingsSave(document, {
+    const currentLayer = document.layerGroups[currentGroup].write_layer;
+    const prefixEnd = document.preservedRegions.prefix.end;
+    const edits = {
       layerGroupProtections: { [currentGroup]: 1 },
-    })).toMatchObject({ ok: false, willWriteBytes: false });
-    expect(preflightJwwBasicSettingsSave(document, {
-      layerProtections: { [`0.${currentLayer}`]: 2 },
-    })).toMatchObject({ ok: false, willWriteBytes: false });
+      layerProtections: { [`${currentGroup}.${currentLayer}`]: 2 },
+    };
+
+    expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(document, edits);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.layerGroups[currentGroup]).toMatchObject({ state: 3, protect: 1 });
+    expect(reopened.layerGroups[currentGroup].layers[currentLayer]).toMatchObject({
+      state: 3,
+      protect: 2,
+    });
+    expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
+  });
+
+  it("rejects invalid protection edits before save", async () => {
+    const document = await openNativeJww(fixture());
+
     expect(preflightJwwBasicSettingsSave(document, {
       layerGroupProtections: { 1: 3 },
     })).toMatchObject({ ok: false, willWriteBytes: false });
@@ -355,6 +373,75 @@ describe("JWW Basic Settings native edits", () => {
     expect(reopened.layerGroups[previousWriteLayerGroup].state).toBe(2);
     expect(reopened.layerGroups[10].state).toBe(3);
     expect(saved.bytes.slice(prefixEnd)).toEqual(hiddenDocument.originalBytes.slice(prefixEnd));
+  });
+
+  it("moves away from a protected current group and retains its protection", async () => {
+    const sourceDocument = await openNativeJww(fixture());
+    const previousWriteLayerGroup = sourceDocument.header.writeLayerGroup;
+    const protectedDocument = await openNativeJww(
+      withLayerGroupProtection(fixture(), previousWriteLayerGroup, 2)
+    );
+    const targetWriteLayerGroup = previousWriteLayerGroup === 10 ? 9 : 10;
+    const prefixEnd = protectedDocument.preservedRegions.prefix.end;
+
+    expect(preflightJwwBasicSettingsSave(protectedDocument, {
+      writeLayerGroup: targetWriteLayerGroup,
+    })).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(protectedDocument, {
+      writeLayerGroup: targetWriteLayerGroup,
+    });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.layerGroups[previousWriteLayerGroup]).toMatchObject({
+      state: 2,
+      protect: 2,
+    });
+    expect(reopened.layerGroups[targetWriteLayerGroup]).toMatchObject({
+      state: 3,
+      protect: 0,
+    });
+    expect(saved.bytes.slice(prefixEnd)).toEqual(
+      protectedDocument.originalBytes.slice(prefixEnd)
+    );
+  });
+
+  it("moves away from a protected current layer and retains its protection", async () => {
+    const sourceDocument = await openNativeJww(fixture());
+    const groupIndex = sourceDocument.header.writeLayerGroup;
+    const previousWriteLayer = sourceDocument.layerGroups[groupIndex].write_layer;
+    const targetWriteLayer = previousWriteLayer === 7 ? 6 : 7;
+    const protectedDocument = await openNativeJww(
+      withLayerProtection(fixture(), groupIndex, previousWriteLayer, 2)
+    );
+    const prefixEnd = protectedDocument.preservedRegions.prefix.end;
+
+    expect(preflightJwwBasicSettingsSave(protectedDocument, {
+      layerGroupWriteLayers: { [groupIndex]: targetWriteLayer },
+    })).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(protectedDocument, {
+      layerGroupWriteLayers: { [groupIndex]: targetWriteLayer },
+    });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.layerGroups[groupIndex].layers[previousWriteLayer]).toMatchObject({
+      state: 2,
+      protect: 2,
+    });
+    expect(reopened.layerGroups[groupIndex].layers[targetWriteLayer]).toMatchObject({
+      state: 3,
+      protect: 0,
+    });
+    expect(saved.bytes.slice(prefixEnd)).toEqual(
+      protectedDocument.originalBytes.slice(prefixEnd)
+    );
   });
 
   for (const initialState of [0, 1]) {

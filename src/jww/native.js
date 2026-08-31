@@ -575,16 +575,6 @@ function replaceNativeLayerGroup(next, index, patch) {
       `Unsupported JWW layer group protection: ${value.protect}`
     );
   }
-  if (
-    protect !== Number(previous.protect) &&
-    index === Number(next.header?.writeLayerGroup) &&
-    protect !== 0
-  ) {
-    throw nativePatchError(
-      "JWW_NATIVE_METADATA_PATCH_INVALID",
-      `Current JWW layer group cannot be protected: ${index}`
-    );
-  }
   const state = Number(value.state);
   if (state !== Number(previous.state)) {
     const writeLayerGroup = Number(next.header?.writeLayerGroup);
@@ -686,16 +676,6 @@ function replaceNativeLayerGroup(next, index, patch) {
       throw nativePatchError(
         "JWW_NATIVE_METADATA_PATCH_INVALID",
         `Unsupported JWW layer protection: ${index}.${layerIndex}.${revisedLayer.protect}`
-      );
-    }
-    if (
-      revisedProtect !== Number(expectedLayer.protect) &&
-      layerIndex === writeLayer &&
-      revisedProtect !== 0
-    ) {
-      throw nativePatchError(
-        "JWW_NATIVE_METADATA_PATCH_INVALID",
-        `Current JWW layer cannot be protected: ${index}.${layerIndex}`
       );
     }
     const revisedState = Number(revisedLayer.state);

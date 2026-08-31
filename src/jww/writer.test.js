@@ -536,12 +536,39 @@ describe("JWW writer", () => {
     expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
   });
 
-  it("rejects protection codes outside 0..2 and nonzero current-row protection", () => {
+  it("patches Jw_cad-proven current-row protection codes without touching entity bytes", () => {
+    const source = buildJwwBytes({
+      version: 700,
+      entities: [{
+        type: "LINE",
+        entity: { start: { x: 1, y: 2 }, end: { x: 3, y: 4 } },
+      }],
+    });
+    const before = parse(source);
+    const prefixEnd = before.entity_list_offset;
+    const currentGroup = before.write_layer_group;
+    const currentLayer = before.layer_groups[currentGroup].write_layer;
+    const prefix = patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+      layerGroupProtections: { [currentGroup]: 1 },
+      layerProtections: { [`${currentGroup}.${currentLayer}`]: 2 },
+    });
+    const bytes = new Uint8Array(prefix.length + source.length - prefixEnd);
+    bytes.set(prefix, 0);
+    bytes.set(source.slice(prefixEnd), prefix.length);
+    const after = parse(bytes);
+
+    expect(after.layer_groups[currentGroup]).toMatchObject({ state: 3, protect: 1 });
+    expect(after.layer_groups[currentGroup].layers[currentLayer]).toMatchObject({
+      state: 3,
+      protect: 2,
+    });
+    expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
+  });
+
+  it("rejects protection codes outside 0..2", () => {
     const source = buildJwwBytes({ version: 700, entities: [] });
     const parsed = parse(source);
     const prefix = source.slice(0, parsed.entity_list_offset);
-    const currentGroup = parsed.write_layer_group;
-    const currentLayer = parsed.layer_groups[0].write_layer;
     const messageFor = (options) => {
       try {
         patchJwwTemplatePrefixMetadata(prefix, options);
@@ -553,12 +580,6 @@ describe("JWW writer", () => {
 
     expect(messageFor({ layerGroupProtections: { 1: 3 } })).toContain(
       "Unsupported JWW layer protection"
-    );
-    expect(messageFor({ layerGroupProtections: { [currentGroup]: 1 } })).toContain(
-      "Current JWW layer group cannot be protected"
-    );
-    expect(messageFor({ layerProtections: { [`0.${currentLayer}`]: 2 } })).toContain(
-      "Current JWW layer cannot be protected"
     );
   });
 
@@ -647,6 +668,27 @@ describe("JWW writer", () => {
       expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
     });
   }
+
+  it("rejects a protected non-current layer as the write layer", () => {
+    const source = buildJwwBytes({ version: 700, entities: [] });
+    const prefixEnd = parse(source).entity_list_offset;
+    const protectedPrefix = patchJwwTemplatePrefixMetadata(
+      source.slice(0, prefixEnd),
+      { layerProtections: { "0.7": 1 } }
+    );
+    let message = "";
+    try {
+      patchJwwTemplatePrefixMetadata(protectedPrefix, {
+        layerGroupWriteLayers: { 0: 7 },
+      });
+    } catch (error) {
+      message = error?.message || String(error);
+    }
+
+    expect(message).toContain(
+      "Protected JWW layer cannot become the write layer: 0.7"
+    );
+  });
 
   it("rejects unverified current-layer state transitions", () => {
     const source = withLayerState(buildJwwBytes({ version: 700, entities: [] }), 0, 7, 4);

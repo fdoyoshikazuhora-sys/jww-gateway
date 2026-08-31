@@ -110,11 +110,8 @@ function layerStateEdit(group, groupIndex, layer, layerIndex) {
   };
 }
 
-function groupProtectionEdit(group, groupIndex, writeLayerGroup) {
-  if (
-    groupIndex === writeLayerGroup ||
-    ![0, 1, 2].includes(Number(group.protect))
-  ) {
+function groupProtectionEdit(group, groupIndex) {
+  if (![0, 1, 2].includes(Number(group.protect))) {
     return null;
   }
   return {
@@ -125,11 +122,8 @@ function groupProtectionEdit(group, groupIndex, writeLayerGroup) {
   };
 }
 
-function layerProtectionEdit(group, groupIndex, layer, layerIndex) {
-  if (
-    layerIndex === Number(group.write_layer) ||
-    ![0, 1, 2].includes(Number(layer.protect))
-  ) {
+function layerProtectionEdit(groupIndex, layer, layerIndex) {
+  if (![0, 1, 2].includes(Number(layer.protect))) {
     return null;
   }
   return {
@@ -626,8 +620,8 @@ function buildLayersTab(document) {
       ...(groupStateEdit(group, index, writeLayerGroup)
         ? { 2: groupStateEdit(group, index, writeLayerGroup) }
         : {}),
-      ...(groupProtectionEdit(group, index, writeLayerGroup)
-        ? { 3: groupProtectionEdit(group, index, writeLayerGroup) }
+      ...(groupProtectionEdit(group, index)
+        ? { 3: groupProtectionEdit(group, index) }
         : {}),
       5: writeLayerEdit(group, index),
     },
@@ -638,7 +632,7 @@ function buildLayersTab(document) {
       "Layer groups",
       ["No.", "Name", "State", "Protection", "Scale", "Write layer"],
       groupRows,
-      "State and protection meanings follow the official JWW 7.02 format. State editing is limited to non-current rows whose display state is not fixed."
+      "State and protection meanings follow the official JWW 7.02 format. State editing is limited to non-current rows whose display state is not fixed; protection editing also includes current rows."
     ),
   ];
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
@@ -662,10 +656,9 @@ function buildLayersTab(document) {
             ...(layerStateEdit(group, groupIndex, layer, layerIndex)
               ? { 2: layerStateEdit(group, groupIndex, layer, layerIndex) }
               : {}),
-            ...(layerProtectionEdit(group, groupIndex, layer, layerIndex)
+            ...(layerProtectionEdit(groupIndex, layer, layerIndex)
               ? {
                   3: layerProtectionEdit(
-                    group,
                     groupIndex,
                     layer,
                     layerIndex

@@ -321,7 +321,7 @@ function normalizedProtection(value, target) {
   return protect;
 }
 
-function normalizedLayerGroupProtections(document, value, writeLayerGroup) {
+function normalizedLayerGroupProtections(document, value) {
   if (value === undefined) return [];
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw editError(
@@ -346,22 +346,12 @@ function normalizedLayerGroupProtections(document, value, writeLayerGroup) {
       );
     }
     const protect = normalizedProtection(rawProtect, String(index));
-    if (
-      protect !== Number(group.protect) &&
-      index === writeLayerGroup &&
-      protect !== 0
-    ) {
-      throw editError(
-        "JWW_BASIC_SETTINGS_EDIT_INVALID",
-        `Current JWW layer group cannot be protected: ${index}`
-      );
-    }
     rows.push({ index, group, protect });
   }
   return rows.sort((left, right) => left.index - right.index);
 }
 
-function normalizedLayerProtections(document, value, writeLayers) {
+function normalizedLayerProtections(document, value) {
   if (value === undefined) return [];
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw editError(
@@ -392,17 +382,6 @@ function normalizedLayerProtections(document, value, writeLayers) {
       rawProtect,
       `${groupIndex}.${layerIndex}`
     );
-    const writeLayer = writeLayers.get(groupIndex) ?? Number(group.write_layer);
-    if (
-      protect !== Number(layer.protect) &&
-      layerIndex === writeLayer &&
-      protect !== 0
-    ) {
-      throw editError(
-        "JWW_BASIC_SETTINGS_EDIT_INVALID",
-        `Current JWW layer cannot be protected: ${groupIndex}.${layerIndex}`
-      );
-    }
     rows.push({ groupIndex, layerIndex, group, protect });
   }
   return rows.sort(
@@ -482,13 +461,11 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
   );
   const layerGroupProtectionRows = normalizedLayerGroupProtections(
     document,
-    edits.layerGroupProtections,
-    writeLayerGroup
+    edits.layerGroupProtections
   );
   const layerProtectionRows = normalizedLayerProtections(
     document,
-    edits.layerProtections,
-    writeLayers
+    edits.layerProtections
   );
   const layerGroupProtections = new Map(
     layerGroupProtectionRows.map(({ index, protect }) => [index, protect])

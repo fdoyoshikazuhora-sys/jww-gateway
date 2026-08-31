@@ -187,7 +187,10 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(layerGroupRow.cells[2]).toBe("Visible only (1)");
     expect(layerGroupRow.cells[3]).toBe("None (0)");
     expect(layerGroupRow.edits[2]).toBe(undefined);
-    expect(layerGroupRow.edits[3]).toBe(undefined);
+    expect(layerGroupRow.edits[3]).toMatchObject({
+      key: "layerGroupProtections.1",
+      value: 0,
+    });
 
     const nonCurrentGroupRow = projection.tabs
       .find((tab) => tab.id === "layers")
@@ -208,7 +211,10 @@ describe("buildJwwBasicSettingsProjection", () => {
       .sections.find((section) => section.id === "layers-1").rows;
     expect(layerRows[3].cells[2]).toBe("Current (3)");
     expect(layerRows[3].edits[2]).toBe(undefined);
-    expect(layerRows[3].edits[3]).toBe(undefined);
+    expect(layerRows[3].edits[3]).toMatchObject({
+      key: "layerProtections.1.3",
+      value: 0,
+    });
     expect(layerRows[1].cells[2]).toBe("Visible only (1)");
     expect(layerRows[1].edits[2]).toMatchObject({
       key: "layerStates.1.1",
