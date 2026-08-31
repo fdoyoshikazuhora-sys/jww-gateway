@@ -367,6 +367,34 @@ function normalizeLayerGroupScales(value) {
   return scales;
 }
 
+function writeLayerNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const layer = Number(value);
+  if (!Number.isInteger(layer) || layer < 0 || layer > 15) {
+    throw new Error(`Unsupported JWW write layer: ${value}`);
+  }
+  return layer;
+}
+
+function normalizeLayerGroupWriteLayers(value) {
+  if (value === null || value === undefined) return null;
+  const writeLayers = Array(16).fill(null);
+  if (Array.isArray(value)) {
+    value.slice(0, 16).forEach((item, index) => {
+      writeLayers[index] = writeLayerNumber(item);
+    });
+    return writeLayers;
+  }
+  if (typeof value !== "object") {
+    throw new Error("JWW layer group write layers must be an array or object");
+  }
+  Object.entries(value).forEach(([key, item]) => {
+    const index = layerGroupIndex(key);
+    if (index !== null) writeLayers[index] = writeLayerNumber(item);
+  });
+  return writeLayers;
+}
+
 function patchTemplateLayerGroupScales(templatePrefix, layerGroupScales) {
   const scales = normalizeLayerGroupScales(layerGroupScales);
   if (!scales) return templatePrefix;
@@ -386,14 +414,50 @@ function patchTemplateLayerGroupScales(templatePrefix, layerGroupScales) {
   return bytes;
 }
 
+function patchTemplateLayerGroupWriteLayers(
+  templatePrefix,
+  layerGroupWriteLayers
+) {
+  const writeLayers = normalizeLayerGroupWriteLayers(layerGroupWriteLayers);
+  if (!writeLayers) return templatePrefix;
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  writeLayers.forEach((writeLayer, groupIndex) => {
+    if (writeLayer === null) return;
+    const groupOffset = layerGroupsOffset + groupIndex * layerGroupStride;
+    const layersOffset = groupOffset + 20;
+    if (layersOffset + 16 * 8 > bytes.length) {
+      throw new Error(
+        `JWW template prefix ended before layer group ${groupIndex}`
+      );
+    }
+    const previousWriteLayer = readDwordAt(bytes, groupOffset + 4);
+    if (previousWriteLayer >= 0 && previousWriteLayer < 16) {
+      writeDwordAt(bytes, layersOffset + previousWriteLayer * 8, 2);
+    }
+    writeDwordAt(bytes, groupOffset + 4, writeLayer);
+    writeDwordAt(bytes, layersOffset + writeLayer * 8, 3);
+  });
+  return bytes;
+}
+
 export function patchJwwTemplatePrefixMetadata(
   templatePrefix,
-  { paperSize = null, writeLayerGroup = null, layerGroupScales = null } = {}
+  {
+    paperSize = null,
+    writeLayerGroup = null,
+    layerGroupScales = null,
+    layerGroupWriteLayers = null,
+  } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
   bytes = patchTemplatePaperSize(bytes, paperSize);
   bytes = patchTemplateWriteLayerGroup(bytes, writeLayerGroup);
   bytes = patchTemplateLayerGroupScales(bytes, layerGroupScales);
+  bytes = patchTemplateLayerGroupWriteLayers(bytes, layerGroupWriteLayers);
   return bytes;
 }
 
@@ -1064,18 +1128,31 @@ function collectEntities(items = [], options = {}) {
 
 function writePreamble(writer, options = {}) {
   const layerGroupScales = normalizeLayerGroupScales(options.layerGroupScales);
+  const layerGroupWriteLayers = normalizeLayerGroupWriteLayers(
+    options.layerGroupWriteLayers
+  );
   JWW_HEADER.forEach((byte) => writer.byte(byte));
   writer.dword(options.version || DEFAULT_JWW_VERSION);
   writer.utf16String(options.memo || JWW_DEFAULT_MEMO);
   writer.dword(finiteNumber(options.paperSize, 3));
   writer.dword(normalizeLayerNumber(options.writeLayerGroup, 1));
   for (let group = 0; group < 16; group += 1) {
+    const writeLayer = layerGroupWriteLayers?.[group] ?? 0;
     writer.dword(group === 0 ? 1 : 0);
-    writer.dword(0);
+    writer.dword(writeLayer);
     writer.double(layerGroupScales?.[group] ?? (group === 0 ? 50 : 1));
     writer.dword(0);
     for (let layer = 0; layer < 16; layer += 1) {
-      writer.dword(layer === 0 ? 1 : 0);
+      writer.dword(
+        layerGroupWriteLayers?.[group] !== null &&
+          layerGroupWriteLayers?.[group] !== undefined
+          ? layer === writeLayer
+            ? 3
+            : 2
+          : layer === 0
+            ? 1
+            : 0
+      );
       writer.dword(0);
     }
   }
@@ -1732,6 +1809,7 @@ export function buildJwwWriteResult({
   memo = JWW_DEFAULT_MEMO,
   paperSize = null,
   layerGroupScales = null,
+  layerGroupWriteLayers = null,
   templatePrefix = null,
   dxfMeta = {},
   meta = {},
@@ -1779,7 +1857,12 @@ export function buildJwwWriteResult({
               writeLayerGroup,
               writeLayer,
             }),
-        { paperSize, writeLayerGroup, layerGroupScales }
+        {
+          paperSize,
+          writeLayerGroup,
+          layerGroupScales,
+          layerGroupWriteLayers,
+        }
       )
     : null;
   const writer = new BinaryWriter(templateBytes || []);
@@ -1789,6 +1872,7 @@ export function buildJwwWriteResult({
       paperSize: normalizePaperCode(paperSize) ?? 3,
       writeLayerGroup,
       layerGroupScales,
+      layerGroupWriteLayers,
       version: template.version,
     });
   }

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Read-only native JWW Basic Settings inspector" />
+    <meta name="description" content="Native-safe JWW Basic Settings editor" />
     <title>JWW Basic Settings</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -18,7 +18,9 @@
           </div>
         </div>
         <div class="topbar-actions">
-          <span class="read-only-pill">Read only</span>
+          <span class="read-only-pill" id="edit-mode-pill">Native-safe edits</span>
+          <button class="quiet-button" id="reset-button" type="button" disabled>Reset Changes</button>
+          <button class="primary-button" id="save-button" type="button" disabled>Save As JWW</button>
           <button class="primary-button" id="open-button" type="button">Open JWW</button>
           <input id="file-input" type="file" accept=".jww,application/octet-stream" hidden />
         </div>
@@ -41,11 +43,11 @@
         <main class="content" id="content">
           <section class="empty-state" id="empty-state">
             <div class="empty-icon" aria-hidden="true"><span></span><span></span><span></span></div>
-            <p class="eyebrow">Native settings inspector</p>
+            <p class="eyebrow">Native settings editor</p>
             <h2>Open a JWW document</h2>
             <p>Paper, group scales, layers, colors, line types, text observations, dimension fields, print settings and parser diagnostics will appear here.</p>
             <button class="secondary-button" id="empty-open-button" type="button">Choose JWW file</button>
-            <p class="empty-footnote">JWF-only settings are never guessed or applied automatically.</p>
+            <p class="empty-footnote">Only proven JWW metadata fields can be edited. JWF-only settings are never guessed or applied automatically.</p>
           </section>
           <div id="settings-view" hidden></div>
         </main>
@@ -55,7 +57,7 @@
         <span class="status-dot" id="status-dot"></span>
         <span id="status-text">Ready. No file is loaded.</span>
         <span class="status-spacer"></span>
-        <span>No bytes are changed by this app.</span>
+        <span>Save As only. The source JWW is never overwritten.</span>
       </footer>
     </div>
     <script type="module" src="./app.js"></script>

@@ -410,7 +410,7 @@ describe("JWW writer", () => {
     expect(parsed.layer_groups[15].scale).toBe(5);
   });
 
-  it("patches paper, write group, and selected group scales without touching entity bytes", () => {
+  it("patches paper, write group, group scales, and write layers without touching entity bytes", () => {
     const source = buildJwwBytes({
       version: 700,
       paperSize: 2,
@@ -428,6 +428,7 @@ describe("JWW writer", () => {
       paperSize: 3,
       writeLayerGroup: 2,
       layerGroupScales: { 0: 20 },
+      layerGroupWriteLayers: { 0: 6 },
     });
     const bytes = new Uint8Array(prefix.length + source.length - prefixEnd);
     bytes.set(prefix, 0);
@@ -439,6 +440,9 @@ describe("JWW writer", () => {
     expect(after.write_layer_group).toBe(2);
     expect(after.layer_groups[0].scale).toBe(20);
     expect(after.layer_groups[1].scale).toBe(50);
+    expect(after.layer_groups[0].write_layer).toBe(6);
+    expect(after.layer_groups[0].layers[0].state).toBe(2);
+    expect(after.layer_groups[0].layers[6].state).toBe(3);
     expect(bytes.slice(prefix.length)).toEqual(source.slice(prefixEnd));
   });
 

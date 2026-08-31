@@ -1,6 +1,8 @@
+import { JWW_BASIC_SETTINGS_PAPER_OPTIONS } from "./basicSettingsEdits.js";
+
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 1;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 3;
 
 const PAPER_NAMES = Object.freeze({
   0: "A0",
@@ -30,6 +32,22 @@ function displayNumber(value) {
     : number.toLocaleString("en-US", { maximumFractionDigits: 8 });
 }
 
+function layerLabel(index) {
+  return index.toString(16).toUpperCase();
+}
+
+function writeLayerEdit(group, groupIndex) {
+  return {
+    key: `layerGroupWriteLayers.${groupIndex}`,
+    control: "select",
+    value: finiteNumber(group.write_layer, 0),
+    options: (group.layers || []).map((layer, layerIndex) => ({
+      value: layerIndex,
+      label: `${layerLabel(layerIndex)} · ${layer.name || `Layer ${layerLabel(layerIndex)}`}`,
+    })),
+  };
+}
+
 function field({
   id,
   label,
@@ -38,8 +56,9 @@ function field({
   source = "",
   note = "",
   swatch = "",
+  edit = null,
 }) {
-  return { id, label, value, status, source, note, swatch };
+  return { id, label, value, status, source, note, swatch, edit };
 }
 
 function notStoredField(id, label, note) {
@@ -176,6 +195,15 @@ function buildGeneralTab(document, fileName) {
         label: "Current layer group",
         value: displayNumber(header.writeLayerGroup),
         source: "header.writeLayerGroup",
+        edit: {
+          key: "writeLayerGroup",
+          control: "select",
+          value: finiteNumber(header.writeLayerGroup, 0),
+          options: (document.layerGroups || []).map((group, index) => ({
+            value: index,
+            label: `${index} · ${group.name || `Group ${index}`}`,
+          })),
+        },
       }),
     ]),
     fieldsSection(
@@ -230,6 +258,16 @@ function buildPaperScaleTab(document) {
     ],
     status: STATUS.STORED,
     source: `layerGroups[${index}]`,
+    edits: {
+      2: {
+        key: `layerGroupScales.${index}`,
+        control: "number",
+        value: finiteNumber(group.scale, 1),
+        min: Number.MIN_VALUE,
+        step: "any",
+      },
+      3: writeLayerEdit(group, index),
+    },
   }));
   return tab("paper-scale", "Paper & Scale", [
     fieldsSection("paper", "Paper", [
@@ -238,6 +276,12 @@ function buildPaperScaleTab(document) {
         label: "Paper code",
         value: displayNumber(paperCode),
         source: "header.paperSize",
+        edit: {
+          key: "paperSize",
+          control: "select",
+          value: paperCode,
+          options: JWW_BASIC_SETTINGS_PAPER_OPTIONS,
+        },
       }),
       field({
         id: "paper-name",
@@ -473,6 +517,7 @@ function buildLayersTab(document) {
     ],
     status: STATUS.STORED,
     source: `layerGroups[${index}]`,
+    edits: { 5: writeLayerEdit(group, index) },
   }));
   const sections = [
     tableSection(
@@ -571,7 +616,7 @@ function buildDiagnosticsTab(document) {
               source: "diagnostics.preservedUnknownRegions",
             },
           ],
-      "Unknown bytes are reported explicitly. This read-only view never removes them."
+    "Unknown bytes are reported explicitly. Native-safe metadata edits never remove them."
     ),
   ]);
 }
@@ -595,7 +640,19 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
   return {
     format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
     formatVersion: JWW_BASIC_SETTINGS_PROJECTION_VERSION,
-    readOnly: true,
+    readOnly: false,
+    saveAsOnly: true,
+    editContract: {
+      version: 1,
+      mode: "native-metadata-safe",
+      writablePaths: [
+        "header.paperSize",
+        "header.writeLayerGroup",
+        "layerGroups[].scale",
+        "layerGroups[].write_layer",
+      ],
+      managedInvariantPaths: ["layerGroups[].layers[].state"],
+    },
     source: {
       fileName,
       kind: document.kind,

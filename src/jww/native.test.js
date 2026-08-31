@@ -218,10 +218,20 @@ describe("JWW native document API", () => {
     expect(saved.recordIdsChanged).toBe(false);
   });
 
-  it("source-splices native paper, write-group, and layer-group scale metadata", async () => {
+  it("source-splices native paper, write-group, scale, and current-layer metadata", async () => {
     const document = await openNativeJww(fixture(700));
     const header = { ...document.header, paperSize: 3, writeLayerGroup: 2 };
-    const group = { ...document.layerGroups[10], scale: 20 };
+    const previousWriteLayer = Number(document.layerGroups[10].write_layer);
+    const writeLayer = (previousWriteLayer + 6) % 16;
+    const layers = document.layerGroups[10].layers.map((layer) => ({ ...layer }));
+    layers[previousWriteLayer].state = 2;
+    layers[writeLayer].state = 3;
+    const group = {
+      ...document.layerGroups[10],
+      scale: 20,
+      write_layer: writeLayer,
+      layers,
+    };
     const patches = [
       { op: "replace", targetId: document.header.id, record: header },
       { op: "replace", targetId: document.layerGroups[10].id, record: group },
@@ -247,6 +257,9 @@ describe("JWW native document API", () => {
     });
     expect(reopened.header).toMatchObject({ paperSize: 3, writeLayerGroup: 2 });
     expect(reopened.layerGroups[10].scale).toBe(20);
+    expect(reopened.layerGroups[10].write_layer).toBe(writeLayer);
+    expect(reopened.layerGroups[10].layers[previousWriteLayer].state).toBe(2);
+    expect(reopened.layerGroups[10].layers[writeLayer].state).toBe(3);
     expect(saved.bytes.slice(prefixEnd)).toEqual(document.originalBytes.slice(prefixEnd));
   });
 

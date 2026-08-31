@@ -1,9 +1,16 @@
-import { openNativeJww } from "../../src/jww/native.js";
+import { applyNativeJwwPatches, openNativeJww } from "../../src/jww/native.js";
 import { buildJwwBasicSettingsProjection } from "../../src/jww/basicSettingsProjection.js";
+import {
+  preflightJwwBasicSettingsSave,
+  saveJwwBasicSettings,
+} from "../../src/jww/basicSettingsEdits.js";
 
 const elements = {
   openButton: document.querySelector("#open-button"),
   emptyOpenButton: document.querySelector("#empty-open-button"),
+  saveButton: document.querySelector("#save-button"),
+  resetButton: document.querySelector("#reset-button"),
+  editModePill: document.querySelector("#edit-mode-pill"),
   fileInput: document.querySelector("#file-input"),
   sourceName: document.querySelector("#source-name"),
   sourceDetail: document.querySelector("#source-detail"),
@@ -17,6 +24,10 @@ const elements = {
 };
 
 let projection = null;
+let nativeDocument = null;
+let sourceFileName = "";
+let draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+let currentPreflight = null;
 let activeTabId = "general";
 
 function createElement(tagName, className = "", text = "") {
@@ -45,6 +56,72 @@ function statusBadge(status) {
   return badge;
 }
 
+function editableBadge() {
+  return createElement("span", "native-editable-badge", "Native editable");
+}
+
+function draftValue(edit) {
+  const groupFamily = ["layerGroupScales", "layerGroupWriteLayers"].find(
+    (family) => edit.key.startsWith(`${family}.`)
+  );
+  if (groupFamily) {
+    const index = edit.key.slice(groupFamily.length + 1);
+    return Object.hasOwn(draftEdits[groupFamily], index)
+      ? draftEdits[groupFamily][index]
+      : edit.value;
+  }
+  return Object.hasOwn(draftEdits, edit.key) ? draftEdits[edit.key] : edit.value;
+}
+
+function setDraftValue(edit, value, { rerender = true } = {}) {
+  const groupFamily = ["layerGroupScales", "layerGroupWriteLayers"].find(
+    (family) => edit.key.startsWith(`${family}.`)
+  );
+  if (groupFamily) {
+    const index = edit.key.slice(groupFamily.length + 1);
+    draftEdits = {
+      ...draftEdits,
+      [groupFamily]: { ...draftEdits[groupFamily], [index]: value },
+    };
+  } else {
+    draftEdits = { ...draftEdits, [edit.key]: value };
+  }
+  refreshEditState();
+  refreshProjectionFromDraft();
+  renderSourceMetrics();
+  if (rerender) renderActiveTab();
+}
+
+function renderEditControl(edit) {
+  let control;
+  if (edit.control === "select") {
+    control = createElement("select", "native-edit-control");
+    for (const option of edit.options || []) {
+      const item = createElement("option", "", option.label);
+      item.value = String(option.value);
+      control.append(item);
+    }
+  } else {
+    control = createElement("input", "native-edit-control");
+    control.type = "number";
+    if (edit.min !== undefined) control.min = String(edit.min);
+    if (edit.step !== undefined) control.step = String(edit.step);
+  }
+  control.value = String(draftValue(edit) ?? "");
+  control.dataset.editKey = edit.key;
+  control.setAttribute("aria-label", edit.key);
+  control.addEventListener("change", () => setDraftValue(edit, control.value));
+  if (edit.control === "number") {
+    control.addEventListener("input", () =>
+      setDraftValue(edit, control.value, { rerender: false })
+    );
+    control.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") control.blur();
+    });
+  }
+  return control;
+}
+
 function sourceLine(source, note = "") {
   const wrapper = createElement("div", "row-meta");
   if (source) wrapper.append(createElement("code", "source-path", source));
@@ -64,9 +141,11 @@ function renderFieldRow(row) {
     swatch.title = row.swatch;
     value.append(swatch);
   }
-  value.append(createElement("span", "value-text", row.value));
+  if (row.edit) value.append(renderEditControl(row.edit));
+  else value.append(createElement("span", "value-text", row.value));
   const provenance = createElement("div", "setting-provenance");
   provenance.append(statusBadge(row.status));
+  if (row.edit) provenance.append(editableBadge());
   item.append(identity, value, provenance);
   return item;
 }
@@ -89,11 +168,14 @@ function renderTable(section) {
         swatch.style.backgroundColor = row.swatch;
         dataCell.append(swatch);
       }
-      dataCell.append(document.createTextNode(String(cell)));
+      const edit = row.edits?.[index];
+      if (edit) dataCell.append(renderEditControl(edit));
+      else dataCell.append(document.createTextNode(String(cell)));
       tableRow.append(dataCell);
     });
     const sourceCell = createElement("td", "table-source");
     sourceCell.append(statusBadge(row.status));
+    if (row.edits && Object.keys(row.edits).length) sourceCell.append(editableBadge());
     if (row.source) sourceCell.append(createElement("code", "source-path", row.source));
     tableRow.append(sourceCell);
     body.append(tableRow);
@@ -126,7 +208,7 @@ function renderActiveTab() {
   const copy = createElement("div");
   copy.append(createElement("p", "eyebrow", "JWW native document"));
   copy.append(createElement("h2", "", tab.label));
-  header.append(copy, createElement("span", "projection-pill", "Projection only"));
+  header.append(copy, createElement("span", "projection-pill", "Native-safe edit scope"));
   elements.settingsView.append(header);
   const grid = createElement("div", "card-grid");
   for (const section of tab.sections) grid.append(renderSection(section));
@@ -168,17 +250,76 @@ function metric(label, value, tone = "") {
   return wrapper;
 }
 
+function renderSourceMetrics() {
+  if (!projection) {
+    elements.sourceMetrics.replaceChildren();
+    return;
+  }
+  const source = projection.source;
+  const saveState = !currentPreflight?.ok
+    ? "Blocked"
+    : currentPreflight.patchCount
+      ? "Ready"
+      : "Unchanged";
+  elements.sourceMetrics.replaceChildren(
+    metric("Version", source.version),
+    metric("Size", formatBytes(source.byteLength)),
+    metric("Parse", source.clean ? "Clean" : "Review", source.clean ? "good" : "warn"),
+    metric("Save", saveState, saveState === "Ready" ? "good" : saveState === "Blocked" ? "warn" : "")
+  );
+}
+
+function refreshEditState() {
+  if (!nativeDocument) {
+    currentPreflight = null;
+    elements.saveButton.disabled = true;
+    elements.resetButton.disabled = true;
+    elements.editModePill.textContent = "Native-safe edits";
+    elements.editModePill.dataset.state = "idle";
+    return;
+  }
+  currentPreflight = preflightJwwBasicSettingsSave(nativeDocument, draftEdits);
+  const hasChanges = currentPreflight.patchCount > 0;
+  elements.saveButton.disabled = !hasChanges || !currentPreflight.ok;
+  elements.resetButton.disabled = !hasChanges;
+  elements.editModePill.textContent = !currentPreflight.ok
+    ? "Save blocked"
+    : hasChanges
+      ? `Ready · ${currentPreflight.strategy}`
+      : "Native-safe edits";
+  elements.editModePill.dataset.state = !currentPreflight.ok
+    ? "blocked"
+    : hasChanges
+      ? "ready"
+      : "idle";
+  if (!currentPreflight.ok) {
+    setStatus(currentPreflight.reasons.join("; "), "error");
+  } else if (hasChanges) {
+    setStatus(
+      `${currentPreflight.patchCount} native metadata change${currentPreflight.patchCount === 1 ? "" : "s"} ready for Save As (${currentPreflight.strategy}).`,
+      "ready"
+    );
+  }
+}
+
+function refreshProjectionFromDraft() {
+  if (!nativeDocument) return;
+  const previewDocument = currentPreflight?.ok && currentPreflight.patchCount
+    ? applyNativeJwwPatches(nativeDocument, currentPreflight.patches)
+    : nativeDocument;
+  projection = buildJwwBasicSettingsProjection(previewDocument, {
+    fileName: sourceFileName,
+  });
+}
+
 function renderProjection() {
   const source = projection.source;
   elements.emptyState.hidden = true;
   elements.settingsView.hidden = false;
   elements.sourceName.textContent = source.fileName || "Local JWW file";
   elements.sourceDetail.textContent = source.sha256 ? `SHA-256 ${source.sha256}` : "SHA-256 unavailable";
-  elements.sourceMetrics.replaceChildren(
-    metric("Version", source.version),
-    metric("Size", formatBytes(source.byteLength)),
-    metric("Parse", source.clean ? "Clean" : "Review", source.clean ? "good" : "warn")
-  );
+  refreshEditState();
+  renderSourceMetrics();
   activeTabId = "general";
   renderTabs();
   renderLegend();
@@ -191,17 +332,23 @@ async function loadFile(file) {
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (!bytes.length) throw new Error("The selected file is empty.");
-    const nativeDocument = await openNativeJww(bytes, {
+    nativeDocument = await openNativeJww(bytes, {
       sourceName: file.name,
       fileName: file.name,
       lastModified: file.lastModified,
     });
     if (!nativeDocument.version) throw new Error("The selected file is not a supported JWW document.");
+    sourceFileName = file.name;
+    draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
     projection = buildJwwBasicSettingsProjection(nativeDocument, { fileName: file.name });
     renderProjection();
-    setStatus(`Loaded ${file.name} as a read-only native settings projection.`, projection.source.clean ? "ready" : "warning");
+    setStatus(`Loaded ${file.name}. Only proven native metadata fields are editable.`, projection.source.clean ? "ready" : "warning");
   } catch (error) {
     projection = null;
+    nativeDocument = null;
+    sourceFileName = "";
+    draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+    refreshEditState();
     elements.settingsView.hidden = true;
     elements.emptyState.hidden = false;
     elements.sourceName.textContent = "JWW file could not be opened";
@@ -215,9 +362,70 @@ async function loadFile(file) {
   }
 }
 
+function suggestedSaveName(fileName) {
+  const base = String(fileName || "drawing.jww").replace(/\.jww$/i, "");
+  return `${base}-basic-settings.jww`;
+}
+
+function downloadJww(bytes, fileName) {
+  const blob = new Blob([bytes], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function resetChanges() {
+  if (!nativeDocument) return;
+  draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+  refreshEditState();
+  refreshProjectionFromDraft();
+  renderSourceMetrics();
+  renderActiveTab();
+  setStatus("Native metadata changes were reset. The source JWW remains unchanged.", "ready");
+}
+
+function saveAsJww() {
+  if (!nativeDocument) return;
+  const preflight = preflightJwwBasicSettingsSave(nativeDocument, draftEdits);
+  if (!preflight.ok || preflight.patchCount === 0) {
+    setStatus(
+      preflight.reasons?.join("; ") || "There are no changes to save.",
+      preflight.ok ? "warning" : "error"
+    );
+    return;
+  }
+  setStatus(`Preparing native JWW with ${preflight.strategy}…`, "working");
+  try {
+    const saved = saveJwwBasicSettings(nativeDocument, draftEdits);
+    if (!saved.bytes.length) throw new Error("Gateway produced an empty JWW output.");
+    const fileName = suggestedSaveName(sourceFileName);
+    downloadJww(saved.bytes, fileName);
+    nativeDocument = saved.document;
+    sourceFileName = fileName;
+    draftEdits = { layerGroupScales: {}, layerGroupWriteLayers: {} };
+    projection = buildJwwBasicSettingsProjection(nativeDocument, { fileName });
+    renderProjection();
+    setStatus(
+      `Saved ${fileName} (${formatBytes(saved.bytes.length)}) using ${saved.strategy}. The source file was not overwritten.`,
+      "ready"
+    );
+  } catch (error) {
+    setStatus(error?.message || "Save As failed.", "error");
+    refreshEditState();
+    renderSourceMetrics();
+  }
+}
+
 function requestFile() { elements.fileInput.click(); }
 elements.openButton.addEventListener("click", requestFile);
 elements.emptyOpenButton.addEventListener("click", requestFile);
+elements.saveButton.addEventListener("click", saveAsJww);
+elements.resetButton.addEventListener("click", resetChanges);
 elements.fileInput.addEventListener("change", () => loadFile(elements.fileInput.files?.[0]));
 document.addEventListener("dragover", (event) => { event.preventDefault(); document.body.classList.add("dragging"); });
 document.addEventListener("dragleave", (event) => { if (!event.relatedTarget) document.body.classList.remove("dragging"); });

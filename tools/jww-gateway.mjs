@@ -473,8 +473,8 @@ export function convertJwwBytes(bytes, options = {}) {
     )
   ).sort((a, b) => Number(a) - Number(b));
   const paperSize =
-    inferJwwPaperSizeNameFromEntities(rawEntities) ||
     getJwwPaperSizeName(doc.paper_size) ||
+    inferJwwPaperSizeNameFromEntities(rawEntities) ||
     null;
   const jwwEnvironment = buildJwwEnvironment(doc);
 

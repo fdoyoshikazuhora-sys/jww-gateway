@@ -528,7 +528,7 @@ function replaceNativeLayerGroup(next, index, patch) {
   rejectChangedMetadataFields(
     previous,
     value,
-    new Set(["scale"]),
+    new Set(["scale", "write_layer", "layers"]),
     previous.id
   );
   const scale = Number(value.scale);
@@ -538,7 +538,54 @@ function replaceNativeLayerGroup(next, index, patch) {
       `Unsupported JWW layer group scale: ${value.scale}`
     );
   }
-  next.layerGroups[index] = { ...previous, scale };
+  const writeLayer = Number(value.write_layer);
+  if (!Number.isInteger(writeLayer) || writeLayer < 0 || writeLayer > 15) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `Unsupported JWW layer group write layer: ${value.write_layer}`
+    );
+  }
+  if (!Array.isArray(value.layers) || value.layers.length !== previous.layers.length) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `JWW layer metadata count cannot change: ${previous.id}`
+    );
+  }
+  const expectedLayers = cloneValue(previous.layers);
+  if (writeLayer !== Number(previous.write_layer)) {
+    if (
+      Number(previous.protect || 0) !== 0 ||
+      Number(previous.layers[writeLayer]?.protect || 0) !== 0
+    ) {
+      throw nativePatchError(
+        "JWW_NATIVE_METADATA_PATCH_INVALID",
+        `Protected JWW layer group or layer cannot become the write layer: ${previous.id}.${writeLayer}`
+      );
+    }
+    const previousWriteLayer = Number(previous.write_layer);
+    if (Number.isInteger(previousWriteLayer) && expectedLayers[previousWriteLayer]) {
+      expectedLayers[previousWriteLayer] = {
+        ...expectedLayers[previousWriteLayer],
+        state: 2,
+      };
+    }
+    expectedLayers[writeLayer] = {
+      ...expectedLayers[writeLayer],
+      state: 3,
+    };
+  }
+  if (!sameNativeMetadataValue(value.layers, expectedLayers)) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED",
+      `JWW native layer states must match the write-layer transition: ${previous.id}`
+    );
+  }
+  next.layerGroups[index] = {
+    ...previous,
+    scale,
+    write_layer: writeLayer,
+    layers: expectedLayers,
+  };
 }
 
 function replaceBlockDefinition(next, index, patch) {
@@ -1487,6 +1534,9 @@ function nativeRebuildWriteOptions(
     layerGroupScales: (revised.layerGroups || []).map((group) =>
       Number(group?.scale || 1)
     ),
+    layerGroupWriteLayers: (revised.layerGroups || []).map((group) =>
+      Number(group?.write_layer || 0)
+    ),
     templatePrefix: document.originalBytes.slice(0, prefixEnd),
     meta: {
       jwwBlockDefinitions: revised.blockDefinitions.map((definition) =>
@@ -1605,9 +1655,13 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
     return { ok: false, reason: "JWW native prefix source span is unavailable" };
   }
   const layerGroupScales = Array(16).fill(null);
+  const layerGroupWriteLayers = Array(16).fill(null);
   for (let index = 0; index < revised.layerGroups.length; index += 1) {
     const group = revised.layerGroups[index];
-    if (targetIdSet.has(group.id)) layerGroupScales[index] = group.scale;
+    if (targetIdSet.has(group.id)) {
+      layerGroupScales[index] = group.scale;
+      layerGroupWriteLayers[index] = group.write_layer;
+    }
   }
   let bytes;
   try {
@@ -1621,6 +1675,7 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
           ? revised.header.writeLayerGroup
           : null,
         layerGroupScales,
+        layerGroupWriteLayers,
       }
     );
   } catch (error) {
@@ -1725,12 +1780,15 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
   }
   for (let index = 0; index < revisedDocument.layerGroups.length; index += 1) {
     const revisedGroup = revisedDocument.layerGroups[index];
-    if (
-      targetIdSet.has(revisedGroup.id) &&
-      savedDocument.layerGroups[index]?.scale !== revisedGroup.scale
-    ) {
+    if (!targetIdSet.has(revisedGroup.id)) continue;
+    const savedGroup = savedDocument.layerGroups[index];
+    const metadataMatches =
+      savedGroup?.scale === revisedGroup.scale &&
+      savedGroup?.write_layer === revisedGroup.write_layer &&
+      sameNativeMetadataValue(savedGroup?.layers, revisedGroup.layers);
+    if (!metadataMatches) {
       const error = new Error(
-        `Saved JWW layer group scale was not retained after reparse: ${revisedGroup.id}`
+        `Saved JWW layer group metadata was not retained after reparse: ${revisedGroup.id}`
       );
       error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
       throw error;

@@ -32,10 +32,13 @@ may renumber records that move to a different serialized-list position.
 
 Fixed prefix metadata also has stable patch targets: `header.id` is
 `jww:header`, and each layer group has `id: jww:layer-group:<index>`. A
-`replace` patch may change `header.paperSize`, `header.writeLayerGroup`, or a
-layer group's `scale`. These fields use a fixed-length `prefix-splice`; entity,
-block, embedded-image, unknown, and trailing byte regions remain unchanged.
-Header version/memo and other layer-group fields return
+`replace` patch may change `header.paperSize`, `header.writeLayerGroup`, a
+layer group's `scale`, or its `write_layer` together with the required layer
+state transition. Jw_cad 10.02.1 evidence shows that changing `write_layer`
+sets the previous write layer state to `2` and the selected layer state to `3`.
+These fields use a fixed-length `prefix-splice`; entity, block, embedded-image,
+unknown, and trailing byte regions remain unchanged. Protected groups/layers
+are rejected. Header version/memo and other layer-group fields return
 `JWW_NATIVE_METADATA_STRUCTURE_CHANGE_UNSUPPORTED` instead of being silently
 rebuilt.
 

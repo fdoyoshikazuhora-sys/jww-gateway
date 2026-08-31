@@ -24,7 +24,7 @@ function nativeDocument() {
       protect: 0,
       scale: groupIndex ? 50 : 100,
       write_layer: groupIndex ? 3 : 0,
-      layers: Array.from({ length: 2 }, (_, layerIndex) => ({
+      layers: Array.from({ length: 16 }, (_, layerIndex) => ({
         name: `Layer ${groupIndex}-${layerIndex}`,
         state: layerIndex,
         protect: 0,
@@ -100,15 +100,26 @@ function fields(projection) {
 }
 
 describe("buildJwwBasicSettingsProjection", () => {
-  it("maps native JWW settings into an English read-only child-app contract", () => {
+  it("maps native JWW settings into an English native-safe child-app contract", () => {
     const projection = buildJwwBasicSettingsProjection(nativeDocument(), {
       fileName: "fixture.jww",
     });
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 1,
-      readOnly: true,
+      formatVersion: 3,
+      readOnly: false,
+      saveAsOnly: true,
+      editContract: {
+        mode: "native-metadata-safe",
+        writablePaths: [
+          "header.paperSize",
+          "header.writeLayerGroup",
+          "layerGroups[].scale",
+          "layerGroups[].write_layer",
+        ],
+        managedInvariantPaths: ["layerGroups[].layers[].state"],
+      },
       source: {
         fileName: "fixture.jww",
         kind: "jww-native",
@@ -136,6 +147,38 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(byId.background.value).toContain("#FFFFFF");
     expect(byId["text-fonts"].value).toBe("MS Gothic");
     expect(byId["dimension-count"].value).toBe("1");
+    expect(byId["write-group"].edit).toMatchObject({
+      key: "writeLayerGroup",
+      control: "select",
+      value: 1,
+    });
+    expect(byId["paper-code"].edit).toMatchObject({
+      key: "paperSize",
+      control: "select",
+      value: 3,
+    });
+    const scaleRow = projection.tabs
+      .find((tab) => tab.id === "paper-scale")
+      .sections.find((section) => section.id === "group-scales")
+      .rows[1];
+    expect(scaleRow.edits[2]).toMatchObject({
+      key: "layerGroupScales.1",
+      control: "number",
+      value: 50,
+    });
+    expect(scaleRow.edits[3]).toMatchObject({
+      key: "layerGroupWriteLayers.1",
+      control: "select",
+      value: 3,
+    });
+    const layerGroupRow = projection.tabs
+      .find((tab) => tab.id === "layers")
+      .sections.find((section) => section.id === "layer-groups")
+      .rows[1];
+    expect(layerGroupRow.edits[5]).toMatchObject({
+      key: "layerGroupWriteLayers.1",
+      value: 3,
+    });
   });
 
   it("marks JWF-only settings as absent instead of inventing JWW values", () => {

@@ -57,7 +57,7 @@ async function main() {
   const server = createBasicSettingsAppServer();
   server.listen(options.port, options.host, () => {
     console.log(`JWW Basic Settings: http://${options.host}:${options.port}${defaultPath}`);
-    console.log("Read-only local server. Press Ctrl+C to stop.");
+  console.log("Local static server. Press Ctrl+C to stop.");
   });
 }
 
