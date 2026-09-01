@@ -5,7 +5,10 @@ function finiteCount(value) {
 
 function inferRawEntityType(value = {}) {
   if (value.dimension_line) return "DIMENSION";
-  if ("content" in value) return "TEXT";
+  if ("content" in value) {
+    const content = String(value.raw_content ?? value.content ?? "");
+    return /^\^@BM/i.test(content) ? "IMAGE" : "TEXT";
+  }
   if ("point1_x" in value) return "SOLID";
   if ("center_x" in value) return value.is_full_circle ? "CIRCLE" : "ARC";
   if ("ref_x" in value && "def_number" in value) return "BLOCK";

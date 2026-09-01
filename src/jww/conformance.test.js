@@ -35,6 +35,25 @@ describe("JWW conformance assessment", () => {
     expect(result.skippedCount).toBe(1);
   });
 
+  it("reports external image-reference text as IMAGE", () => {
+    const result = assessParsedJww({
+      version: 600,
+      entities: [
+        {
+          value: {
+            content: "^@BMimage.bmp,200,85.1752",
+            raw_content: "^@BMimage.bmp,200,85.1752",
+          },
+        },
+        { value: { content: "ordinary text" } },
+      ],
+      diagnostics: { unsupportedCount: 0, skippedCount: 0 },
+    });
+
+    expect(result.entityTypes).toEqual({ IMAGE: 1, TEXT: 1 });
+    expect(result.readAssessment).toBe("parsed-without-reported-loss");
+  });
+
   it("reports an unresolved entity-list boundary as parser loss", () => {
     const result = assessParsedJww({
       version: 600,

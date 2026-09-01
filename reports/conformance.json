@@ -1,7 +1,7 @@
 {
   "format": "jww-gateway-conformance-report",
   "formatVersion": 1,
-  "generatedAt": "2026-09-01T13:15:33.060Z",
+  "generatedAt": "2026-09-01T13:34:23.549Z",
   "scope": {
     "read": "parser diagnostics only",
     "write": "separate bounded writer",

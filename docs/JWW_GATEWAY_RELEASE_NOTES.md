@@ -22,6 +22,9 @@ diagnostics, JWF comparison, and package handoff verification.
   Jw_cad-normalized Gateway rewrite was byte-identical before the intended
   point edit; see `JWW_WRITE_EVIDENCE.md`.
 - Generated entity-family round-trip corpus: seven v600 and eight v700 fixtures with parser-clean drawing and document semantic gates.
+- Conformance reports classify `^@BM...` external image-reference records as
+  `IMAGE`, matching the native Open contract instead of counting them as
+  ordinary `TEXT` records.
 - Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities pass
   parser-clean Gateway template rewrites with drawing/document semantic equality.
   Public copies independently retrieved from the `KEINOS/Jw_cad-for-Mac`
