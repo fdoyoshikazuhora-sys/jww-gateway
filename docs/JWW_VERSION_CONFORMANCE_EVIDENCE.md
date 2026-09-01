@@ -43,6 +43,16 @@ Version 6.00 data-format change on 2007-11-05 and Version 6.01 on 2008-01-03:
 provenance for the installed samples, but a packaged timestamp is not a
 substitute for running the old 6.x executable itself.
 
+On 2026-09-01, the same fifteen files were retrieved independently from the
+public `KEINOS/Jw_cad-for-Mac` Jw_cad 7.11 bundle on GitHub:
+<https://github.com/KEINOS/Jw_cad-for-Mac>. Every public file
+matched the corresponding local installed sample byte-for-byte by file name,
+size, and SHA-256. A separate Gateway conformance scan again identified all
+fifteen as internal version 600 with zero unsupported and zero skipped records.
+This makes the installed-sample baseline publicly reproducible; it does not
+make the standard samples independently authored and does not add DIMENSION,
+BLOCK/INSERT, or IMAGE coverage.
+
 All fifteen installed v600 samples were converted to Gateway JSON and rewritten
 with their own source file as the template into an isolated output directory.
 Every output was non-empty, parser-clean, drawing-semantic equal, and supported-
@@ -71,6 +81,7 @@ The isolated evidence is under:
 ```text
 .work/native-jww-open/version-conformance-jwcad-install-20260830.json
 .work/e2e-jww/jwcad-install-all-v600-roundtrip-20260830
+.work/native-jww-open/independent-v600/github-keinos-standard-20260901/conformance.json
 ```
 
 ## Generated v600 evidence
@@ -157,7 +168,7 @@ The isolated evidence is under:
 The remaining `jww-version-conformance` item is now limited to evidence that
 is not supplied by the generated fixtures or the available installed samples:
 
-1. non-private, independently sourced v600 files containing native DIMENSION,
+1. non-private, independently authored v600 files containing native DIMENSION,
    BLOCK/INSERT, and IMAGE records; and
 2. equivalent evidence for any additional Jw_cad release for which compatibility
    is claimed.

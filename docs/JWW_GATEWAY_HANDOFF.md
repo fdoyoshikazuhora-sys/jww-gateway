@@ -71,7 +71,11 @@ The open-items report classifies each item by status, class, conversion impact, 
 - JWW write is limited to internal versions 600 and 700 and supported entities.
   Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse
   cleanly and survive Gateway template rewrites with drawing/document semantic
-  equality. Jw_cad 10.02.1 opened, edited, saved, and reopened a representative
+  equality. All fifteen are byte-identical to files independently retrieved
+  from the public `KEINOS/Jw_cad-for-Mac` GitHub mirror, making this standard-
+  sample baseline publicly reproducible without adding independently authored
+  DIMENSION/BLOCK/IMAGE coverage. Jw_cad 10.02.1 opened, edited, saved, and
+  reopened a representative
   output; Gateway then reproduced that saved v700 file byte-for-byte. Jw_cad
   6.20 also opened, separately saved, and reopened generated v600 DIMENSION,
   BLOCK/INSERT, and external IMAGE-reference fixtures; the recorded Save As

@@ -24,6 +24,10 @@ diagnostics, JWF comparison, and package handoff verification.
 - Generated entity-family round-trip corpus: seven v600 and eight v700 fixtures with parser-clean drawing and document semantic gates.
 - Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities pass
   parser-clean Gateway template rewrites with drawing/document semantic equality.
+  Public copies independently retrieved from the `KEINOS/Jw_cad-for-Mac`
+  GitHub mirror are byte-identical to all fifteen installed files and parse as
+  v600 with zero unsupported or skipped records. They are the same standard
+  samples and do not close the independently authored DIMENSION/BLOCK/IMAGE gate.
   Jw_cad 10.02.1 opened, edited, saved, and reopened a representative output;
   Gateway then reproduced the saved v700 file byte-for-byte.
 - Jw_cad 6.20 in a dedicated VM opened, separately saved, and reopened the

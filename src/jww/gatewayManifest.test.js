@@ -208,6 +208,10 @@ describe("JWW Gateway package manifest", () => {
     expect(
       manifest.openItems.find((item) => item.id === "jww-version-conformance")
         ?.detail
+    ).toContain("public GitHub mirror");
+    expect(
+      manifest.openItems.find((item) => item.id === "jww-version-conformance")
+        ?.detail
     ).toContain("one LINE");
     expect(manifest.packageFiles).toContain(
       "docs/JWW_VERSION_CONFORMANCE_EVIDENCE.md"
