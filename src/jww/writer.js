@@ -4,6 +4,12 @@ import {
   normalizeJwwColorSettingsRecord,
 } from "./colorSettings.js";
 import { normalizeJwwGridSettings } from "./gridSettings.js";
+import {
+  hasOfficialJwwLineTypeSettingsLayout,
+  JWW_LINE_TYPE_ROW_DEFINITIONS,
+  JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH,
+  normalizeJwwLineTypeSettingsRecord,
+} from "./lineTypeSettings.js";
 import { parse } from "./parser.js";
 
 const JWW_HEADER = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
@@ -995,6 +1001,58 @@ function patchTemplateColorSettings(templatePrefix, colorSettings) {
   return bytes;
 }
 
+function assertOfficialLineTypeSourceBytes(bytes, start) {
+  if (
+    start < 0 ||
+    start + JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH > bytes.length
+  ) {
+    throw new Error("JWW template prefix ended before the line type settings fields");
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let cursor = start;
+  for (const definition of JWW_LINE_TYPE_ROW_DEFINITIONS) {
+    cursor += 4;
+    for (const field of definition.fields) {
+      const value = view.getUint32(cursor, true);
+      if (value < field.minimum || value > field.maximum) {
+        throw new Error(
+          `JWW line type source span is outside the verified ${field.key} range: ${definition.key}.${value}`
+        );
+      }
+      cursor += 4;
+    }
+  }
+  if (cursor - start !== JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH) {
+    throw new Error("JWW line type source span length is not 292 bytes");
+  }
+}
+
+function patchTemplateLineTypeSettings(templatePrefix, lineTypeSettings) {
+  if (lineTypeSettings === null || lineTypeSettings === undefined) {
+    return templatePrefix;
+  }
+  if (!hasOfficialJwwLineTypeSettingsLayout(lineTypeSettings)) {
+    throw new Error(
+      "JWW line type settings require the verified official 292-byte source span"
+    );
+  }
+  const settings = normalizeJwwLineTypeSettingsRecord(lineTypeSettings);
+  const bytes = templatePrefix.slice();
+  const start = Number(settings.sourceSpan.start);
+  assertOfficialLineTypeSourceBytes(bytes, start);
+  let cursor = start;
+  for (const definition of JWW_LINE_TYPE_ROW_DEFINITIONS) {
+    const row = settings.rows[definition.key];
+    writeDwordAt(bytes, cursor, Number.parseInt(row.pattern, 16));
+    cursor += 4;
+    for (const field of definition.fields) {
+      writeDwordAt(bytes, cursor, row[field.key]);
+      cursor += 4;
+    }
+  }
+  return bytes;
+}
+
 export function patchJwwTemplatePrefixMetadata(
   templatePrefix,
   {
@@ -1011,11 +1069,13 @@ export function patchJwwTemplatePrefixMetadata(
     printSettings = null,
     gridSettings = null,
     colorSettings = null,
+    lineTypeSettings = null,
   } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
-  // Color offsets are source spans from the original prefix. Apply this
-  // fixed-width patch before a variable-length memo edit can move the span.
+  // Color and line type offsets are source spans from the original prefix.
+  // Apply fixed-width patches before a variable-length memo edit can move them.
+  bytes = patchTemplateLineTypeSettings(bytes, lineTypeSettings);
   bytes = patchTemplateColorSettings(bytes, colorSettings);
   bytes = patchTemplateMemo(bytes, memo);
   bytes = patchTemplatePaperSize(bytes, paperSize);
@@ -2303,6 +2363,8 @@ export function preflightJwwWrite({
   templatePrefix = null,
   dimensionSettings = null,
   gridSettings = null,
+  colorSettings = null,
+  lineTypeSettings = null,
   dxfMeta = {},
   meta = {},
   version = null,
@@ -2367,6 +2429,18 @@ export function preflightJwwWrite({
       }
       patchTemplateGridSettings(template.bytes, gridSettings);
     }
+    if (colorSettings !== null) {
+      if (!template.bytes) {
+        throw new Error("JWW color settings require a template prefix");
+      }
+      patchTemplateColorSettings(template.bytes, colorSettings);
+    }
+    if (lineTypeSettings !== null) {
+      if (!template.bytes) {
+        throw new Error("JWW line type settings require a template prefix");
+      }
+      patchTemplateLineTypeSettings(template.bytes, lineTypeSettings);
+    }
     if (template.version < 700 && embeddedImages.length) {
       throw new Error("Embedded JWW images require version 700");
     }
@@ -2402,6 +2476,8 @@ export function buildJwwWriteResult({
   dimensionSettings = null,
   printSettings = null,
   gridSettings = null,
+  colorSettings = null,
+  lineTypeSettings = null,
   templatePrefix = null,
   dxfMeta = {},
   meta = {},
@@ -2462,6 +2538,8 @@ export function buildJwwWriteResult({
           dimensionSettings,
           printSettings,
           gridSettings,
+          colorSettings,
+          lineTypeSettings,
         }
       )
     : null;

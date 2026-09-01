@@ -7,10 +7,14 @@ import {
   decodeJwwGridSettings,
   JWW_GRID_MODE_OPTIONS,
 } from "./gridSettings.js";
+import {
+  hasOfficialJwwLineTypeSettingsLayout,
+  JWW_LINE_TYPE_ROW_DEFINITIONS,
+} from "./lineTypeSettings.js";
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 10;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 11;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -682,28 +686,84 @@ function buildColorTab(document) {
 
 function buildLineTypeTab(document) {
   const settings = document.settings?.lineType;
-  const rows = Object.entries(settings?.rows || {}).map(([key, entry]) => ({
-    id: key.toLowerCase(),
-    cells: [key, entry.pattern || "", (entry.params || []).join(", ")],
-    status: STATUS.STORED,
-    source: `settings.lineType.rows.${key}`,
-  }));
+  const editable = Boolean(
+    settings?.id && hasOfficialJwwLineTypeSettingsLayout(settings)
+  );
+  const rows = JWW_LINE_TYPE_ROW_DEFINITIONS
+    .map((definition) => {
+      const entry = settings?.rows?.[definition.key];
+      if (!entry) return null;
+      const edits = editable
+        ? {
+            1: {
+              key: `lineTypeRows.${definition.key}.pattern`,
+              control: "text",
+              value: entry.pattern || "00000000",
+              pattern: "[0-9A-Fa-f]{8}",
+              maxLength: 8,
+            },
+          }
+        : undefined;
+      if (edits) {
+        for (const field of definition.fields) {
+          const column = {
+            unitDotCount: 2,
+            screenAmplitude: 3,
+            screenPitch: 4,
+            printAmplitude: 5,
+            printPitch: 6,
+          }[field.key];
+          edits[column] = {
+            key: `lineTypeRows.${definition.key}.${field.key}`,
+            control: "number",
+            value: finiteNumber(entry[field.key], field.minimum),
+            min: field.minimum,
+            max: field.maximum,
+            step: 1,
+          };
+        }
+      }
+      return {
+        id: definition.key.toLowerCase(),
+        cells: [
+          definition.key,
+          entry.pattern || "",
+          entry.unitDotCount ?? "—",
+          entry.screenAmplitude ?? "—",
+          entry.screenPitch ?? "—",
+          entry.printAmplitude ?? "—",
+          entry.printPitch ?? "—",
+        ],
+        edits,
+        status: STATUS.STORED,
+        source: `settings.lineType.rows.${definition.key}`,
+      };
+    })
+    .filter(Boolean);
   return tab("line-types", "Line Types", [
     tableSection(
       "line-type-table",
       "JWW line type patterns",
-      ["Key", "Pattern", "Parameters"],
+      [
+        "Key",
+        "Pattern",
+        "Unit dots",
+        "Screen amplitude",
+        "Screen pitch",
+        "Print amplitude",
+        "Print pitch",
+      ],
       rows.length
         ? rows
         : [
             {
               id: "line-types-unavailable",
-              cells: ["—", "Not extracted", "—"],
+              cells: ["—", "Not extracted", "—", "—", "—", "—", "—"],
               status: STATUS.UNCONFIRMED,
               source: "settings.lineType",
             },
           ],
-      "Pattern rows are displayed exactly as extracted from the JWW environment region."
+      "The official 17-row JWW table is native-editable only when its fixed 292-byte source span is verified. Ordinary and doubled rows use unit dots and pitch; random rows use screen/print amplitudes and pitch."
     ),
     fieldsSection("line-type-diagnostics", "Extraction", [
       field({
@@ -1192,6 +1252,9 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
         "settings.color.screenColors[1..9]",
         "settings.color.printBackgroundColor",
         "settings.color.printColors[1..9]",
+        "settings.lineType.rows.LTYPE_02..LTYPE_09",
+        "settings.lineType.rows.LTYPE_R1..LTYPE_R5",
+        "settings.lineType.rows.LTYPE_L1..LTYPE_L4",
       ],
       managedInvariantPaths: ["layerGroups[].layers[].state"],
     },

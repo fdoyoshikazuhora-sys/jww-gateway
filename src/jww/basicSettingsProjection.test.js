@@ -2,6 +2,7 @@ import {
   buildJwwBasicSettingsProjection,
   JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
 } from "./basicSettingsProjection.js";
+import { JWW_LINE_TYPE_ROW_DEFINITIONS } from "./lineTypeSettings.js";
 
 function nativeDocument() {
   return {
@@ -125,11 +126,11 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 10,
+      formatVersion: 11,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
-        version: 8,
+        version: 9,
         mode: "native-metadata-safe",
         writablePaths: [
           "header.memo",
@@ -160,6 +161,9 @@ describe("buildJwwBasicSettingsProjection", () => {
           "settings.color.screenColors[1..9]",
           "settings.color.printBackgroundColor",
           "settings.color.printColors[1..9]",
+          "settings.lineType.rows.LTYPE_02..LTYPE_09",
+          "settings.lineType.rows.LTYPE_R1..LTYPE_R5",
+          "settings.lineType.rows.LTYPE_L1..LTYPE_L4",
         ],
         managedInvariantPaths: ["layerGroups[].layers[].state"],
       },
@@ -387,6 +391,79 @@ describe("buildJwwBasicSettingsProjection", () => {
       max: 500,
     });
     expect(screenRows.some((row) => row.id === "screen-10")).toBe(false);
+  });
+
+  it("exposes only the official 17-row line type table as named native-editable controls", () => {
+    const document = nativeDocument();
+    document.settings.lineType = {
+      id: "jww:line-type-settings",
+      offset: 1240,
+      byteLength: 292,
+      score: 102,
+      sourceLayout: "jwdatafmt-line-type-tables-v600-v700",
+      sourceSpan: { start: 1240, end: 1532, byteLength: 292 },
+      rows: Object.fromEntries(
+        JWW_LINE_TYPE_ROW_DEFINITIONS.map((definition, index) => {
+          const params = definition.fields.map((field) => field.minimum);
+          return [
+            definition.key,
+            {
+              pattern: "99999999",
+              family: definition.family,
+              ...Object.fromEntries(
+                definition.fields.map((field, fieldIndex) => [
+                  field.key,
+                  params[fieldIndex],
+                ])
+              ),
+              params,
+              values: ["99999999", ...params],
+              offset: 1240 + index * 16,
+            },
+          ];
+        })
+      ),
+    };
+    const projection = buildJwwBasicSettingsProjection(document);
+    const section = projection.tabs
+      .find((tab) => tab.id === "line-types")
+      .sections.find((candidate) => candidate.id === "line-type-table");
+
+    expect(section.columns).toEqual([
+      "Key",
+      "Pattern",
+      "Unit dots",
+      "Screen amplitude",
+      "Screen pitch",
+      "Print amplitude",
+      "Print pitch",
+    ]);
+    expect(section.rows.length).toBe(17);
+    expect(section.rows[0].edits[1]).toMatchObject({
+      key: "lineTypeRows.LTYPE_02.pattern",
+      control: "text",
+      maxLength: 8,
+    });
+    expect(section.rows[0].edits[2]).toMatchObject({
+      key: "lineTypeRows.LTYPE_02.unitDotCount",
+      min: 1,
+      max: 32,
+    });
+    expect(section.rows[8].edits[3]).toMatchObject({
+      key: "lineTypeRows.LTYPE_R1.screenAmplitude",
+      min: 1,
+      max: 16,
+    });
+    expect(section.rows[8].edits[5]).toMatchObject({
+      key: "lineTypeRows.LTYPE_R1.printAmplitude",
+      min: 1,
+      max: 16,
+    });
+    expect(section.rows[16].edits[6]).toMatchObject({
+      key: "lineTypeRows.LTYPE_L4.printPitch",
+      max: 160,
+    });
+    expect(section.rows.some((row) => row.id === "ltype_hc")).toBe(false);
   });
 
   it("shows protection 1 and 2 controls while locking state 2 rows", () => {

@@ -39,6 +39,7 @@ function emptyDraftEdits() {
     printColors: {},
     printColorWidths: {},
     printPointRadii: {},
+    lineTypeRows: {},
   };
 }
 
@@ -77,6 +78,12 @@ function editableBadge() {
 }
 
 function draftValue(edit) {
+  if (edit.key.startsWith("lineTypeRows.")) {
+    const [, rowKey, field] = edit.key.split(".");
+    return Object.hasOwn(draftEdits.lineTypeRows?.[rowKey] || {}, field)
+      ? draftEdits.lineTypeRows[rowKey][field]
+      : edit.value;
+  }
   const groupFamily = [
     "layerGroupScales",
     "layerGroupWriteLayers",
@@ -102,6 +109,19 @@ function draftValue(edit) {
 }
 
 function setDraftValue(edit, value, { rerender = true } = {}) {
+  if (edit.key.startsWith("lineTypeRows.")) {
+    const [, rowKey, field] = edit.key.split(".");
+    draftEdits = {
+      ...draftEdits,
+      lineTypeRows: {
+        ...draftEdits.lineTypeRows,
+        [rowKey]: {
+          ...(draftEdits.lineTypeRows?.[rowKey] || {}),
+          [field]: value,
+        },
+      },
+    };
+  } else {
   const groupFamily = [
     "layerGroupScales",
     "layerGroupWriteLayers",
@@ -125,6 +145,7 @@ function setDraftValue(edit, value, { rerender = true } = {}) {
     };
   } else {
     draftEdits = { ...draftEdits, [edit.key]: value };
+  }
   }
   if (edit.key === "writeLayerGroup") {
     const states = { ...draftEdits.layerGroupStates };
@@ -175,10 +196,14 @@ function renderEditControl(edit) {
     control.rows = Number(edit.rows || 3);
   } else {
     control = createElement("input", "native-edit-control");
-    control.type = edit.control === "color" ? "color" : "number";
+    control.type = ["color", "text"].includes(edit.control)
+      ? edit.control
+      : "number";
     if (edit.min !== undefined) control.min = String(edit.min);
     if (edit.max !== undefined) control.max = String(edit.max);
     if (edit.step !== undefined) control.step = String(edit.step);
+    if (edit.pattern !== undefined) control.pattern = String(edit.pattern);
+    if (edit.maxLength !== undefined) control.maxLength = Number(edit.maxLength);
   }
   control.value = String(draftValue(edit) ?? "");
   control.dataset.editKey = edit.key;
@@ -187,7 +212,8 @@ function renderEditControl(edit) {
   if (
     edit.control === "number" ||
     edit.control === "textarea" ||
-    edit.control === "color"
+    edit.control === "color" ||
+    edit.control === "text"
   ) {
     control.addEventListener("input", () =>
       setDraftValue(edit, control.value, { rerender: false })

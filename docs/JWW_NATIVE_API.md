@@ -67,6 +67,15 @@ unless the complete layout and source span are verified. The old heuristic
 screen entry `10` was the first print-background bytes and is not part of the
 native contract. Special operation-color candidates and JWF-only values are
 not writable through this target.
+Official line type settings occupy the fixed 292-byte region immediately after
+the color tables and have stable target `id: jww:line-type-settings`. The
+contract covers ordinary `LTYPE_02..09`, random `LTYPE_R1..R5`, and doubled
+`LTYPE_L1..L4` rows. Patterns are eight hexadecimal digits. Ordinary/doubled
+rows expose unit-dot count and screen/print pitch; random rows expose
+screen/print amplitude and pitch. Values are accepted only within Jw_cad's
+documented UI ranges, and only the verified source span is replaced. `LTYPE_HC`
+is a JWF-only operation/display setting; the 24 bytes after `LTYPE_L4` remain a
+neutral read-only diagnostic and are never written by this target.
 Official JWW 7.02 state codes are `0` hidden, `1` visible only, `2` editable, and `3`
 current. Direct state edits accept only `0..2` on non-current rows; current rows
 remain `3`, and protection code `2` (display state fixed) rejects the edit.

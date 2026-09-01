@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { parse } from "./parser.js";
+import { encodeJwwLineTypeSettings } from "./lineTypeSettings.js";
 import {
   JWW_WRITE_VERSIONS,
   buildJwwBytes,
@@ -1550,5 +1551,76 @@ describe("JWW writer", () => {
     expect(bytes.slice(color.sourceSpan.end)).toEqual(
       source.slice(color.sourceSpan.end)
     );
+  });
+
+  it("patches only the official fixed-width 17-row line type span", () => {
+    const source = readFileSync(
+      new URL("../../samples/jwf-pairs/jwf-open-items-core.jww", import.meta.url)
+    );
+    const before = parse(source);
+    const lineType = encodeJwwLineTypeSettings(before.line_type_settings, {
+      lineTypeRows: {
+        LTYPE_02: {
+          pattern: "aaaaaaaa",
+          unitDotCount: 8,
+          screenPitch: 2,
+          printPitch: 10,
+        },
+        LTYPE_R1: {
+          screenAmplitude: 2,
+          screenPitch: 4,
+          printAmplitude: 3,
+          printPitch: 20,
+        },
+      },
+    });
+    const span = lineType.sourceSpan;
+    const prefixEnd = before.entity_list_offset;
+    const patchedPrefix = patchJwwTemplatePrefixMetadata(
+      source.slice(0, prefixEnd),
+      { lineTypeSettings: lineType }
+    );
+    const bytes = new Uint8Array(patchedPrefix.length + source.length - prefixEnd);
+    bytes.set(patchedPrefix);
+    bytes.set(source.slice(prefixEnd), patchedPrefix.length);
+    const after = parse(bytes);
+
+    expect(span).toEqual({ start: 4344, end: 4636, byteLength: 292 });
+    expect(after.line_type_settings.rows.LTYPE_02).toMatchObject({
+      pattern: "aaaaaaaa",
+      unitDotCount: 8,
+      screenPitch: 2,
+      printPitch: 10,
+    });
+    expect(after.line_type_settings.rows.LTYPE_R1).toMatchObject({
+      screenAmplitude: 2,
+      screenPitch: 4,
+      printAmplitude: 3,
+      printPitch: 20,
+    });
+    expect(bytes.slice(0, span.start)).toEqual(source.slice(0, span.start));
+    expect(bytes.slice(span.end)).toEqual(source.slice(span.end));
+
+    const invalid = {
+      ...lineType,
+      rows: {
+        ...lineType.rows,
+        LTYPE_02: {
+          ...lineType.rows.LTYPE_02,
+          unitDotCount: 33,
+          params: [33, 2, 10],
+          values: ["aaaaaaaa", 33, 2, 10],
+        },
+      },
+    };
+    let invalidMessage = "";
+    try {
+      patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+        lineTypeSettings: invalid,
+      });
+    } catch (error) {
+      invalidMessage = error?.message || String(error);
+    }
+    expect(invalidMessage).toContain("1 to 32");
   });
 });

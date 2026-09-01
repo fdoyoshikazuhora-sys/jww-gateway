@@ -4,23 +4,14 @@ import {
   decodeJwwRawString,
   decodeJwwStringWithMetadata,
 } from "./decoder.js";
+import {
+  JWW_LINE_TYPE_ROW_DEFINITIONS,
+  JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH,
+  JWW_LINE_TYPE_SETTINGS_SOURCE_LAYOUT,
+} from "./lineTypeSettings.js";
 import { rgbToHex } from "./shared.js";
 
 const HEADER = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
-const LINE_TYPE_ROWS = [
-  ...Array.from({ length: 8 }, (_, index) => ({
-    key: `LTYPE_${String(index + 2).padStart(2, "0")}`,
-    paramCount: 3,
-  })),
-  ...Array.from({ length: 5 }, (_, index) => ({
-    key: `LTYPE_R${index + 1}`,
-    paramCount: 4,
-  })),
-  ...Array.from({ length: 4 }, (_, index) => ({
-    key: `LTYPE_L${index + 1}`,
-    paramCount: 3,
-  })),
-];
 
 function emptyLayerGroups() {
   return Array.from({ length: 16 }, (_, groupIndex) => ({
@@ -577,6 +568,28 @@ function parseSpecialScreenColors(data, colorTableOffset, excludedKeys = []) {
 }
 
 function parseLineTypeSettings(data, colorSettings = {}, entityOffset) {
+  if (
+    colorSettings.sourceLayout === "jwdatafmt-color-tables-v600-v700" &&
+    Number.isInteger(colorSettings.sourceSpan?.end)
+  ) {
+    const offset = colorSettings.sourceSpan.end;
+    const exact = readLineTypeCandidate(data, offset);
+    if (
+      exact &&
+      exact.byteLength === JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH &&
+      offset + exact.byteLength <= (entityOffset || data.length)
+    ) {
+      return {
+        ...exact,
+        sourceLayout: JWW_LINE_TYPE_SETTINGS_SOURCE_LAYOUT,
+        sourceSpan: {
+          start: offset,
+          end: offset + JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH,
+          byteLength: JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH,
+        },
+      };
+    }
+  }
   if (!colorSettings.offset) return null;
   const searchStart = Math.max(0, colorSettings.offset + 120);
   const searchEnd = Math.min(
@@ -590,18 +603,20 @@ function parseLineTypeSettings(data, colorSettings = {}, entityOffset) {
     if (!candidate) continue;
     if (!best || candidate.score > best.score) best = candidate;
   }
-  return best && best.score >= 70 ? best : null;
+  return best && best.score >= 70
+    ? { ...best, sourceLayout: "heuristic-unverified", sourceSpan: null }
+    : null;
 }
 
 function readLineTypeCandidate(data, offset) {
   let cursor = offset;
   let score = 0;
   const rows = {};
-  for (const definition of LINE_TYPE_ROWS) {
-    if (cursor + 4 * (1 + definition.paramCount) > data.length) return null;
+  for (const definition of JWW_LINE_TYPE_ROW_DEFINITIONS) {
+    if (cursor + 4 * (1 + definition.fields.length) > data.length) return null;
     const pattern = readUint32(data, cursor);
     const params = [];
-    for (let index = 0; index < definition.paramCount; index += 1) {
+    for (let index = 0; index < definition.fields.length; index += 1) {
       params.push(readUint32(data, cursor + 4 * (index + 1)));
     }
     if (pattern === null || params.some((value) => value === null)) return null;
@@ -610,11 +625,15 @@ function readLineTypeCandidate(data, offset) {
     if (params.some((value) => value > 100000)) score -= 12;
     rows[definition.key] = {
       pattern: pattern.toString(16).padStart(8, "0"),
+      family: definition.family,
+      ...Object.fromEntries(
+        definition.fields.map((field, index) => [field.key, params[index]])
+      ),
       params,
       values: [pattern.toString(16).padStart(8, "0"), ...params],
       offset: cursor,
     };
-    cursor += 4 * (1 + definition.paramCount);
+    cursor += 4 * (1 + definition.fields.length);
   }
   return {
     offset,

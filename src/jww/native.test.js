@@ -12,6 +12,8 @@ import {
 } from "jww-gateway/native";
 import { parse } from "./parser.js";
 import { buildJwwBytes } from "./writer.js";
+import { encodeJwwColorSettings } from "./colorSettings.js";
+import { encodeJwwLineTypeSettings } from "./lineTypeSettings.js";
 
 const line = (endX = 10) => ({
   id: "line-1",
@@ -2892,5 +2894,140 @@ describe("JWW native document API", () => {
       willWriteBytes: false,
     });
     expect(preflight.reasons[0]).toContain("1 to 16");
+  });
+
+  it("source-splices only the verified official native line type table", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const lineType = document.settings.lineType;
+    const revised = encodeJwwLineTypeSettings(lineType, {
+      lineTypeRows: {
+        LTYPE_02: {
+          pattern: "aaaaaaaa",
+          unitDotCount: 8,
+          screenPitch: 2,
+          printPitch: 10,
+        },
+        LTYPE_R1: {
+          screenAmplitude: 2,
+          screenPitch: 4,
+          printAmplitude: 3,
+          printPitch: 20,
+        },
+      },
+    });
+    const patches = [{
+      op: "replace",
+      targetId: lineType.id,
+      record: revised,
+    }];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(lineType).toMatchObject({
+      id: "jww:line-type-settings",
+      sourceLayout: "jwdatafmt-line-type-tables-v600-v700",
+      sourceSpan: { byteLength: 292 },
+    });
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      preservesUnsupportedBytes: true,
+      prefixMetadataTargetIds: ["jww:line-type-settings"],
+    });
+    expect(reopened.settings.lineType.rows.LTYPE_02).toMatchObject({
+      pattern: "aaaaaaaa",
+      unitDotCount: 8,
+      screenPitch: 2,
+      printPitch: 10,
+    });
+    expect(reopened.settings.lineType.rows.LTYPE_R1).toMatchObject({
+      screenAmplitude: 2,
+      screenPitch: 4,
+      printAmplitude: 3,
+      printPitch: 20,
+    });
+    expect(saved.bytes.slice(0, lineType.sourceSpan.start)).toEqual(
+      document.originalBytes.slice(0, lineType.sourceSpan.start)
+    );
+    expect(saved.bytes.slice(lineType.sourceSpan.end)).toEqual(
+      document.originalBytes.slice(lineType.sourceSpan.end)
+    );
+  });
+
+  it("preserves edited color and line type tables during a structural rebuild", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const color = encodeJwwColorSettings(document.settings.color, {
+      screenColors: { 2: "#abcdef" },
+    });
+    const lineType = encodeJwwLineTypeSettings(document.settings.lineType, {
+      lineTypeRows: { LTYPE_L1: { unitDotCount: 16, screenPitch: 8, printPitch: 80 } },
+    });
+    const patches = [
+      { op: "replace", targetId: color.id, record: color },
+      { op: "replace", targetId: lineType.id, record: lineType },
+      {
+        op: "create",
+        targetId: "created-for-color-line-type-rebuild",
+        record: {
+          base: {
+            pen_style: 2,
+            pen_color: 2,
+            pen_width: 1,
+            layer: 0,
+            layer_group: 0,
+          },
+          start_x: 1,
+          start_y: 2,
+          end_x: 3,
+          end_y: 4,
+        },
+      },
+    ];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(preflight).toMatchObject({ ok: true, strategy: "rebuild" });
+    expect(reopened.settings.color.screenColors[2].hex).toBe("#abcdef");
+    expect(reopened.settings.lineType.rows.LTYPE_L1).toMatchObject({
+      unitDotCount: 16,
+      screenPitch: 8,
+      printPitch: 80,
+    });
+    expect(reopened.nativeEntities.length).toBe(document.nativeEntities.length + 1);
+  });
+
+  it("rejects invalid native line type values before writing", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const lineType = document.settings.lineType;
+    const invalidRow = {
+      ...lineType.rows.LTYPE_02,
+      unitDotCount: 33,
+      params: [33, lineType.rows.LTYPE_02.screenPitch, lineType.rows.LTYPE_02.printPitch],
+      values: [
+        lineType.rows.LTYPE_02.pattern,
+        33,
+        lineType.rows.LTYPE_02.screenPitch,
+        lineType.rows.LTYPE_02.printPitch,
+      ],
+    };
+    const preflight = preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: lineType.id,
+        record: {
+          ...lineType,
+          rows: { ...lineType.rows, LTYPE_02: invalidRow },
+        },
+      }],
+    });
+
+    expect(preflight).toMatchObject({
+      ok: false,
+      code: "JWW_NATIVE_METADATA_PATCH_INVALID",
+      willWriteBytes: false,
+    });
+    expect(preflight.reasons[0]).toContain("1 to 32");
   });
 });

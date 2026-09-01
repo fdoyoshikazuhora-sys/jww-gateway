@@ -795,4 +795,120 @@ const officialColorFixture = () =>
       document.originalBytes.slice(originalPrefixEnd)
     );
   });
+
+  it("edits and reparses official ordinary, random, and doubled line types", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const span = document.settings.lineType.sourceSpan;
+    const edits = {
+      lineTypeRows: {
+        LTYPE_02: {
+          pattern: "aaaaaaaa",
+          unitDotCount: 8,
+          screenPitch: 2,
+          printPitch: 10,
+        },
+        LTYPE_R1: {
+          screenAmplitude: 2,
+          screenPitch: 4,
+          printAmplitude: 3,
+          printPitch: 20,
+        },
+        LTYPE_L1: { unitDotCount: 16, screenPitch: 8, printPitch: 80 },
+      },
+    };
+
+    expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      patchCount: 1,
+      prefixMetadataTargetIds: ["jww:line-type-settings"],
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(document, edits);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.settings.lineType.rows.LTYPE_02).toMatchObject({
+      pattern: "aaaaaaaa",
+      unitDotCount: 8,
+      screenPitch: 2,
+      printPitch: 10,
+    });
+    expect(reopened.settings.lineType.rows.LTYPE_R1).toMatchObject({
+      screenAmplitude: 2,
+      screenPitch: 4,
+      printAmplitude: 3,
+      printPitch: 20,
+    });
+    expect(reopened.settings.lineType.rows.LTYPE_L1).toMatchObject({
+      unitDotCount: 16,
+      screenPitch: 8,
+      printPitch: 80,
+    });
+    expect(saved.bytes.slice(0, span.start)).toEqual(
+      document.originalBytes.slice(0, span.start)
+    );
+    expect(saved.bytes.slice(span.end)).toEqual(
+      document.originalBytes.slice(span.end)
+    );
+  });
+
+  it("rejects invalid or unverified line type edits before writing", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    for (const edits of [
+      { lineTypeRows: { LTYPE_20: { pattern: "00000000" } } },
+      { lineTypeRows: { LTYPE_02: { pattern: "invalid" } } },
+      { lineTypeRows: { LTYPE_02: { unitDotCount: 33 } } },
+      { lineTypeRows: { LTYPE_R1: { screenAmplitude: 17 } } },
+      { lineTypeRows: { LTYPE_R1: { printPitch: 161 } } },
+    ]) {
+      expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+        ok: false,
+        code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        willWriteBytes: false,
+      });
+    }
+    const noOfficialSpan = {
+      ...document,
+      settings: {
+        ...document.settings,
+        lineType: {
+          ...document.settings.lineType,
+          id: undefined,
+          sourceSpan: null,
+        },
+      },
+    };
+    expect(
+      preflightJwwBasicSettingsSave(noOfficialSpan, {
+        lineTypeRows: { LTYPE_02: { unitDotCount: 8 } },
+      })
+    ).toMatchObject({
+      ok: false,
+      code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      willWriteBytes: false,
+    });
+  });
+
+  it("keeps line type source-splice valid when the same Save As lengthens the memo", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const originalPrefixEnd = document.preservedRegions.prefix.end;
+    const saved = saveJwwBasicSettings(document, {
+      memo: "Line type table and variable-length memo\r\n",
+      lineTypeRows: {
+        LTYPE_03: { unitDotCount: 8, screenPitch: 3, printPitch: 20 },
+      },
+    });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.header.memo).toBe("Line type table and variable-length memo\r\n");
+    expect(reopened.settings.lineType.rows.LTYPE_03).toMatchObject({
+      unitDotCount: 8,
+      screenPitch: 3,
+      printPitch: 20,
+    });
+    expect(saved.bytes.slice(reopened.preservedRegions.prefix.end)).toEqual(
+      document.originalBytes.slice(originalPrefixEnd)
+    );
+  });
 });

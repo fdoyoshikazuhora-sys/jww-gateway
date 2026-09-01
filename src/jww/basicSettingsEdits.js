@@ -8,8 +8,13 @@ import {
   JWW_DIMENSION_EDIT_KEYS,
 } from "./dimensionSettings.js";
 import { encodeJwwGridSettings, JWW_GRID_EDIT_KEYS } from "./gridSettings.js";
+import {
+  encodeJwwLineTypeSettings,
+  JWW_LINE_TYPE_EDIT_KEYS,
+  JWW_LINE_TYPE_ROW_DEFINITIONS,
+} from "./lineTypeSettings.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 8;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 9;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -46,6 +51,7 @@ const EDIT_KEYS = new Set([
   ...JWW_COLOR_EDIT_KEYS,
   ...JWW_DIMENSION_EDIT_KEYS,
   ...JWW_GRID_EDIT_KEYS,
+  ...JWW_LINE_TYPE_EDIT_KEYS,
 ]);
 
 function normalizedMemo(value) {
@@ -662,6 +668,45 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
         op: "replace",
         targetId: color.id,
         record: revisedColor,
+      });
+    }
+  }
+
+  const lineTypeEditRequested = JWW_LINE_TYPE_EDIT_KEYS.some((key) =>
+    Object.hasOwn(edits, key)
+  );
+  if (lineTypeEditRequested) {
+    const lineType = document.settings?.lineType;
+    if (!lineType?.id) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        "JWW native line type settings are not backed by the verified official source span"
+      );
+    }
+    let revisedLineType;
+    try {
+      revisedLineType = encodeJwwLineTypeSettings(lineType, edits);
+    } catch (error) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        error?.message || String(error)
+      );
+    }
+    const changed = JWW_LINE_TYPE_ROW_DEFINITIONS.some((definition) => {
+      const previous = lineType.rows?.[definition.key];
+      const revised = revisedLineType.rows?.[definition.key];
+      return (
+        previous?.pattern !== revised?.pattern ||
+        definition.fields.some(
+          (field) => previous?.[field.key] !== revised?.[field.key]
+        )
+      );
+    });
+    if (changed) {
+      patches.push({
+        op: "replace",
+        targetId: lineType.id,
+        record: revisedLineType,
       });
     }
   }

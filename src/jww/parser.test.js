@@ -132,7 +132,27 @@ describe("parse", () => {
       width: 1,
       pointRadius: 0.1,
     });
-    expect(doc.line_type_settings.offset).toBe(color.sourceSpan.end);
+    expect(doc.line_type_settings).toMatchObject({
+      offset: color.sourceSpan.end,
+      byteLength: 292,
+      sourceLayout: "jwdatafmt-line-type-tables-v600-v700",
+      sourceSpan: { start: 4344, end: 4636, byteLength: 292 },
+      rows: {
+        LTYPE_02: {
+          family: "ordinary",
+          unitDotCount: 4,
+          screenPitch: 1,
+          printPitch: 10,
+        },
+        LTYPE_R1: {
+          family: "random",
+          screenAmplitude: 1,
+          screenPitch: 5,
+          printAmplitude: 3,
+          printPitch: 10,
+        },
+      },
+    });
   });
 
   it("reads JWW UTF-16LE inline strings without shifting following fields", () => {

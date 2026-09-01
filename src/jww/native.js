@@ -4,6 +4,11 @@ import {
   normalizeJwwColorSettingsRecord,
 } from "./colorSettings.js";
 import {
+  hasOfficialJwwLineTypeSettingsLayout,
+  JWW_LINE_TYPE_ROW_DEFINITIONS,
+  normalizeJwwLineTypeSettingsRecord,
+} from "./lineTypeSettings.js";
+import {
   buildJwwRecordPayload,
   buildJwwWriteResult,
   patchJwwTemplatePrefixMetadata,
@@ -19,6 +24,7 @@ export const JWW_NATIVE_PRINT_SETTINGS_ID = "jww:print-settings";
 export const JWW_NATIVE_DIMENSION_SETTINGS_ID = "jww:dimension-settings";
 export const JWW_NATIVE_GRID_SETTINGS_ID = "jww:grid-settings";
 export const JWW_NATIVE_COLOR_SETTINGS_ID = "jww:color-settings";
+export const JWW_NATIVE_LINE_TYPE_SETTINGS_ID = "jww:line-type-settings";
 
 export function jwwNativeLayerGroupId(index) {
   return `jww:layer-group:${Number(index)}`;
@@ -403,7 +409,17 @@ function buildNativeDocument(
               : {}),
           }
         : { screenColors: {} },
-      lineType: parsed.line_type_settings || null,
+      lineType: parsed.line_type_settings
+        ? {
+            ...parsed.line_type_settings,
+            ...(hasOfficialJwwLineTypeSettingsLayout(parsed.line_type_settings)
+              ? {
+                  id: JWW_NATIVE_LINE_TYPE_SETTINGS_ID,
+                  sourceSpan: { ...parsed.line_type_settings.sourceSpan },
+                }
+              : {}),
+          }
+        : null,
       print: parsed.print_settings
         ? {
             ...parsed.print_settings,
@@ -491,6 +507,7 @@ function nativeTargetIdExists(document, targetId) {
       targetId === document.settings?.dimension?.id ||
       targetId === document.settings?.grid?.id ||
       targetId === document.settings?.color?.id ||
+      targetId === document.settings?.lineType?.id ||
       (document.layerGroups || []).some((item) => item.id === targetId) ||
       nativeRecordById(document, targetId) ||
       (document.blockDefinitions || []).some((item) => item.id === targetId) ||
@@ -826,6 +843,49 @@ function replaceNativeColorSettings(next, patch) {
   next.settings = {
     ...next.settings,
     color: normalized,
+  };
+}
+
+function replaceNativeLineTypeSettings(next, patch) {
+  const previous = next.settings?.lineType;
+  const value = cloneValue(unwrap(patch.record));
+  if (
+    !previous?.id ||
+    !hasOfficialJwwLineTypeSettingsLayout(previous) ||
+    !value ||
+    typeof value !== "object"
+  ) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW native line type settings require the verified official 292-byte source span"
+    );
+  }
+  rejectChangedMetadataFields(previous, value, new Set(["rows"]), previous.id);
+  for (const definition of JWW_LINE_TYPE_ROW_DEFINITIONS) {
+    rejectChangedMetadataFields(
+      previous.rows?.[definition.key],
+      value.rows?.[definition.key],
+      new Set([
+        "pattern",
+        "params",
+        "values",
+        ...definition.fields.map((field) => field.key),
+      ]),
+      `${previous.id}.rows.${definition.key}`
+    );
+  }
+  let normalized;
+  try {
+    normalized = normalizeJwwLineTypeSettingsRecord(value);
+  } catch (error) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      error?.message || String(error)
+    );
+  }
+  next.settings = {
+    ...next.settings,
+    lineType: normalized,
   };
 }
 
@@ -1600,6 +1660,7 @@ export function applyNativeJwwPatches(document, patches = []) {
     const dimensionSettingsTarget = patch.targetId === next.settings?.dimension?.id;
     const gridSettingsTarget = patch.targetId === next.settings?.grid?.id;
     const colorSettingsTarget = patch.targetId === next.settings?.color?.id;
+    const lineTypeSettingsTarget = patch.targetId === next.settings?.lineType?.id;
     const layerGroupIndex = next.layerGroups.findIndex(
       (item) => item.id === patch.targetId
     );
@@ -1610,6 +1671,7 @@ export function applyNativeJwwPatches(document, patches = []) {
         dimensionSettingsTarget ||
         gridSettingsTarget ||
         colorSettingsTarget ||
+        lineTypeSettingsTarget ||
         layerGroupIndex >= 0
       ) {
         throw nativePatchError(
@@ -1686,6 +1748,9 @@ export function applyNativeJwwPatches(document, patches = []) {
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (colorSettingsTarget) {
         replaceNativeColorSettings(next, patch);
+        pendingPrefixMetadataTargetIds.add(patch.targetId);
+      } else if (lineTypeSettingsTarget) {
+        replaceNativeLineTypeSettings(next, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (layerGroupIndex >= 0) {
         replaceNativeLayerGroup(next, layerGroupIndex, patch);
@@ -1997,6 +2062,14 @@ function nativeRebuildWriteOptions(
     printSettings: revised.settings?.print || null,
     dimensionSettings: revised.settings?.dimension || null,
     gridSettings: revised.settings?.grid || null,
+    colorSettings: hasOfficialJwwColorSettingsLayout(revised.settings?.color)
+      ? revised.settings.color
+      : null,
+    lineTypeSettings: hasOfficialJwwLineTypeSettingsLayout(
+      revised.settings?.lineType
+    )
+      ? revised.settings.lineType
+      : null,
     templatePrefix: document.originalBytes.slice(0, prefixEnd),
     meta: {
       jwwBlockDefinitions: revised.blockDefinitions.map((definition) =>
@@ -2105,6 +2178,7 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
     document.settings?.dimension?.id,
     document.settings?.grid?.id,
     document.settings?.color?.id,
+    document.settings?.lineType?.id,
     ...(document.layerGroups || []).map((group) => group.id),
   ]);
   const invalidTargetId = targetIds.find((targetId) => !allowedIds.has(targetId));
@@ -2174,6 +2248,9 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
           : null,
         colorSettings: targetIdSet.has(revised.settings?.color?.id)
           ? revised.settings.color
+          : null,
+        lineTypeSettings: targetIdSet.has(revised.settings?.lineType?.id)
+          ? revised.settings.lineType
           : null,
       }
     );
@@ -2337,6 +2414,27 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
     if (!retained) {
       const error = new Error(
         "Saved JWW color settings were not retained after reparse"
+      );
+      error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
+      throw error;
+    }
+  }
+  if (targetIdSet.has(revisedDocument.settings?.lineType?.id)) {
+    const saved = savedDocument.settings?.lineType;
+    const revised = revisedDocument.settings?.lineType;
+    const retained = JWW_LINE_TYPE_ROW_DEFINITIONS.every((definition) => {
+      const savedRow = saved?.rows?.[definition.key];
+      const revisedRow = revised?.rows?.[definition.key];
+      return (
+        savedRow?.pattern === revisedRow?.pattern &&
+        definition.fields.every(
+          (field) => savedRow?.[field.key] === revisedRow?.[field.key]
+        )
+      );
+    });
+    if (!retained) {
+      const error = new Error(
+        "Saved JWW line type settings were not retained after reparse"
       );
       error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
       throw error;
