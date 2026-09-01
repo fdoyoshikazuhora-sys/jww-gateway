@@ -6,6 +6,7 @@ import {
   saveJwwBasicSettings,
 } from "./basicSettingsEdits.js";
 import { decodeJwwDimensionSettings } from "./dimensionSettings.js";
+import { decodeJwwGridSettings } from "./gridSettings.js";
 
 const fixture = () =>
   buildJwwBytes({
@@ -581,6 +582,68 @@ describe("JWW Basic Settings native edits", () => {
       code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
       willWriteBytes: false,
     });
+  });
+
+  it("edits and reparses the official fixed-width grid settings", async () => {
+    const document = await openNativeJww(fixture());
+    const grid = document.settings.grid;
+    const edits = {
+      gridMode: 11,
+      gridMinimumDisplaySpacing: 12,
+      gridSpacingX: 250,
+      gridSpacingY: 500,
+      gridBaseX: 1.25,
+      gridBaseY: -2.5,
+    };
+
+    expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      patchCount: 1,
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(document, edits);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(decodeJwwGridSettings(reopened.settings.grid)).toMatchObject({
+      mode: 11,
+      display: true,
+      realSizeUnits: true,
+      snapping: true,
+      minimum_display_spacing: 12,
+      spacing_x: 250,
+      spacing_y: 500,
+      base_x: 1.25,
+      base_y: -2.5,
+    });
+    expect(reopened.settings.grid).toMatchObject({
+      id: "jww:grid-settings",
+      sourceSpan: { byteLength: 44 },
+    });
+    expect(saved.bytes.slice(0, grid.sourceSpan.start)).toEqual(
+      document.originalBytes.slice(0, grid.sourceSpan.start)
+    );
+    expect(saved.bytes.slice(grid.sourceSpan.end)).toEqual(
+      document.originalBytes.slice(grid.sourceSpan.end)
+    );
+  });
+
+  it("rejects undocumented grid modes and invalid grid geometry before writing", async () => {
+    const document = await openNativeJww(fixture());
+    for (const edits of [
+      { gridMode: -2 },
+      { gridSpacingX: 0 },
+      { gridSpacingY: Number.NaN },
+      { gridMinimumDisplaySpacing: 4 },
+      { gridMinimumDisplaySpacing: 101 },
+    ]) {
+      expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+        ok: false,
+        code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        willWriteBytes: false,
+      });
+    }
   });
 
   it("edits and reparses the official print placement fields", async () => {

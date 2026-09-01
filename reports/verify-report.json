@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-08-31T13:01:27.262Z",
+  "generatedAt": "2026-08-31T14:18:36.103Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -44,8 +44,8 @@
     },
     {
       "file": "README.md",
-      "bytes": 12892,
-      "sha256": "d32b0baa928b69618458d4ab0cacec56522cd812714118c12eb059777cb56f25"
+      "bytes": 13150,
+      "sha256": "2f705c0fe9153515e76bfdabc096e0f0df07e80472948a36683cd6070aa501d9"
     },
     {
       "file": "docs/JWW_GATEWAY_HANDOFF.md",
@@ -59,8 +59,8 @@
     },
     {
       "file": "docs/JWW_GATEWAY_RELEASE_NOTES.md",
-      "bytes": 5803,
-      "sha256": "d0000616911d5ad7895c1c5cdd0aaab014779d3b216b2d43d896dc68db0bfb04"
+      "bytes": 6506,
+      "sha256": "2d427ecca08d0c2ba95ed312f629f098dc71f09bd3371f9f9739290f49e0a883"
     },
     {
       "file": "docs/JWW_GATEWAY_REPORTS.md",
@@ -89,8 +89,8 @@
     },
     {
       "file": "docs/JWW_NATIVE_API.md",
-      "bytes": 14761,
-      "sha256": "4f38fac5638d0306894786042b0de6388215ccc8b75f56053e68045ffdb3474e"
+      "bytes": 15313,
+      "sha256": "a082ff0a7bb94486514f0a57b2574b77bc1a73d40fb84eb2d202d5cbf027dedd"
     },
     {
       "file": "docs/JWW_GATEWAY_SAMPLE_SETS.example.json",
@@ -439,18 +439,18 @@
     },
     {
       "file": "src/jww/native.js",
-      "bytes": 90537,
-      "sha256": "e3a6a64d3227c88ef54a83d08853ed8dfe2b7dcdbe06e09a8a4502076d55a473"
+      "bytes": 94008,
+      "sha256": "50b20acc42682483c4e8fcf59c54b89f96d0f5443e337ea5946a09646ec4d141"
     },
     {
       "file": "src/jww/native.test.js",
-      "bytes": 98648,
-      "sha256": "8e0536ba19ad240f9b0c5968da14723a640042cb29fac141ed9ab408bf6b32fd"
+      "bytes": 100244,
+      "sha256": "3de66219de3327cea43681899ad6d9820a856478e41c47d6c70a3b686979f84c"
     },
     {
       "file": "src/jww/parser.js",
-      "bytes": 49274,
-      "sha256": "ac654e3e3e1a720cbd5ed0f956fb46ef7721776f1c0c9227c731dfeb189fc74f"
+      "bytes": 49487,
+      "sha256": "34af5c3c5c0f716af0a20bb55a07d25e658451a1ea3e4e6cc2b52da3f266c147"
     },
     {
       "file": "src/jww/parser.test.js",
@@ -464,13 +464,13 @@
     },
     {
       "file": "src/jww/semanticDiff.js",
-      "bytes": 11123,
-      "sha256": "55217e9a88232d4d40e9cec13fc432acf4ade3e3a23c6b1607a36d5f2a5f2771"
+      "bytes": 11191,
+      "sha256": "84ddc9d6d382e46b4d4b5418c416521dc58d7175628a25d31a382a09ded99855"
     },
     {
       "file": "src/jww/semanticDiff.test.js",
-      "bytes": 7169,
-      "sha256": "15f09dc587f45be42fdcb616d64e6102b55f7378480e640c8374f09ce963c1e8"
+      "bytes": 8108,
+      "sha256": "4464c57122112f3222e578a93e7d5b8bf7143c2f8f3c6db3895a9de9966c6601"
     },
     {
       "file": "src/jww/shared.js",
@@ -499,13 +499,13 @@
     },
     {
       "file": "src/jww/writer.js",
-      "bytes": 83572,
-      "sha256": "c2b626ec6a5d7f690fb670a87b9121a4ca12b947e4dc4113905e873710e874d1"
+      "bytes": 85315,
+      "sha256": "2c4d5824794aa1212cda532e7d133f7c99c28ad73484bc20efa03f3c98b2598a"
     },
     {
       "file": "src/jww/writer.test.js",
-      "bytes": 48585,
-      "sha256": "f4bc6e5b5aad1e2f9c7871ac5c0f5f41e50cbcd96706b3d9a708a800cc36655e"
+      "bytes": 50057,
+      "sha256": "d0d0ef9f1bb3146f3abd6030bcedac57476d40f42a78bf97f159fe5eb5693768"
     },
     {
       "file": "tools/jwf-parse.mjs",
@@ -579,8 +579,8 @@
     },
     {
       "file": "tools/jww-gateway.mjs",
-      "bytes": 19460,
-      "sha256": "da83059c4fe5d33938d9d7570e0416d4ca3efb8e084e7fdede731bfa7af2e2c4"
+      "bytes": 19507,
+      "sha256": "0fb2549e105c87ae5c6ec5c07cd814caab85babf8b07c0e008a5dcf9f6b013e1"
     },
     {
       "file": "tools/jww-jwf-compare.mjs",

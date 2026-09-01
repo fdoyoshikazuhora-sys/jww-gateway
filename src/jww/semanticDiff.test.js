@@ -138,6 +138,38 @@ describe("JWW semantic diff", () => {
     expect(result.metadata.after.dimensionSettings.sunpou2).toBe(1025);
   });
 
+  it("reports native grid-setting changes without reporting drawing changes", () => {
+    const before = document([lineA], {
+      gridSettings: {
+        mode: 1,
+        minimum_display_spacing: 10,
+        spacing_x: 100,
+        spacing_y: 100,
+        base_x: 0,
+        base_y: 0,
+      },
+    });
+    const after = document([lineB], {
+      gridSettings: {
+        mode: 11,
+        minimum_display_spacing: 12,
+        spacing_x: 250,
+        spacing_y: 500,
+        base_x: 1.25,
+        base_y: -2.5,
+      },
+    });
+
+    const result = buildJwwSemanticDiff(before, after);
+
+    expect(result.drawingSemanticEqual).toBe(true);
+    expect(result.drawingRoundTripCompatible).toBe(true);
+    expect(result.documentMetadataEqual).toBe(false);
+    expect(result.roundTripCompatible).toBe(false);
+    expect(result.metadata.before.gridSettings.mode).toBe(1);
+    expect(result.metadata.after.gridSettings.spacing_y).toBe(500);
+  });
+
   it("ignores parser byte offsets while comparing metadata values", () => {
     const before = document([lineA], {
       colorSettings: {

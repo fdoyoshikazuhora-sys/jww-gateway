@@ -1446,4 +1446,49 @@ describe("JWW writer", () => {
     }
     expect(invalidMessage).toContain("rotation/reference");
   });
+
+  it("patches only the official fixed-width grid settings span", () => {
+    const source = buildJwwBytes({ version: 700, entities: [] });
+    const before = parse(source);
+    const span = before.grid_settings_source_span;
+    const prefixEnd = before.entity_list_offset;
+    const patchedPrefix = patchJwwTemplatePrefixMetadata(
+      source.slice(0, prefixEnd),
+      {
+        gridSettings: {
+          mode: -11,
+          minimum_display_spacing: 12,
+          spacing_x: 250,
+          spacing_y: 500,
+          base_x: 1.25,
+          base_y: -2.5,
+        },
+      }
+    );
+    const bytes = new Uint8Array(patchedPrefix.length + source.length - prefixEnd);
+    bytes.set(patchedPrefix);
+    bytes.set(source.slice(prefixEnd), patchedPrefix.length);
+    const after = parse(bytes);
+
+    expect(span).toMatchObject({ byteLength: 44 });
+    expect(after.grid_settings).toEqual({
+      mode: -11,
+      minimum_display_spacing: 12,
+      spacing_x: 250,
+      spacing_y: 500,
+      base_x: 1.25,
+      base_y: -2.5,
+    });
+    expect(bytes.slice(0, span.start)).toEqual(source.slice(0, span.start));
+    expect(bytes.slice(span.end)).toEqual(source.slice(span.end));
+    let invalidMessage = "";
+    try {
+      patchJwwTemplatePrefixMetadata(source.slice(0, prefixEnd), {
+        gridSettings: { ...before.grid_settings, mode: -2 },
+      });
+    } catch (error) {
+      invalidMessage = error.message;
+    }
+    expect(invalidMessage).toContain("grid mode");
+  });
 });

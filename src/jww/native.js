@@ -13,6 +13,7 @@ export const JWW_NATIVE_CONTRACT_VERSION = 1;
 export const JWW_NATIVE_HEADER_ID = "jww:header";
 export const JWW_NATIVE_PRINT_SETTINGS_ID = "jww:print-settings";
 export const JWW_NATIVE_DIMENSION_SETTINGS_ID = "jww:dimension-settings";
+export const JWW_NATIVE_GRID_SETTINGS_ID = "jww:grid-settings";
 
 export function jwwNativeLayerGroupId(index) {
   return `jww:layer-group:${Number(index)}`;
@@ -402,6 +403,13 @@ function buildNativeDocument(
             sourceSpan: parsed.sunpou_settings_source_span || null,
           }
         : null,
+      grid: parsed.grid_settings
+        ? {
+            ...parsed.grid_settings,
+            id: JWW_NATIVE_GRID_SETTINGS_ID,
+            sourceSpan: parsed.grid_settings_source_span || null,
+          }
+        : null,
       environmentRegion: parsed.environment_region || null,
       layerNamesExtracted: parsed.layer_names_extracted !== false,
       layerNameFallbacks: parsed.layer_name_fallbacks || [],
@@ -466,6 +474,7 @@ function nativeTargetIdExists(document, targetId) {
     targetId === document.header?.id ||
       targetId === document.settings?.print?.id ||
       targetId === document.settings?.dimension?.id ||
+      targetId === document.settings?.grid?.id ||
       (document.layerGroups || []).some((item) => item.id === targetId) ||
       nativeRecordById(document, targetId) ||
       (document.blockDefinitions || []).some((item) => item.id === targetId) ||
@@ -654,6 +663,73 @@ function replaceNativeDimensionSettings(next, patch) {
   next.settings = {
     ...next.settings,
     dimension: { ...previous, ...packed },
+  };
+}
+
+function replaceNativeGridSettings(next, patch) {
+  const previous = next.settings?.grid;
+  const value = cloneValue(unwrap(patch.record));
+  if (!previous || !value || typeof value !== "object") {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW native grid settings replacement requires a metadata object"
+    );
+  }
+  const keys = [
+    "mode",
+    "minimum_display_spacing",
+    "spacing_x",
+    "spacing_y",
+    "base_x",
+    "base_y",
+  ];
+  rejectChangedMetadataFields(previous, value, new Set(keys), previous.id);
+  const mode = Number(value.mode);
+  if (!Number.isInteger(mode) || ![0, 1, 10, 11, -1, -10, -11].includes(mode)) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `Unsupported JWW grid mode: ${value.mode}`
+    );
+  }
+  const grid = {
+    mode,
+    minimum_display_spacing: Number(value.minimum_display_spacing),
+    spacing_x: Number(value.spacing_x),
+    spacing_y: Number(value.spacing_y),
+    base_x: Number(value.base_x),
+    base_y: Number(value.base_y),
+  };
+  if (
+    !Number.isFinite(grid.minimum_display_spacing) ||
+    grid.minimum_display_spacing < 5 ||
+    grid.minimum_display_spacing > 100
+  ) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `JWW minimum grid display spacing must be between 5 and 100 dots: ${value.minimum_display_spacing}`
+    );
+  }
+  if (!Number.isFinite(grid.spacing_x) || grid.spacing_x <= 0) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `JWW grid spacing X must be greater than zero: ${value.spacing_x}`
+    );
+  }
+  if (!Number.isFinite(grid.spacing_y) || grid.spacing_y <= 0) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      `JWW grid spacing Y must be greater than zero: ${value.spacing_y}`
+    );
+  }
+  if (!Number.isFinite(grid.base_x) || !Number.isFinite(grid.base_y)) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW grid base must use finite X and Y values"
+    );
+  }
+  next.settings = {
+    ...next.settings,
+    grid: { ...previous, ...grid },
   };
 }
 
@@ -1426,6 +1502,7 @@ export function applyNativeJwwPatches(document, patches = []) {
     const headerTarget = patch.targetId === next.header?.id;
     const printSettingsTarget = patch.targetId === next.settings?.print?.id;
     const dimensionSettingsTarget = patch.targetId === next.settings?.dimension?.id;
+    const gridSettingsTarget = patch.targetId === next.settings?.grid?.id;
     const layerGroupIndex = next.layerGroups.findIndex(
       (item) => item.id === patch.targetId
     );
@@ -1434,6 +1511,7 @@ export function applyNativeJwwPatches(document, patches = []) {
         headerTarget ||
         printSettingsTarget ||
         dimensionSettingsTarget ||
+        gridSettingsTarget ||
         layerGroupIndex >= 0
       ) {
         throw nativePatchError(
@@ -1504,6 +1582,9 @@ export function applyNativeJwwPatches(document, patches = []) {
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (dimensionSettingsTarget) {
         replaceNativeDimensionSettings(next, patch);
+        pendingPrefixMetadataTargetIds.add(patch.targetId);
+      } else if (gridSettingsTarget) {
+        replaceNativeGridSettings(next, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (layerGroupIndex >= 0) {
         replaceNativeLayerGroup(next, layerGroupIndex, patch);
@@ -1814,6 +1895,7 @@ function nativeRebuildWriteOptions(
     ),
     printSettings: revised.settings?.print || null,
     dimensionSettings: revised.settings?.dimension || null,
+    gridSettings: revised.settings?.grid || null,
     templatePrefix: document.originalBytes.slice(0, prefixEnd),
     meta: {
       jwwBlockDefinitions: revised.blockDefinitions.map((definition) =>
@@ -1920,6 +2002,7 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
     document.header?.id,
     document.settings?.print?.id,
     document.settings?.dimension?.id,
+    document.settings?.grid?.id,
     ...(document.layerGroups || []).map((group) => group.id),
   ]);
   const invalidTargetId = targetIds.find((targetId) => !allowedIds.has(targetId));
@@ -1983,6 +2066,9 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
           : null,
         dimensionSettings: targetIdSet.has(revised.settings?.dimension?.id)
           ? revised.settings.dimension
+          : null,
+        gridSettings: targetIdSet.has(revised.settings?.grid?.id)
+          ? revised.settings.grid
           : null,
       }
     );
@@ -2110,6 +2196,25 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
     if (!retained) {
       const error = new Error(
         "Saved JWW dimension settings were not retained after reparse"
+      );
+      error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
+      throw error;
+    }
+  }
+  if (targetIdSet.has(revisedDocument.settings?.grid?.id)) {
+    const saved = savedDocument.settings?.grid;
+    const revised = revisedDocument.settings?.grid;
+    const retained = [
+      "mode",
+      "minimum_display_spacing",
+      "spacing_x",
+      "spacing_y",
+      "base_x",
+      "base_y",
+    ].every((key) => saved?.[key] === revised?.[key]);
+    if (!retained) {
+      const error = new Error(
+        "Saved JWW grid settings were not retained after reparse"
       );
       error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
       throw error;

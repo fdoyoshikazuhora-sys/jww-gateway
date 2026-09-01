@@ -32,12 +32,14 @@ may renumber records that move to a different serialized-list position.
 
 Fixed prefix metadata also has stable patch targets: `header.id` is
 `jww:header`, print placement has `id: jww:print-settings`, native dimension
-settings have `id: jww:dimension-settings`, and each layer group has
+settings have `id: jww:dimension-settings`, grid settings have
+`id: jww:grid-settings`, and each layer group has
 `id: jww:layer-group:<index>`. A
 `replace` patch may change `header.memo`, `header.paperSize`,
 `header.writeLayerGroup`, a layer group's `scale`, its `write_layer`,
 group/layer state codes, group/layer protection codes, or the printer output
-origin, scale, and rotation/reference code, or `sunpou1..5` together with the required
+origin, scale, and rotation/reference code, `sunpou1..5`, or the grid mode and
+five geometry values together with the required
 current-row invariants. Printer placement is the official fixed 28-byte region:
 two origin `double` values, one scale `double`, and one `DWORD` whose ones digit
 selects 0°/90° and tens digit selects the output reference position. Official
@@ -48,8 +50,14 @@ five documented DWORDs. The dummy values and maximum draw-width code are
 retained; the maximum draw-width code is not editable through Basic Settings.
 The named Basic Settings controls decode and re-encode only the ranges defined
 by `jwdatafmt.txt`. A source value with out-of-range or undocumented packed
-digits is rejected by preflight instead of being normalized or dropped. Official
-JWW 7.02 state codes are `0` hidden, `1` visible only, `2` editable, and `3`
+digits is rejected by preflight instead of being normalized or dropped.
+Official grid settings occupy the fixed 44-byte region immediately after Print Settings:
+one signed mode DWORD followed by minimum display spacing, X/Y spacing, and X/Y
+base point doubles. The ones digit controls display, the tens digit selects
+drawing or real-size units, and a negative value disables grid snapping.
+Undocumented or unrepresentable mode values and minimum display spacing outside
+Jw_cad's displayed 5–100 dot range are rejected instead of guessed.
+Official JWW 7.02 state codes are `0` hidden, `1` visible only, `2` editable, and `3`
 current. Direct state edits accept only `0..2` on non-current rows; current rows
 remain `3`, and protection code `2` (display state fixed) rejects the edit.
 Protection edits accept only `0` (none), `1` (protected; display state can

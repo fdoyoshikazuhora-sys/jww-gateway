@@ -849,7 +849,7 @@ function parseLinePayload(reader, version) {
 
 function parseGridSettings(reader) {
   return {
-    mode: reader.readDword(),
+    mode: reader.readDword() | 0,
     minimum_display_spacing: reader.readDouble(),
     spacing_x: reader.readDouble(),
     spacing_y: reader.readDouble(),
@@ -1500,7 +1500,13 @@ export function parse(input, options = {}) {
     end: reader.pos,
     byteLength: reader.pos - printSettingsStart,
   };
+  const gridSettingsStart = reader.pos;
   const grid_settings = parseGridSettings(reader);
+  const grid_settings_source_span = {
+    start: gridSettingsStart,
+    end: reader.pos,
+    byteLength: reader.pos - gridSettingsStart,
+  };
   const textContext = {
     ...baseTextContext,
     memo,
@@ -1631,6 +1637,7 @@ export function parse(input, options = {}) {
     print_settings,
     print_settings_source_span,
     grid_settings,
+    grid_settings_source_span,
     sunpou_settings,
     sunpou_settings_source_span,
     diagnostics,

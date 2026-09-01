@@ -258,6 +258,10 @@ describe("JWW native document API", () => {
         className: "CDataSen",
       });
       expect(document.nativeEntities[0].sourceSpan.byteLength).toBe(61);
+      expect(document.settings.grid).toMatchObject({
+        id: "jww:grid-settings",
+        sourceSpan: { byteLength: 44 },
+      });
       expect(document.diagnostics.recordSourceSpansAvailable).toBe(true);
       expect(document.diagnostics.clean).toBe(true);
     });
@@ -2741,6 +2745,54 @@ describe("JWW native document API", () => {
     );
     expect(saved.bytes.slice(dimension.sourceSpan.end)).toEqual(
       document.originalBytes.slice(dimension.sourceSpan.end)
+    );
+  });
+
+  it("source-splices stable native grid settings and retains signed mode", async () => {
+    const document = await openNativeJww(fixture(700));
+    const grid = document.settings.grid;
+    const patches = [{
+      op: "replace",
+      targetId: grid.id,
+      record: {
+        ...grid,
+        mode: -11,
+        minimum_display_spacing: 12,
+        spacing_x: 250,
+        spacing_y: 500,
+        base_x: 1.25,
+        base_y: -2.5,
+      },
+    }];
+    const dirty = applyNativeJwwPatches(document, patches);
+    const preflight = preflightNativeJwwSave(dirty);
+    const saved = saveNativeJww(dirty);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(grid).toMatchObject({
+      id: "jww:grid-settings",
+      sourceSpan: { byteLength: 44 },
+    });
+    expect(dirty.pendingPrefixMetadataTargetIds).toContain(grid.id);
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    expect(reopened.settings.grid).toMatchObject({
+      mode: -11,
+      minimum_display_spacing: 12,
+      spacing_x: 250,
+      spacing_y: 500,
+      base_x: 1.25,
+      base_y: -2.5,
+    });
+    expect(saved.bytes.slice(0, grid.sourceSpan.start)).toEqual(
+      document.originalBytes.slice(0, grid.sourceSpan.start)
+    );
+    expect(saved.bytes.slice(grid.sourceSpan.end)).toEqual(
+      document.originalBytes.slice(grid.sourceSpan.end)
     );
   });
 });

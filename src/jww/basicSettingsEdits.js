@@ -3,8 +3,9 @@ import {
   encodeJwwDimensionSettings,
   JWW_DIMENSION_EDIT_KEYS,
 } from "./dimensionSettings.js";
+import { encodeJwwGridSettings, JWW_GRID_EDIT_KEYS } from "./gridSettings.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 6;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 7;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -39,6 +40,7 @@ const EDIT_KEYS = new Set([
   "printScale",
   "printRotationSetting",
   ...JWW_DIMENSION_EDIT_KEYS,
+  ...JWW_GRID_EDIT_KEYS,
 ]);
 
 function normalizedMemo(value) {
@@ -579,6 +581,43 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
         op: "replace",
         targetId: dimension.id,
         record: revisedDimension,
+      });
+    }
+  }
+
+  const gridEditRequested = JWW_GRID_EDIT_KEYS.some((key) =>
+    Object.hasOwn(edits, key)
+  );
+  if (gridEditRequested) {
+    const grid = document.settings?.grid;
+    if (!grid?.id) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        "JWW native grid settings patch target is unavailable"
+      );
+    }
+    let revisedGrid;
+    try {
+      revisedGrid = encodeJwwGridSettings(grid, edits);
+    } catch (error) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        error?.message || String(error)
+      );
+    }
+    const keys = [
+      "mode",
+      "minimum_display_spacing",
+      "spacing_x",
+      "spacing_y",
+      "base_x",
+      "base_y",
+    ];
+    if (keys.some((key) => revisedGrid[key] !== grid[key])) {
+      patches.push({
+        op: "replace",
+        targetId: grid.id,
+        record: revisedGrid,
       });
     }
   }

@@ -86,6 +86,16 @@ function nativeDocument() {
         max_line_width: -300,
         sourceSpan: { start: 100, end: 184, byteLength: 84 },
       },
+      grid: {
+        id: "jww:grid-settings",
+        mode: 11,
+        minimum_display_spacing: 10,
+        spacing_x: 100,
+        spacing_y: 200,
+        base_x: 3.5,
+        base_y: -4.5,
+        sourceSpan: { start: 212, end: 256, byteLength: 44 },
+      },
     },
     diagnostics: {
       clean: true,
@@ -115,11 +125,11 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 8,
+      formatVersion: 9,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
-        version: 6,
+        version: 7,
         mode: "native-metadata-safe",
         writablePaths: [
           "header.memo",
@@ -140,6 +150,12 @@ describe("buildJwwBasicSettingsProjection", () => {
           "settings.dimension.sunpou3",
           "settings.dimension.sunpou4",
           "settings.dimension.sunpou5",
+          "settings.grid.mode",
+          "settings.grid.minimum_display_spacing",
+          "settings.grid.spacing_x",
+          "settings.grid.spacing_y",
+          "settings.grid.base_x",
+          "settings.grid.base_y",
         ],
         managedInvariantPaths: ["layerGroups[].layers[].state"],
       },
@@ -161,6 +177,7 @@ describe("buildJwwBasicSettingsProjection", () => {
       "line-types",
       "text",
       "dimensions",
+      "grid",
       "layers",
       "print",
       "diagnostics",
@@ -187,6 +204,23 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(byId["dimension-max-line-width"]).toMatchObject({
       value: "-300",
       edit: null,
+    });
+    expect(byId["grid-mode-value"].edit).toMatchObject({
+      key: "gridMode",
+      control: "select",
+      value: 11,
+    });
+    expect(byId["grid-display"].value).toBe("Displayed");
+    expect(byId["grid-units"].value).toBe("Real-size units");
+    expect(byId["grid-snapping"].value).toBe("Enabled");
+    expect(byId["grid-spacing-x"].edit).toMatchObject({
+      key: "gridSpacingX",
+      control: "number",
+      value: 100,
+    });
+    expect(byId["grid-base-y"].edit).toMatchObject({
+      key: "gridBaseY",
+      value: -4.5,
     });
     expect(byId.memo.edit).toMatchObject({
       key: "memo",

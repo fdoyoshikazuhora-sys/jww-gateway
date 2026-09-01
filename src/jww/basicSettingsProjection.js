@@ -3,10 +3,14 @@ import {
   JWW_BASIC_SETTINGS_PAPER_OPTIONS,
 } from "./basicSettingsEdits.js";
 import { decodeJwwDimensionSettings } from "./dimensionSettings.js";
+import {
+  decodeJwwGridSettings,
+  JWW_GRID_MODE_OPTIONS,
+} from "./gridSettings.js";
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 8;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 9;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -784,6 +788,82 @@ function buildDimensionTab(document) {
   ]);
 }
 
+function gridNumberField(id, label, key, value, source, options = {}) {
+  return field({
+    id,
+    label,
+    value: displayNumber(value),
+    source,
+    note: options.note || "",
+    edit: {
+      key,
+      control: "number",
+      value,
+      ...(options.min === undefined ? {} : { min: options.min }),
+      ...(options.max === undefined ? {} : { max: options.max }),
+      step: options.step ?? "any",
+    },
+  });
+}
+
+function buildGridTab(document) {
+  const settings = document.settings?.grid || {};
+  let decoded;
+  let decodeError = "";
+  try {
+    decoded = decodeJwwGridSettings(settings);
+  } catch (error) {
+    decodeError = error?.message || String(error);
+  }
+  if (!decoded) {
+    return tab("grid", "Grid Settings", [
+      fieldsSection(
+        "grid-native",
+        "Native grid settings",
+        [
+          field({ id: "grid-mode", label: "Grid mode", value: displayNumber(settings.mode), source: "settings.grid.mode" }),
+          field({ id: "grid-minimum-display-spacing", label: "Minimum display spacing (dots)", value: displayNumber(settings.minimum_display_spacing), source: "settings.grid.minimum_display_spacing" }),
+          field({ id: "grid-spacing-x", label: "Spacing X", value: displayNumber(settings.spacing_x), source: "settings.grid.spacing_x" }),
+          field({ id: "grid-spacing-y", label: "Spacing Y", value: displayNumber(settings.spacing_y), source: "settings.grid.spacing_y" }),
+          field({ id: "grid-base-x", label: "Base point X", value: displayNumber(settings.base_x), source: "settings.grid.base_x" }),
+          field({ id: "grid-base-y", label: "Base point Y", value: displayNumber(settings.base_y), source: "settings.grid.base_y" }),
+        ],
+        `Editing is unavailable because the stored mode or geometry is outside the documented JWW encoding: ${decodeError}`
+      ),
+    ]);
+  }
+  const selectedMode = JWW_GRID_MODE_OPTIONS.find(
+    (option) => Number(option.value) === Number(decoded.mode)
+  );
+  return tab("grid", "Grid Settings", [
+    fieldsSection("grid-mode", "Display and snapping", [
+      field({
+        id: "grid-mode-value",
+        label: "Grid mode",
+        value: selectedMode?.label || displayNumber(decoded.mode),
+        source: "settings.grid.mode",
+        note: "Ones digit controls display, tens digit selects drawing or real-size units, and a negative value disables grid snapping.",
+        edit: {
+          key: "gridMode",
+          control: "select",
+          value: decoded.mode,
+          options: JWW_GRID_MODE_OPTIONS,
+        },
+      }),
+      field({ id: "grid-display", label: "Grid display", value: decoded.display ? "Displayed" : "Hidden", status: STATUS.DERIVED, source: "settings.grid.mode" }),
+      field({ id: "grid-units", label: "Spacing units", value: decoded.realSizeUnits ? "Real-size units" : "Drawing units", status: STATUS.DERIVED, source: "settings.grid.mode" }),
+      field({ id: "grid-snapping", label: "Grid snapping", value: decoded.snapping ? "Enabled" : "Disabled", status: STATUS.DERIVED, source: "settings.grid.mode" }),
+    ]),
+    fieldsSection("grid-geometry", "Spacing and base point", [
+      gridNumberField("grid-minimum-display-spacing", "Minimum display spacing (dots)", "gridMinimumDisplaySpacing", decoded.minimum_display_spacing, "settings.grid.minimum_display_spacing", { min: 0 }),
+      gridNumberField("grid-spacing-x", "Spacing X", "gridSpacingX", decoded.spacing_x, "settings.grid.spacing_x", { min: Number.MIN_VALUE }),
+      gridNumberField("grid-spacing-y", "Spacing Y", "gridSpacingY", decoded.spacing_y, "settings.grid.spacing_y", { min: Number.MIN_VALUE }),
+      gridNumberField("grid-base-x", "Base point X", "gridBaseX", decoded.base_x, "settings.grid.base_x"),
+      gridNumberField("grid-base-y", "Base point Y", "gridBaseY", decoded.base_y, "settings.grid.base_y"),
+    ]),
+  ]);
+}
+
 function buildLayersTab(document) {
   const groups = document.layerGroups || [];
   const writeLayerGroup = finiteNumber(document.header?.writeLayerGroup, 0);
@@ -966,6 +1046,7 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
     buildLineTypeTab(document),
     buildTextTab(document),
     buildDimensionTab(document),
+    buildGridTab(document),
     buildLayersTab(document),
     buildPrintTab(document),
     buildDiagnosticsTab(document),
@@ -997,6 +1078,12 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
         "settings.dimension.sunpou3",
         "settings.dimension.sunpou4",
         "settings.dimension.sunpou5",
+        "settings.grid.mode",
+        "settings.grid.minimum_display_spacing",
+        "settings.grid.spacing_x",
+        "settings.grid.spacing_y",
+        "settings.grid.base_x",
+        "settings.grid.base_y",
       ],
       managedInvariantPaths: ["layerGroups[].layers[].state"],
     },

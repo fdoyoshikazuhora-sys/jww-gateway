@@ -12,6 +12,8 @@ diagnostics, JWF comparison, and package handoff verification.
 - Bounded JWW v600/v700 writer with strict unsupported-type rejection.
 - Native `CDataSunpou` dimension, `CDataBlock`/`CDataList` block, external image reference, and v700 embedded image read/write support.
 - Native Basic Settings dimension metadata has a stable source span and patch target; the official five packed DWORDs can be edited through named English controls without rewriting the retained dummy and maximum draw-width fields.
+- Native Basic Settings grid metadata has a stable 44-byte source span and patch target. The official signed mode, minimum display spacing, X/Y spacing, and base point can be edited through named English controls without rewriting adjacent prefix data.
+- Jw_cad 10.02.1 reopened the real v700 Grid Settings validation output. The drawing remained A-2 at 1:60, and its Axis Angle / Grid / Offset dialog displayed real-size units, X/Y spacing `250`/`500`, minimum display spacing `12`, grid display enabled, and grid snapping enabled. Jw_cad does not display the stored base-point coordinates numerically in this dialog; their `1.25`/`-2.5` values are covered by exact source-span and reparse validation.
 - Jw_cad 10.02.1 reopened the real v700 dimension-settings validation output. Its Dimension Settings dialog displayed the intended text type `3`, line/extension/point colors `4`/`5`/`6`, value and extension offsets `2.5`/`3.5`, arrow length/angle/reverse projection `4`/`25`/`7`, italic and bold flags, three decimal places, two angle decimal places, and dimension-object creation; the drawing remained A-2 at 1:60.
 - Jw_cad 10.02.1 reopened and edited a v700 Gateway output containing LINE,
   CIRCLE, ARC, TEXT, POINT, SOLID, DIMENSION, BLOCK/INSERT, and IMAGE. A

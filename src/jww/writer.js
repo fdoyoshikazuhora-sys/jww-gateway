@@ -1,4 +1,5 @@
 import { getDefaultJwwSaveTemplatePrefix } from "./defaultJwwSaveTemplatePrefix.js";
+import { normalizeJwwGridSettings } from "./gridSettings.js";
 import { parse } from "./parser.js";
 
 const JWW_HEADER = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
@@ -890,6 +891,34 @@ function patchTemplatePrintSettings(templatePrefix, printSettings) {
   return bytes;
 }
 
+function patchTemplateGridSettings(templatePrefix, gridSettings) {
+  if (gridSettings === null || gridSettings === undefined) return templatePrefix;
+  const settings = normalizeJwwGridSettings(gridSettings);
+  const bytes = templatePrefix.slice();
+  const memoOffset = JWW_HEADER.length + 4;
+  const paperOffset = serializedStringEnd(bytes, memoOffset);
+  const layerGroupsOffset = paperOffset + 8;
+  const layerGroupStride = 4 + 4 + 8 + 4 + 16 * (4 + 4);
+  const sunpouSettingsByteLength = (14 + 7) * 4;
+  const printSettingsByteLength = 8 + 8 + 8 + 4;
+  const gridSettingsOffset =
+    layerGroupsOffset +
+    16 * layerGroupStride +
+    sunpouSettingsByteLength +
+    printSettingsByteLength;
+  const gridSettingsByteLength = 4 + 5 * 8;
+  if (gridSettingsOffset + gridSettingsByteLength > bytes.length) {
+    throw new Error("JWW template prefix ended before the grid settings fields");
+  }
+  writeDwordAt(bytes, gridSettingsOffset, settings.mode);
+  writeDoubleAt(bytes, gridSettingsOffset + 4, settings.minimum_display_spacing);
+  writeDoubleAt(bytes, gridSettingsOffset + 12, settings.spacing_x);
+  writeDoubleAt(bytes, gridSettingsOffset + 20, settings.spacing_y);
+  writeDoubleAt(bytes, gridSettingsOffset + 28, settings.base_x);
+  writeDoubleAt(bytes, gridSettingsOffset + 36, settings.base_y);
+  return bytes;
+}
+
 export function patchJwwTemplatePrefixMetadata(
   templatePrefix,
   {
@@ -904,6 +933,7 @@ export function patchJwwTemplatePrefixMetadata(
     layerProtections = null,
     dimensionSettings = null,
     printSettings = null,
+    gridSettings = null,
   } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
@@ -918,6 +948,7 @@ export function patchJwwTemplatePrefixMetadata(
   bytes = patchTemplateLayerStates(bytes, layerStates);
   bytes = patchTemplateDimensionSettings(bytes, dimensionSettings);
   bytes = patchTemplatePrintSettings(bytes, printSettings);
+  bytes = patchTemplateGridSettings(bytes, gridSettings);
   return bytes;
 }
 
@@ -2191,6 +2222,7 @@ export function preflightJwwWrite({
   entities,
   templatePrefix = null,
   dimensionSettings = null,
+  gridSettings = null,
   dxfMeta = {},
   meta = {},
   version = null,
@@ -2249,6 +2281,12 @@ export function preflightJwwWrite({
       }
       patchTemplateDimensionSettings(template.bytes, dimensionSettings);
     }
+    if (gridSettings !== null) {
+      if (!template.bytes) {
+        throw new Error("JWW grid settings require a template prefix");
+      }
+      patchTemplateGridSettings(template.bytes, gridSettings);
+    }
     if (template.version < 700 && embeddedImages.length) {
       throw new Error("Embedded JWW images require version 700");
     }
@@ -2283,6 +2321,7 @@ export function buildJwwWriteResult({
   layerProtections = null,
   dimensionSettings = null,
   printSettings = null,
+  gridSettings = null,
   templatePrefix = null,
   dxfMeta = {},
   meta = {},
@@ -2342,6 +2381,7 @@ export function buildJwwWriteResult({
           layerProtections,
           dimensionSettings,
           printSettings,
+          gridSettings,
         }
       )
     : null;
