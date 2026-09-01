@@ -535,7 +535,7 @@ describe("JWW Gateway package manifest", () => {
     expect(output.manifestFile).toBe("JWW_GATEWAY_MANIFEST.json");
     expect(path.isAbsolute(output.manifestFile)).toBe(false);
     expect(output.counts.total).toBe(1);
-    expect(output.counts.byClassification["old-release-runtime"]).toBe(1);
+    expect(output.counts.byClassification["independent-v600-samples"]).toBe(1);
     expect(output.openItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

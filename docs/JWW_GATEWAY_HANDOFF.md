@@ -57,7 +57,7 @@ npm run open-items -- --html -o reports\open-items.html
 npm run reports:index -- --html -o reports\index.html
 ```
 
-The open-items report classifies each item by status, class, conversion impact, evidence, release decision, and next action. Items marked `old-release-runtime`, `audit-only`, `metadata-ready`, or `out-of-scope-for-conversion` are tracked deliberately and are not current-version parser failures by default.
+The open-items report classifies each item by status, class, conversion impact, evidence, release decision, and next action. Items marked `independent-v600-samples`, `audit-only`, `metadata-ready`, or `out-of-scope-for-conversion` are tracked deliberately and are not current-version parser failures by default.
 
 ## Exit Codes
 
@@ -72,9 +72,11 @@ The open-items report classifies each item by status, class, conversion impact, 
   Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse
   cleanly and survive Gateway template rewrites with drawing/document semantic
   equality. Jw_cad 10.02.1 opened, edited, saved, and reopened a representative
-  output; Gateway then reproduced that saved v700 file byte-for-byte. Actual
-  Jw_cad 6.x runtime evidence and independently sourced v600 DIMENSION,
-  BLOCK/INSERT, and IMAGE samples remain the separate conformance gate. See
+  output; Gateway then reproduced that saved v700 file byte-for-byte. Jw_cad
+  6.20 also opened, separately saved, and reopened generated v600 DIMENSION,
+  BLOCK/INSERT, and external IMAGE-reference fixtures; the recorded Save As
+  normalizations are documented. Independently sourced v600 samples and an
+  intentional old-runtime edit round trip remain the separate conformance gate. See
   `JWW_VERSION_CONFORMANCE_EVIDENCE.md`.
 - `LTYPE_HC` and `LCOLLOR_M` are JWF-only operation/display settings and are not serialized into JWW.
 - JWW text decoration raw controls and structured runs survive Gateway write

@@ -92,24 +92,67 @@ The isolated generated evidence is under:
 .work/native-jww-open/roundtrip-corpus-v600-external-image-20260830
 ```
 
-## Remaining old-release runtime and entity-sample gate
+## Jw_cad 6.20 generated v600 runtime evidence
+
+On 2026-09-01, the archived `jww620.exe` installer obtained through the
+user-provided download location was run only inside the dedicated
+`JWW620-Test-Win11` VM. The installer is not redistributed by Gateway. Its
+local SHA-256 is
+`A18B69A5C428E52B42AAF3FC055AE2C85A19F41DBDC51ECA15E1EA33272C3408`.
+The Jw_cad version dialog in the VM identified the executable as Version 6.20.
+
+Three Gateway-generated v600 fixtures were transferred through an isolated
+host/guest exchange, opened visibly in Jw_cad 6.20, saved under new names,
+closed, and reopened from the separately saved files. No private drawing was
+used or redistributed. Every saved output remained internal version 600,
+contained one drawing record, was non-empty, and reparsed in Gateway with zero
+unsupported and zero skipped records.
+
+| Fixture | Input / output bytes | Jw_cad 6.20 result | Gateway semantic result |
+| --- | ---: | --- | --- |
+| DIMENSION | 16,416 / 16,399 | Open, Save As, and reload succeeded | Text end point X normalized from `12` to `12.25`; dimension-settings word `9322` normalized to `9122` |
+| BLOCK/INSERT | 16,228 / 16,197 | Open, Save As, and reload succeeded | Definition number normalized from `1` to `0`; name, reference position, X/Y scales, rotation, and definition LINE stayed equal |
+| external IMAGE reference | 16,210 / 16,146 | Reference frame opened, Save As and reload succeeded | Pen color normalized from `2` to `1` and text end point X from `65` to `49`; file name, image dimensions, position, rotation, and `^@BM...` payload stayed equal |
+
+The IMAGE test is specifically the external `fixture.bmp` reference form. The
+BMP was intentionally not supplied to the VM, so this proves preservation and
+reload of the IMAGE reference record and its frame, not pixel rendering and not
+v600 embedded-image support.
+
+The three Save As outputs are parser-clean but not drawing-semantic equal under
+the Gateway comparator because Jw_cad 6.20 performed the explicit
+normalizations above. Those differences are recorded rather than suppressed.
+The checks establish old-runtime acceptance, Save As, and reload for these
+generated records; they do not establish independently authored v600
+conformance or an intentional edit round trip.
+
+The isolated evidence is under:
+
+```text
+.work/native-jww-open/legacy-jwcad/vm/vm-jwcad-version-6.20-20260831.png
+.work/native-jww-open/legacy-jwcad/vm/vm-v600-dimension-*-20260901.png
+.work/native-jww-open/legacy-jwcad/vm/vm-v600-block-*-20260901.png
+.work/native-jww-open/legacy-jwcad/vm/vm-v600-image-*-20260901.png
+.work/native-jww-open/legacy-jwcad/vm/exchange/*.diagnostics.json
+.work/native-jww-open/legacy-jwcad/vm/exchange/*.semantic.json
+```
+
+## Remaining independent-sample and edit gate
 
 The remaining `jww-version-conformance` item is now limited to evidence that
-cannot be established with the installed Jw_cad 10.02.1 runtime or the available
-installed samples:
+is not supplied by the generated fixtures or the available installed samples:
 
-1. edit, Save As, and reload evidence in an actual Jw_cad 6.x runtime;
-2. non-private, independently sourced v600 files containing native DIMENSION,
+1. non-private, independently sourced v600 files containing native DIMENSION,
    BLOCK/INSERT, and IMAGE records; and
+2. an intentional entity edit followed by Save As, semantic diff, and reload in
+   Jw_cad 6.20, recorded separately from the automatic normalizations above; and
 3. equivalent evidence for any additional Jw_cad release for which compatibility
    is claimed.
 
-As checked on 2026-08-30, the official download page links Version 10.03.5 and
-Version 8.25a, but no Version 6.x installer. No 6.x executable was found in the
-local Jw_cad or Downloads directories. Acquiring and running an archived binary
-therefore requires a separate provenance and safety decision.
-
-Until the old runtime and remaining entity samples are available, Gateway may
+Until the remaining independent samples and intentional-edit evidence are
+available, Gateway may
 claim the bounded v600/v700 writer contract, parser/semantic results for the 15
 installed v600 samples, and the recorded Jw_cad 10.02.1 open/edit/save/reload
-result, but not version-wide or Jw_cad 6.x runtime compatibility.
+result. It may also claim the exact Jw_cad 6.20 generated-fixture Open, Save As,
+reload, parser-clean results, and automatic normalizations listed above, but not
+version-wide or independently authored v600 compatibility.

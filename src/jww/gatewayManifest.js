@@ -24,20 +24,20 @@ export const JWF_ONLY_OPERATION_KEYS = [...JWF_ONLY_KEYS_FROM_JWF];
 export const GATEWAY_OPEN_ITEMS = [
   {
     id: "jww-version-conformance",
-    status: "external-runtime-blocked",
+    status: "external-sample-blocked",
     category: "compatibility",
-    classification: "old-release-runtime",
+    classification: "independent-v600-samples",
     conversionImpact:
-      "bounded for current Jw_cad 10.02.1 claims; old-release runtime behavior and independently sourced v600 DIMENSION/BLOCK/IMAGE remain unverified",
+      "bounded v600/v700 and generated-fixture Jw_cad 6.20 Save As/reload evidence is established; independently sourced v600 DIMENSION/BLOCK/IMAGE and intentional old-runtime edit behavior remain unverified",
     releaseDecision:
-      "claim only the recorded Jw_cad 10.02.1 and bounded v600/v700 results; do not claim version-wide or Jw_cad 6.x runtime compatibility",
+      "claim only the recorded Jw_cad 10.02.1, bounded v600/v700, and generated-fixture Jw_cad 6.20 Save As/reload results including the recorded normalizations; do not claim version-wide or independently sourced v600 compatibility",
     title: "JWW version and entity conformance corpus",
     detail:
-      "Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse cleanly and survive Gateway template rewrites with drawing and document semantic equality. Jw_cad 10.02.1 opened the representative Gateway output, appended one LINE, saved it as v700, and reopened it; the existing 1,754 drawing entities were unchanged and Gateway's subsequent template rewrite was byte-identical. The installed v600 samples do not contain native DIMENSION, BLOCK/INSERT, or IMAGE records, and no Jw_cad 6.x runtime is available.",
+      "Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse cleanly and survive Gateway template rewrites with drawing and document semantic equality. Jw_cad 10.02.1 opened, edited, saved, and reopened the representative Gateway output. An actual Jw_cad 6.20 runtime in a dedicated VM opened, separately saved, and reopened generated v600 DIMENSION, BLOCK/INSERT, and external IMAGE-reference fixtures; every output was non-empty and parser-clean, while Jw_cad 6.20 applied the recorded DIMENSION text-endpoint/settings, BLOCK definition-number, and IMAGE pen-color/text-endpoint normalizations. The installed samples still do not provide independently sourced v600 records for those three families.",
     evidence:
-      "JWW_VERSION_CONFORMANCE_EVIDENCE.md separates installed-sample parser/semantic evidence, generated entity-family coverage, current Jw_cad 10.02.1 GUI open/edit/save/reload, and the remaining old-release boundary.",
+      "JWW_VERSION_CONFORMANCE_EVIDENCE.md separates installed-sample parser/semantic evidence, generated entity-family coverage, Jw_cad 10.02.1 GUI evidence, Jw_cad 6.20 generated-fixture Save As/reload evidence, automatic normalizations, and the remaining independent-sample boundary.",
     nextAction:
-      "Obtain an actual Jw_cad 6.x runtime and non-private independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE samples, then record parser, visual, edit, Save As, semantic-diff, and old-release reload evidence separately.",
+      "Obtain non-private independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE samples, then record parser, visual, intentional edit, Save As, semantic-diff, and Jw_cad 6.20 reload evidence separately from automatic Save As normalization.",
   },
 ];
 export const REQUIRED_PACKAGE_FILE_MARKERS = [
@@ -212,7 +212,7 @@ export function buildGatewayManifest({
       "JWW text decoration raw controls, special runs, and segments survive Gateway JSON and native rebuild write paths; visual overprint is a downstream renderer responsibility.",
       "LTYPE_HC, LCOLLOR_M, and LAYCOL/LAYWID/LAYTYP_0..F are resolved as JWF-only operation/default settings and are not serialized into JWW.",
       "Tilted circles and ellipse arcs expose parameter-preserving render geometry and exact bounds; Jw_cad 10.02.1 reopened and resaved the targeted v700 fixture without drawing differences.",
-      "Open items include classification, conversion impact, evidence, and release decision fields so old-release runtime evidence is not mistaken for current-version parser loss.",
+      "Open items include classification, conversion impact, evidence, and release decision fields so missing independent v600 sample evidence is not mistaken for current-version parser loss.",
     ],
   };
 }
