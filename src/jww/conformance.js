@@ -34,9 +34,14 @@ export function assessParsedJww(doc = {}) {
   const jwwVersion = Number.isFinite(Number(doc.version)) ? Number(doc.version) : 0;
   const entityTypes = countEntityTypes(doc.entities);
   const entityCount = Object.values(entityTypes).reduce((sum, count) => sum + count, 0);
+  const entityListComplete = doc.entity_list_complete !== false;
+  const blockListComplete = doc.block_list_complete !== false;
+  const embeddedImageListComplete = doc.embedded_image_list_complete !== false;
+  const structuralIncomplete =
+    !entityListComplete || !blockListComplete || !embeddedImageListComplete;
   const readAssessment = !jwwVersion
     ? "invalid-or-unparsed"
-    : unsupportedCount || skippedCount
+    : unsupportedCount || skippedCount || structuralIncomplete
       ? "parsed-with-reported-loss"
       : "parsed-without-reported-loss";
 
@@ -47,6 +52,9 @@ export function assessParsedJww(doc = {}) {
     unsupportedClasses,
     unsupportedCount,
     skippedCount,
+    entityListComplete,
+    blockListComplete,
+    embeddedImageListComplete,
     readAssessment,
     roundTripAssessment: "not-tested",
     exactCompatibility: false,

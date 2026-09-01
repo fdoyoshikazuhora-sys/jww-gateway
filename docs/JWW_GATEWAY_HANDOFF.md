@@ -77,7 +77,11 @@ The open-items report classifies each item by status, class, conversion impact, 
   DIMENSION/BLOCK/IMAGE coverage. Two separately distributed Matrix vehicle
   drawings published in 2008 and 2009 match their published archive MD5 values,
   parse as v600 with zero loss, and add independently authored ARC/CIRCLE/LINE
-  parser evidence. Jw_cad 10.02.1 opened, edited, saved, and reopened a
+  parser evidence. Eleven Meiji-maru drawings published by Tokyo University of
+  Marine Science and Technology use internal version 600 with runtime-class
+  schema 700 and add 48,974 independently authored ARC/CIRCLE/LINE/SOLID/TEXT
+  records with zero loss after the parser stopped equating those two version
+  fields. Jw_cad 10.02.1 opened, edited, saved, and reopened a
   representative output; Gateway then reproduced that saved v700 file byte-for-
   byte. Jw_cad
   6.20 also opened, separately saved, and reopened generated v600 DIMENSION,

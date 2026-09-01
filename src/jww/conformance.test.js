@@ -35,6 +35,28 @@ describe("JWW conformance assessment", () => {
     expect(result.skippedCount).toBe(1);
   });
 
+  it("reports an unresolved entity-list boundary as parser loss", () => {
+    const result = assessParsedJww({
+      version: 600,
+      entities: [],
+      entity_list_complete: false,
+      block_list_complete: false,
+      embedded_image_list_complete: true,
+      diagnostics: {
+        unsupportedClasses: {},
+        unsupportedCount: 0,
+        skippedCount: 0,
+      },
+    });
+
+    expect(result).toMatchObject({
+      readAssessment: "parsed-with-reported-loss",
+      entityListComplete: false,
+      blockListComplete: false,
+      embeddedImageListComplete: true,
+    });
+  });
+
   it("summarizes observed versions without declaring write support", () => {
     const report = buildConformanceReport(
       [

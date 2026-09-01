@@ -78,6 +78,27 @@ independently authored public v600 parser evidence for ARC, CIRCLE, and LINE.
 They contain no native DIMENSION, BLOCK/INSERT, or IMAGE records, and no writer
 or Jw_cad GUI claim is made from this parser-only scan.
 
+Tokyo University of Marine Science and Technology separately publishes 24
+Meiji-maru drawings from its official site:
+<https://www.kaiyodai.ac.jp/Japanese/meijimaru/2011sp/03_draw.html>. The files
+were retrieved read-only into the isolated
+`.work/native-jww-open/independent-v600/kaiyodai-meijimaru-20260901/` tree and
+were not added as package fixtures. Eleven files are internal version 600,
+twelve are version 700, and one 4,521-byte response is invalid/unparsed.
+
+The eleven v600 files are 2,826,136 bytes and contain 48,974 records: ARC
+3,643, CIRCLE 3,142, LINE 40,841, SOLID 31, and TEXT 1,317. All eleven parse
+with zero unsupported and zero skipped records. Their first MFC CData runtime-
+class registration uses schema 700 even though the document header is version
+600. Gateway formerly required those two independent version fields to match,
+which left the entire file unparsed while the conformance summary incorrectly
+reported zero loss. Entity-list discovery now uses the archive framing and
+CData class name, while conformance also treats an unresolved entity or block
+list boundary as reported parser loss. The Matrix and university sets together
+establish 51,241 independently authored public v600 parser records. The
+university drawings contain no native DIMENSION, BLOCK/INSERT, or IMAGE records,
+and no writer or Jw_cad GUI claim is made from this parser-only scan.
+
 All fifteen installed v600 samples were converted to Gateway JSON and rewritten
 with their own source file as the template into an isolated output directory.
 Every output was non-empty, parser-clean, drawing-semantic equal, and supported-
@@ -107,6 +128,7 @@ The isolated evidence is under:
 .work/native-jww-open/version-conformance-jwcad-install-20260830.json
 .work/e2e-jww/jwcad-install-all-v600-roundtrip-20260830
 .work/native-jww-open/independent-v600/github-keinos-standard-20260901/conformance.json
+.work/native-jww-open/independent-v600/kaiyodai-meijimaru-20260901/conformance-after.json
 ```
 
 ## Generated v600 evidence
@@ -191,8 +213,9 @@ The isolated evidence is under:
 ## Remaining independent-sample gate
 
 The remaining `jww-version-conformance` item is now limited to evidence that
-is not supplied by the generated fixtures, installed samples, public mirror, or
-the two independently authored Matrix drawings:
+is not supplied by the generated fixtures, installed samples, public mirror,
+the two independently authored Matrix drawings, or the eleven independently
+authored university drawings:
 
 1. non-private, independently authored v600 files containing native DIMENSION,
    BLOCK/INSERT, and IMAGE records; and
@@ -202,7 +225,9 @@ the two independently authored Matrix drawings:
 Until the remaining independent samples are available, Gateway may
 claim the bounded v600/v700 writer contract, parser/semantic results for the 15
 installed v600 samples, parser-only ARC/CIRCLE/LINE results for the two Matrix
-drawings, and the recorded Jw_cad 10.02.1 open/edit/save/reload result. It may
+drawings, parser-only ARC/CIRCLE/LINE/SOLID/TEXT results for the eleven
+university drawings, and the recorded Jw_cad 10.02.1 open/edit/save/reload
+result. It may
 also claim the exact Jw_cad 6.20 generated-fixture Open, Save As, reload,
 parser-clean results, automatic normalizations, and single intentional LINE-edit
 cycle listed above, but not version-wide independently authored v600

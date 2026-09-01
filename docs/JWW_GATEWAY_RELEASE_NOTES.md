@@ -35,6 +35,13 @@ diagnostics, JWF comparison, and package handoff verification.
   Gateway reports both as v600 and parses their combined 2,267 ARC/CIRCLE/LINE
   records with zero unsupported or skipped records. This is parser-only evidence
   and does not add independent DIMENSION/BLOCK/IMAGE or GUI coverage.
+- Eleven independently authored Meiji-maru drawings published by Tokyo
+  University of Marine Science and Technology use internal version 600 with
+  MFC runtime-class schema 700. Gateway now treats those fields independently
+  and parses their 48,974 ARC/CIRCLE/LINE/SOLID/TEXT records with zero
+  unsupported or skipped records. Conformance also treats an unresolved entity
+  or block list boundary as reported parser loss. This remains parser-only
+  evidence and does not add independent DIMENSION/BLOCK/IMAGE or GUI coverage.
 - Jw_cad 6.20 in a dedicated VM opened, separately saved, and reopened the
   generated v600 DIMENSION, BLOCK/INSERT, and external IMAGE-reference
   fixtures. Every output was non-empty and parser-clean. The recorded Save As
@@ -82,8 +89,8 @@ diagnostics, JWF comparison, and package handoff verification.
 - JWW writer compatibility remains bounded to internal versions 600/700 and
   tested entity families. Version-wide compatibility and other Jw_cad releases
   remain the separate `jww-version-conformance` gate. Current evidence includes
-  15 Jw_cad-installed v600 samples, two independently authored public v600
-  ARC/CIRCLE/LINE drawings, and a representative Jw_cad 10.02.1
+  15 Jw_cad-installed v600 samples, thirteen independently authored public v600
+  ARC/CIRCLE/LINE/SOLID/TEXT drawings, and a representative Jw_cad 10.02.1
   open/edit/save/reload cycle, plus the generated-fixture Jw_cad 6.20
   Open/Save As/reload and intentional LINE-edit results above. The remaining
   gate is independently authored v600 DIMENSION, BLOCK/INSERT, and IMAGE

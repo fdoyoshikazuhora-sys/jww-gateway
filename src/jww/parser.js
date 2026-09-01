@@ -907,12 +907,15 @@ function scanEnvironmentRegion(data, start, end) {
 }
 
 function findEntityListOffset(data, version) {
-  const schemaLow = version & 255;
-  const schemaHigh = (version >>> 8) & 255;
   const searchEnd = data.length - 20;
+  let fallbackOffset;
   for (let i = 100; i < searchEnd; i += 1) {
     if (data[i] !== 255 || data[i + 1] !== 255) continue;
-    if (data[i + 2] !== schemaLow || data[i + 3] !== schemaHigh) continue;
+    // The MFC runtime-class schema is independent from the JWW document
+    // version. Prefer a matching schema as the most specific boundary signal,
+    // but retain a structurally valid CData registration as a fallback because
+    // real files can keep a newer class schema when saved to an older document
+    // version (for example, document v600 with CData schema 700).
     const nameLen = data[i + 4] | (data[i + 5] << 8);
     if (nameLen < 8 || nameLen > 20 || i + 6 + nameLen > data.length) continue;
     const className = String.fromCharCode(...data.slice(i + 6, i + 6 + nameLen));
@@ -928,13 +931,15 @@ function findEntityListOffset(data, version) {
       } else {
         offset = i - 2;
       }
-      if (className === "CDataList" && readUint16(data, offset - 2) === 0) {
-        return offset - 2;
-      }
-      return offset;
+      const candidateOffset =
+        className === "CDataList" && readUint16(data, offset - 2) === 0
+          ? offset - 2
+          : offset;
+      if (readUint16(data, i + 2) === version) return candidateOffset;
+      if (fallbackOffset === undefined) fallbackOffset = candidateOffset;
     }
   }
-  return undefined;
+  return fallbackOffset;
 }
 
 function findEmptyEntityListOffset(data, searchStart, version, encoding, textContext) {

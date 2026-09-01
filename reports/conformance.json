@@ -1,7 +1,7 @@
 {
   "format": "jww-gateway-conformance-report",
   "formatVersion": 1,
-  "generatedAt": "2026-09-01T11:15:30.526Z",
+  "generatedAt": "2026-09-01T13:15:33.060Z",
   "scope": {
     "read": "parser diagnostics only",
     "write": "separate bounded writer",
@@ -31,6 +31,9 @@
       "unsupportedClasses": {},
       "unsupportedCount": 0,
       "skippedCount": 0,
+      "entityListComplete": true,
+      "blockListComplete": true,
+      "embeddedImageListComplete": true,
       "readAssessment": "parsed-without-reported-loss",
       "roundTripAssessment": "not-tested",
       "exactCompatibility": false
@@ -48,6 +51,9 @@
       "unsupportedClasses": {},
       "unsupportedCount": 0,
       "skippedCount": 0,
+      "entityListComplete": true,
+      "blockListComplete": true,
+      "embeddedImageListComplete": true,
       "readAssessment": "parsed-without-reported-loss",
       "roundTripAssessment": "not-tested",
       "exactCompatibility": false

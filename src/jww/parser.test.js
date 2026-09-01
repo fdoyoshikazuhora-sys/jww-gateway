@@ -29,7 +29,8 @@ function asciiBytes(value) {
 
 function minimalJwwBytesWithUnicodeMemo(options = {}) {
   const bytes = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
-  pushDword(bytes, 700);
+  const documentVersion = options.documentVersion ?? 700;
+  pushDword(bytes, documentVersion);
   bytes.push(255, 254, 255, 2, 13, 0, 10, 0);
   pushDword(bytes, 2);
   pushDword(bytes, 0);
@@ -77,7 +78,7 @@ function minimalJwwBytesWithUnicodeMemo(options = {}) {
   if (options.appendLineEntity) {
     pushWord(bytes, 1);
     pushWord(bytes, 0xffff);
-    pushWord(bytes, 700);
+    pushWord(bytes, options.classSchemaVersion ?? documentVersion);
     pushWord(bytes, 8);
     bytes.push(...asciiBytes("CDataSen"));
     pushDword(bytes, 0);
@@ -209,6 +210,28 @@ describe("parse", () => {
     expect(
       doc.environment_region.afterLayerNamesOffset <= doc.entity_list_offset
     ).toBe(true);
+    expect(doc.entities.length).toBe(1);
+    expect(doc.entities[0].value).toMatchObject({
+      start_x: 1,
+      start_y: 2,
+      end_x: 3,
+      end_y: 4,
+    });
+  });
+
+  it("finds a v600 entity list whose runtime class schema is 700", () => {
+    const doc = parse(
+      minimalJwwBytesWithUnicodeMemo({
+        documentVersion: 600,
+        classSchemaVersion: 700,
+        omitLayerNames: true,
+        appendLineEntity: true,
+      }),
+      { encoding: "shift_jis" }
+    );
+
+    expect(doc.version).toBe(600);
+    expect(doc.entity_list_complete).toBe(true);
     expect(doc.entities.length).toBe(1);
     expect(doc.entities[0].value).toMatchObject({
       start_x: 1,
