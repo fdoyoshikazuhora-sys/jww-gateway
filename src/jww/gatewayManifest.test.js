@@ -241,6 +241,31 @@ describe("JWW Gateway package manifest", () => {
     });
   });
 
+  it("keeps packaged source-owned contract fields aligned", () => {
+    const packaged = JSON.parse(
+      readFileSync(
+        path.join(process.cwd(), "JWW_GATEWAY_MANIFEST.json"),
+        "utf8"
+      )
+    );
+    const expected = validManifest();
+    const sourceOwnedFields = [
+      "supportedEncodings",
+      "outputFormat",
+      "manifestSchema",
+      "handoff",
+      "capabilities",
+      "unresolvedEnvironmentKeys",
+      "jwfOnlyOperationKeys",
+      "openItems",
+      "notes",
+    ];
+
+    for (const field of sourceOwnedFields) {
+      expect(packaged[field]).toEqual(expected[field]);
+    }
+  });
+
   it("reports missing output contract and unresolved key information", () => {
     const manifest = validManifest();
     manifest.outputFormat.schema = "wrong.json";

@@ -1,6 +1,6 @@
 {
   "format": "jww-gateway-verify-report",
-  "generatedAt": "2026-09-01T09:52:32.599Z",
+  "generatedAt": "2026-09-01T10:06:30.051Z",
   "packageName": "jww-gateway",
   "packageVersion": "0.1.0",
   "manifestFile": "JWW_GATEWAY_MANIFEST.json",
@@ -34,8 +34,8 @@
     },
     {
       "file": "JWW_GATEWAY_MANIFEST.json",
-      "bytes": 12218,
-      "sha256": "bdeb1809f40fa194149abbac58bba0204565ac68ac01124311ca34930a59d369"
+      "bytes": 12469,
+      "sha256": "c54025b07c6964aee2925e055bb4112c444dcaba76c3edc06dcb390ce16c62ca"
     },
     {
       "file": "README.ja.md",
@@ -419,8 +419,8 @@
     },
     {
       "file": "src/jww/gatewayManifest.test.js",
-      "bytes": 27059,
-      "sha256": "eb46784e5f08a1a83c5a510ed48449764f263f4d703ef29e239bbe303bfc0fe6"
+      "bytes": 27669,
+      "sha256": "ca4aeea1ae489a461e4af0c5832077729c8d8f3c595fe9637c001e6325ddebd1"
     },
     {
       "file": "src/jww/gatewayPackageFiles.js",
@@ -810,12 +810,12 @@
       "status": "external-sample-blocked",
       "category": "compatibility",
       "classification": "independent-v600-samples",
-      "conversionImpact": "bounded v600/v700 and generated-fixture Jw_cad 6.20 Save As/reload evidence is established; independently sourced v600 DIMENSION/BLOCK/IMAGE and intentional old-runtime edit behavior remain unverified",
-      "releaseDecision": "claim only the recorded Jw_cad 10.02.1, bounded v600/v700, and generated-fixture Jw_cad 6.20 Save As/reload results including the recorded normalizations; do not claim version-wide or independently sourced v600 compatibility",
+      "conversionImpact": "bounded v600/v700 and generated-fixture Jw_cad 6.20 Save As/reload evidence is established, including one intentional LINE edit; independently sourced v600 DIMENSION/BLOCK/IMAGE remain unverified",
+      "releaseDecision": "claim only the recorded Jw_cad 10.02.1, bounded v600/v700, and generated-fixture Jw_cad 6.20 Save As/reload and intentional LINE-edit results including the recorded normalizations; do not claim version-wide or independently sourced v600 compatibility",
       "title": "JWW version and entity conformance corpus",
-      "detail": "Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse cleanly and survive Gateway template rewrites with drawing and document semantic equality. Jw_cad 10.02.1 opened, edited, saved, and reopened the representative Gateway output. An actual Jw_cad 6.20 runtime in a dedicated VM opened, separately saved, and reopened generated v600 DIMENSION, BLOCK/INSERT, and external IMAGE-reference fixtures; every output was non-empty and parser-clean, while Jw_cad 6.20 applied the recorded DIMENSION text-endpoint/settings, BLOCK definition-number, and IMAGE pen-color/text-endpoint normalizations. The installed samples still do not provide independently sourced v600 records for those three families.",
-      "evidence": "JWW_VERSION_CONFORMANCE_EVIDENCE.md separates installed-sample parser/semantic evidence, generated entity-family coverage, Jw_cad 10.02.1 GUI evidence, Jw_cad 6.20 generated-fixture Save As/reload evidence, automatic normalizations, and the remaining independent-sample boundary.",
-      "nextAction": "Obtain non-private independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE samples, then record parser, visual, intentional edit, Save As, semantic-diff, and Jw_cad 6.20 reload evidence separately from automatic Save As normalization."
+      "detail": "Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities parse cleanly and survive Gateway template rewrites with drawing and document semantic equality. Jw_cad 10.02.1 opened, edited, saved, and reopened the representative Gateway output. An actual Jw_cad 6.20 runtime in a dedicated VM opened, separately saved, and reopened generated v600 DIMENSION, BLOCK/INSERT, and external IMAGE-reference fixtures; every output was non-empty and parser-clean, while Jw_cad 6.20 applied the recorded DIMENSION text-endpoint/settings, BLOCK definition-number, and IMAGE pen-color/text-endpoint normalizations. A separate generated DIMENSION-fixture cycle added one LINE, saved a 16,460-byte parser-clean v600 file, isolated the intended LINE from Jw_cad 6.20 normalization, and reloaded visibly. The installed samples still do not provide independently sourced v600 records for those three families.",
+      "evidence": "JWW_VERSION_CONFORMANCE_EVIDENCE.md separates installed-sample parser/semantic evidence, generated entity-family coverage, Jw_cad 10.02.1 GUI evidence, Jw_cad 6.20 generated-fixture Save As/reload and intentional LINE-edit evidence, automatic normalizations, and the remaining independent-sample boundary.",
+      "nextAction": "Obtain non-private independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE samples, then record parser, visual, Save As, semantic-diff, and Jw_cad 6.20 reload evidence without treating the generated intentional LINE edit as independent-sample evidence."
     }
   ],
   "notes": [
