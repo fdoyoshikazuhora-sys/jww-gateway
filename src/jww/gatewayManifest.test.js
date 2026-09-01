@@ -205,6 +205,10 @@ describe("JWW Gateway package manifest", () => {
       manifest.openItems.find((item) => item.id === "jww-version-conformance")
         ?.detail
     ).toContain("Fifteen Jw_cad-installed v600 samples totaling 22,624 drawing entities");
+    expect(
+      manifest.openItems.find((item) => item.id === "jww-version-conformance")
+        ?.detail
+    ).toContain("one LINE");
     expect(manifest.packageFiles).toContain(
       "docs/JWW_VERSION_CONFORMANCE_EVIDENCE.md"
     );

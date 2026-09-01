@@ -124,7 +124,18 @@ the Gateway comparator because Jw_cad 6.20 performed the explicit
 normalizations above. Those differences are recorded rather than suppressed.
 The checks establish old-runtime acceptance, Save As, and reload for these
 generated records; they do not establish independently authored v600
-conformance or an intentional edit round trip.
+conformance.
+
+The DIMENSION fixture was then opened again in Jw_cad 6.20 and edited by adding
+one LINE. Save As created a separate 16,460-byte v600 file. Gateway reparsed the
+output cleanly with one DIMENSION and one LINE, retained A3 paper, layer/group
+state, group scales, and internal settings, and reported the intended LINE from
+`(67.565217391, -36.52173913)` to `(128.434782609, -36.52173913)`. The same
+semantic diff separately reported Jw_cad 6.20 normalization of the DIMENSION
+text end point X from `12` to `12.25`, text type from `1` to `0`, and the
+retained dimension dummy word from `9322` to `9062`. The edited output was
+closed and visibly reloaded in Jw_cad 6.20; both the DIMENSION and added LINE
+were present. This proves one generated-fixture intentional-edit cycle only.
 
 The isolated evidence is under:
 
@@ -135,24 +146,26 @@ The isolated evidence is under:
 .work/native-jww-open/legacy-jwcad/vm/vm-v600-image-*-20260901.png
 .work/native-jww-open/legacy-jwcad/vm/exchange/*.diagnostics.json
 .work/native-jww-open/legacy-jwcad/vm/exchange/*.semantic.json
+.work/e2e-jww/v600-dimension-jw620-intentional-line.jww
+.work/e2e-jww/v600-dimension-jw620-intentional-line.diagnostics.json
+.work/e2e-jww/v600-dimension-jw620-intentional-line.semantic-diff.json
+.work/e2e-jww/v600-dimension-jw620-intentional-line-reload.png
 ```
 
-## Remaining independent-sample and edit gate
+## Remaining independent-sample gate
 
 The remaining `jww-version-conformance` item is now limited to evidence that
 is not supplied by the generated fixtures or the available installed samples:
 
 1. non-private, independently sourced v600 files containing native DIMENSION,
    BLOCK/INSERT, and IMAGE records; and
-2. an intentional entity edit followed by Save As, semantic diff, and reload in
-   Jw_cad 6.20, recorded separately from the automatic normalizations above; and
-3. equivalent evidence for any additional Jw_cad release for which compatibility
+2. equivalent evidence for any additional Jw_cad release for which compatibility
    is claimed.
 
-Until the remaining independent samples and intentional-edit evidence are
-available, Gateway may
+Until the remaining independent samples are available, Gateway may
 claim the bounded v600/v700 writer contract, parser/semantic results for the 15
 installed v600 samples, and the recorded Jw_cad 10.02.1 open/edit/save/reload
 result. It may also claim the exact Jw_cad 6.20 generated-fixture Open, Save As,
-reload, parser-clean results, and automatic normalizations listed above, but not
-version-wide or independently authored v600 compatibility.
+reload, parser-clean results, automatic normalizations, and single intentional
+LINE-edit cycle listed above, but not version-wide or independently authored
+v600 compatibility.

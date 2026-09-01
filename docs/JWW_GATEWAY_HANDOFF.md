@@ -75,8 +75,11 @@ The open-items report classifies each item by status, class, conversion impact, 
   output; Gateway then reproduced that saved v700 file byte-for-byte. Jw_cad
   6.20 also opened, separately saved, and reopened generated v600 DIMENSION,
   BLOCK/INSERT, and external IMAGE-reference fixtures; the recorded Save As
-  normalizations are documented. Independently sourced v600 samples and an
-  intentional old-runtime edit round trip remain the separate conformance gate. See
+  normalizations are documented. A separate generated DIMENSION-fixture cycle
+  added one LINE, saved a non-empty parser-clean v600 file, isolated the intended
+  LINE from Jw_cad 6.20 normalization in semantic diff, and reloaded visibly in
+  Jw_cad 6.20. Independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE
+  samples remain the separate conformance gate. See
   `JWW_VERSION_CONFORMANCE_EVIDENCE.md`.
 - `LTYPE_HC` and `LCOLLOR_M` are JWF-only operation/display settings and are not serialized into JWW.
 - JWW text decoration raw controls and structured runs survive Gateway write

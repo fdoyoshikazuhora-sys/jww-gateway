@@ -31,6 +31,10 @@ diagnostics, JWF comparison, and package handoff verification.
   fixtures. Every output was non-empty and parser-clean. The recorded Save As
   normalizations are DIMENSION text endpoint/settings, BLOCK definition number,
   and IMAGE pen color/text endpoint; see `JWW_VERSION_CONFORMANCE_EVIDENCE.md`.
+- A separate Jw_cad 6.20 intentional-edit cycle added one LINE to the generated
+  v600 DIMENSION fixture, saved a 16,460-byte parser-clean v600 file, separated
+  the LINE from DIMENSION text-endpoint/type and dummy-word normalization in
+  Gateway semantic diff, and visibly reloaded the edited output in Jw_cad 6.20.
 - Semantic JWW diff separating drawing order/geometry, document metadata, and Jw_cad internal settings.
 - JWF-like environment coverage reports from JWW files.
 - Cross-file coverage summary reports with a drawing-scope missing gate.
@@ -71,9 +75,9 @@ diagnostics, JWF comparison, and package handoff verification.
   remain the separate `jww-version-conformance` gate. Current evidence includes
   15 Jw_cad-installed v600 samples and a representative Jw_cad 10.02.1
   open/edit/save/reload cycle, plus the generated-fixture Jw_cad 6.20
-  Open/Save As/reload results above. The remaining gate is independently
-  sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE samples plus an intentional
-  old-runtime edit round trip separated from automatic Save As normalization.
+  Open/Save As/reload and intentional LINE-edit results above. The remaining
+  gate is independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE
+  samples.
 - `LTYPE_HC`, `LCOLLOR_M`, and `LAYCOL/LAYWID/LAYTYP_0..F` are classified as
   JWF-only operation/default settings. Controlled Jw_cad 10.02.1 Save As tests
   show that they are not serialized into JWW.
