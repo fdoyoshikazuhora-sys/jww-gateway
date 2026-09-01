@@ -53,6 +53,31 @@ This makes the installed-sample baseline publicly reproducible; it does not
 make the standard samples independently authored and does not add DIMENSION,
 BLOCK/INSERT, or IMAGE coverage.
 
+## Independently authored public v600 parser evidence
+
+On 2026-09-01, two vehicle drawings were retrieved from the Matrix public CAD
+download service. The distributor pages identify different real-world subjects
+and publication dates, rather than Jw_cad standard samples:
+
+- `NNP10_JWW.lzh`, Toyota Porte four-view drawing, published 2008-12-14:
+  <https://nurie-cad.matrix.jp/modules/d3downloads/index.php?page=singlefile&cid=1&lid=84>
+- `SCP92_JWW.lzh`, Toyota Belta two-view drawing, published 2009-10-18:
+  <https://nurie-cad.matrix.jp/modules/d3downloads/index.php?page=singlefile&cid=1&lid=119>
+
+The downloaded archive MD5 values exactly match the checksums printed on those
+pages: `bacbe45a17ac3a55d740d9e158d9c96e` and
+`c46cb992b8ce6a3611840c0bb5949326`. The extracted JWW files were inspected
+read-only from the isolated `.work/native-jww-open/independent-v600/` tree and
+were not added as package fixtures.
+
+Gateway reports both drawings as internal version 600 with zero unsupported and
+zero skipped records. `NNP10_JWW.jww` is 81,570 bytes and contains 1,015
+records (ARC 610, CIRCLE 9, LINE 396). `SCP92_JWW.jww` is 88,171 bytes and
+contains 1,252 records (ARC 436, CIRCLE 4, LINE 812). Together they establish
+independently authored public v600 parser evidence for ARC, CIRCLE, and LINE.
+They contain no native DIMENSION, BLOCK/INSERT, or IMAGE records, and no writer
+or Jw_cad GUI claim is made from this parser-only scan.
+
 All fifteen installed v600 samples were converted to Gateway JSON and rewritten
 with their own source file as the template into an isolated output directory.
 Every output was non-empty, parser-clean, drawing-semantic equal, and supported-
@@ -166,7 +191,8 @@ The isolated evidence is under:
 ## Remaining independent-sample gate
 
 The remaining `jww-version-conformance` item is now limited to evidence that
-is not supplied by the generated fixtures or the available installed samples:
+is not supplied by the generated fixtures, installed samples, public mirror, or
+the two independently authored Matrix drawings:
 
 1. non-private, independently authored v600 files containing native DIMENSION,
    BLOCK/INSERT, and IMAGE records; and
@@ -175,8 +201,9 @@ is not supplied by the generated fixtures or the available installed samples:
 
 Until the remaining independent samples are available, Gateway may
 claim the bounded v600/v700 writer contract, parser/semantic results for the 15
-installed v600 samples, and the recorded Jw_cad 10.02.1 open/edit/save/reload
-result. It may also claim the exact Jw_cad 6.20 generated-fixture Open, Save As,
-reload, parser-clean results, automatic normalizations, and single intentional
-LINE-edit cycle listed above, but not version-wide or independently authored
-v600 compatibility.
+installed v600 samples, parser-only ARC/CIRCLE/LINE results for the two Matrix
+drawings, and the recorded Jw_cad 10.02.1 open/edit/save/reload result. It may
+also claim the exact Jw_cad 6.20 generated-fixture Open, Save As, reload,
+parser-clean results, automatic normalizations, and single intentional LINE-edit
+cycle listed above, but not version-wide independently authored v600
+compatibility or independent DIMENSION/BLOCK/IMAGE coverage.

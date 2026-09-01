@@ -74,15 +74,18 @@ The open-items report classifies each item by status, class, conversion impact, 
   equality. All fifteen are byte-identical to files independently retrieved
   from the public `KEINOS/Jw_cad-for-Mac` GitHub mirror, making this standard-
   sample baseline publicly reproducible without adding independently authored
-  DIMENSION/BLOCK/IMAGE coverage. Jw_cad 10.02.1 opened, edited, saved, and
-  reopened a representative
-  output; Gateway then reproduced that saved v700 file byte-for-byte. Jw_cad
+  DIMENSION/BLOCK/IMAGE coverage. Two separately distributed Matrix vehicle
+  drawings published in 2008 and 2009 match their published archive MD5 values,
+  parse as v600 with zero loss, and add independently authored ARC/CIRCLE/LINE
+  parser evidence. Jw_cad 10.02.1 opened, edited, saved, and reopened a
+  representative output; Gateway then reproduced that saved v700 file byte-for-
+  byte. Jw_cad
   6.20 also opened, separately saved, and reopened generated v600 DIMENSION,
   BLOCK/INSERT, and external IMAGE-reference fixtures; the recorded Save As
   normalizations are documented. A separate generated DIMENSION-fixture cycle
   added one LINE, saved a non-empty parser-clean v600 file, isolated the intended
   LINE from Jw_cad 6.20 normalization in semantic diff, and reloaded visibly in
-  Jw_cad 6.20. Independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE
+  Jw_cad 6.20. Independently authored v600 DIMENSION, BLOCK/INSERT, and IMAGE
   samples remain the separate conformance gate. See
   `JWW_VERSION_CONFORMANCE_EVIDENCE.md`.
 - `LTYPE_HC` and `LCOLLOR_M` are JWF-only operation/display settings and are not serialized into JWW.

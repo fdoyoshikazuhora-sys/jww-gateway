@@ -30,6 +30,11 @@ diagnostics, JWF comparison, and package handoff verification.
   samples and do not close the independently authored DIMENSION/BLOCK/IMAGE gate.
   Jw_cad 10.02.1 opened, edited, saved, and reopened a representative output;
   Gateway then reproduced the saved v700 file byte-for-byte.
+- Two independently authored Matrix vehicle drawings published in 2008 and
+  2009 were retrieved with archive MD5 values matching the distributor pages.
+  Gateway reports both as v600 and parses their combined 2,267 ARC/CIRCLE/LINE
+  records with zero unsupported or skipped records. This is parser-only evidence
+  and does not add independent DIMENSION/BLOCK/IMAGE or GUI coverage.
 - Jw_cad 6.20 in a dedicated VM opened, separately saved, and reopened the
   generated v600 DIMENSION, BLOCK/INSERT, and external IMAGE-reference
   fixtures. Every output was non-empty and parser-clean. The recorded Save As
@@ -77,10 +82,11 @@ diagnostics, JWF comparison, and package handoff verification.
 - JWW writer compatibility remains bounded to internal versions 600/700 and
   tested entity families. Version-wide compatibility and other Jw_cad releases
   remain the separate `jww-version-conformance` gate. Current evidence includes
-  15 Jw_cad-installed v600 samples and a representative Jw_cad 10.02.1
+  15 Jw_cad-installed v600 samples, two independently authored public v600
+  ARC/CIRCLE/LINE drawings, and a representative Jw_cad 10.02.1
   open/edit/save/reload cycle, plus the generated-fixture Jw_cad 6.20
   Open/Save As/reload and intentional LINE-edit results above. The remaining
-  gate is independently sourced v600 DIMENSION, BLOCK/INSERT, and IMAGE
+  gate is independently authored v600 DIMENSION, BLOCK/INSERT, and IMAGE
   samples.
 - `LTYPE_HC`, `LCOLLOR_M`, and `LAYCOL/LAYWID/LAYTYP_0..F` are classified as
   JWF-only operation/default settings. Controlled Jw_cad 10.02.1 Save As tests
