@@ -241,7 +241,6 @@ function supportedKeySet(doc = {}) {
   }
   if (colorSettings.backgroundColor) supported.add("LCOLLOR_B");
   if (colorSettings.screenColors?.[9]) supported.add("LCOLLOR_G");
-  if (colorSettings.screenColors?.[10]) supported.add("LCOLLOR_H");
   if (colorSettings.specialColors?.S) supported.add("LCOLLOR_S");
   if (colorSettings.specialColors?.K) supported.add("LCOLLOR_K");
   if (colorSettings.specialColors?.Z) supported.add("LCOLLOR_Z");
@@ -307,7 +306,7 @@ export function buildJwwEnvironment(doc = {}) {
     colors: {
       ...colorTable("LCOLLOR", colorSettings.screenColors),
       LCOLLOR_G: colorEntry(colorSettings.screenColors?.[9]),
-      LCOLLOR_H: colorEntry(colorSettings.screenColors?.[10]),
+      LCOLLOR_H: null,
       LCOLLOR_S: colorEntry(colorSettings.specialColors?.S),
       LCOLLOR_K: colorEntry(colorSettings.specialColors?.K),
       LCOLLOR_B: colorEntry(colorSettings.backgroundColor),

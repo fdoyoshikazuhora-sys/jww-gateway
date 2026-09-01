@@ -319,10 +319,70 @@ function scorePrintColorTable(data, offset) {
   return { score, colors };
 }
 
-function parseColorSettings(data, entityOffset) {
+const OFFICIAL_SCREEN_COLOR_COUNT = 10;
+const OFFICIAL_PRINT_COLOR_COUNT = 10;
+const OFFICIAL_SCREEN_COLOR_BYTES = OFFICIAL_SCREEN_COLOR_COUNT * 8;
+const OFFICIAL_PRINT_COLOR_BYTES = OFFICIAL_PRINT_COLOR_COUNT * 16;
+const OFFICIAL_COLOR_SETTINGS_BYTES =
+  OFFICIAL_SCREEN_COLOR_BYTES + OFFICIAL_PRINT_COLOR_BYTES;
+
+function scoreOfficialColorSettings(data, offset) {
+  if (offset < 0 || offset + OFFICIAL_COLOR_SETTINGS_BYTES > data.length) {
+    return null;
+  }
+  const screen = [];
+  const print = [];
+  let score = 0;
+  for (let index = 0; index < OFFICIAL_SCREEN_COLOR_COUNT; index += 1) {
+    const entry = readColorEntry(data, offset + index * 8);
+    if (!entry || entry.width < 1 || entry.width > 16) return null;
+    screen.push(entry);
+    score += 4;
+  }
+  const printOffset = offset + OFFICIAL_SCREEN_COLOR_BYTES;
+  for (let index = 0; index < OFFICIAL_PRINT_COLOR_COUNT; index += 1) {
+    const entry = readPrintColorEntry(data, printOffset + index * 16, true);
+    if (
+      !entry ||
+      entry.width < 1 ||
+      entry.width > 500 ||
+      entry.pointRadius < 0.1 ||
+      entry.pointRadius > 10
+    ) {
+      return null;
+    }
+    print.push(entry);
+    score += 6;
+  }
+  const distinctScreenColors = new Set(
+    screen.map((entry) => `${entry.red}/${entry.green}/${entry.blue}`)
+  ).size;
+  const distinctPrintColors = new Set(
+    print.map((entry) => `${entry.red}/${entry.green}/${entry.blue}`)
+  ).size;
+  if (distinctScreenColors < 5 || distinctPrintColors < 3) return null;
+  const isGray = (entry) =>
+    entry.red === entry.green && entry.green === entry.blue;
+  // Color 9 is named the gray slot by the format, but Jw_cad lets its RGB
+  // value be customized. Gray values improve candidate ranking; they are not
+  // a validity requirement for a saved edit.
+  if (isGray(screen[9])) score += 10;
+  if (isGray(print[9])) score += 10;
+  const lineType = readLineTypeCandidate(data, offset + OFFICIAL_COLOR_SETTINGS_BYTES);
+  if (lineType?.score >= 70) score += 30;
+  return {
+    offset,
+    score,
+    screen,
+    print,
+    lineTypeScore: lineType?.score ?? null,
+  };
+}
+
+function parseLegacyColorSettings(data, entityOffset, searchStart) {
   const searchEnd = Math.max(0, Math.min(entityOffset || data.length, data.length - 80));
   const candidates = [];
-  for (let offset = HEADER.length; offset < searchEnd; offset += 1) {
+  for (let offset = searchStart; offset < searchEnd; offset += 1) {
     const candidate = scoreColorTable(data, offset);
     if (!candidate) continue;
     candidates.push({ ...candidate, offset });
@@ -333,7 +393,7 @@ function parseColorSettings(data, entityOffset) {
   const best = rankedCandidates[0] || null;
   if (!best) return { screenColors: {} };
   const screenColors = {};
-  best.colors.forEach((entry, index) => {
+  best.colors.slice(0, 9).forEach((entry, index) => {
     screenColors[index + 1] = entry;
   });
   const backgroundColor = readColorEntry(data, best.offset - 8);
@@ -380,6 +440,8 @@ function parseColorSettings(data, entityOffset) {
     backgroundColor,
     specialColors,
     offset: best.offset,
+    sourceLayout: "heuristic-unverified",
+    sourceSpan: null,
     colorTableCandidates: rankedCandidates.map((candidate) => ({
       offset: candidate.offset,
       score: candidate.score,
@@ -401,8 +463,91 @@ function parseColorSettings(data, entityOffset) {
   };
 }
 
-function parseSpecialScreenColors(data, colorTableOffset) {
+function parseColorSettings(data, entityOffset, environmentStart = HEADER.length) {
+  const searchStart = Math.max(
+    HEADER.length,
+    Math.min(Number(environmentStart) || HEADER.length, data.length)
+  );
+  const searchEnd = Math.max(
+    searchStart,
+    Math.min(
+      entityOffset || data.length,
+      data.length - OFFICIAL_COLOR_SETTINGS_BYTES
+    )
+  );
+  const candidates = [];
+  for (let offset = searchStart; offset <= searchEnd; offset += 1) {
+    const candidate = scoreOfficialColorSettings(data, offset);
+    if (candidate) candidates.push(candidate);
+  }
+  const rankedCandidates = candidates
+    .sort((left, right) => right.score - left.score || left.offset - right.offset)
+    .slice(0, 12);
+  const best = rankedCandidates[0] || null;
+  if (!best) return parseLegacyColorSettings(data, entityOffset, searchStart);
+
+  const sourceSpan = {
+    start: best.offset,
+    end: best.offset + OFFICIAL_COLOR_SETTINGS_BYTES,
+    byteLength: OFFICIAL_COLOR_SETTINGS_BYTES,
+  };
+  const screenColorTableSourceSpan = {
+    start: best.offset,
+    end: best.offset + OFFICIAL_SCREEN_COLOR_BYTES,
+    byteLength: OFFICIAL_SCREEN_COLOR_BYTES,
+  };
+  const printColorTableSourceSpan = {
+    start: screenColorTableSourceSpan.end,
+    end: sourceSpan.end,
+    byteLength: OFFICIAL_PRINT_COLOR_BYTES,
+  };
+  const screenColors = Object.fromEntries(
+    best.screen.slice(1).map((entry, index) => [index + 1, entry])
+  );
+  const printColors = Object.fromEntries(
+    best.print.slice(1).map((entry, index) => [index + 1, entry])
+  );
+  const colorOneOffset = best.offset + 8;
+  const printColorOneOffset = printColorTableSourceSpan.start + 16;
+  return {
+    screenColors,
+    printColors,
+    backgroundColor: best.screen[0],
+    printBackgroundColor: best.print[0],
+    // The former S/Z offsets land exactly on official print entries 8/9.
+    // Do not expose those aliases as operation colors. K remains a clearly
+    // labelled compatibility candidate outside the verified color span.
+    specialColors: parseSpecialScreenColors(data, colorOneOffset, ["S", "Z"]),
+    offset: colorOneOffset,
+    screenColorTableOffset: best.offset,
+    printColorTableOffset: printColorOneOffset,
+    printColorTableScore: best.score,
+    printColorTableKind: "print-rgb-width-radius",
+    sourceLayout: "jwdatafmt-color-tables-v600-v700",
+    sourceSpan,
+    screenColorTableSourceSpan,
+    printColorTableSourceSpan,
+    colorTableCandidates: rankedCandidates.map((candidate) => ({
+      offset: candidate.offset + 8,
+      tableStart: candidate.offset,
+      score: candidate.score,
+      lineTypeScore: candidate.lineTypeScore,
+      role: candidate.offset === best.offset ? "screen" : "candidate",
+      kind: "jwdatafmt-color-tables-v600-v700",
+    })),
+    printColorTableCandidates: rankedCandidates.map((candidate) => ({
+      offset: candidate.offset + OFFICIAL_SCREEN_COLOR_BYTES + 16,
+      tableStart: candidate.offset + OFFICIAL_SCREEN_COLOR_BYTES,
+      score: candidate.score,
+      role: candidate.offset === best.offset ? "print" : "candidate",
+      kind: "print-rgb-width-radius",
+    })),
+  };
+}
+
+function parseSpecialScreenColors(data, colorTableOffset, excludedKeys = []) {
   if (!colorTableOffset) return {};
+  const excluded = new Set(excludedKeys);
   const definitions = {
     S: { key: "LCOLLOR_S", label: "selection", relativeOffset: 200 },
     K: { key: "LCOLLOR_K", label: "temporary", relativeOffset: 756 },
@@ -410,6 +555,7 @@ function parseSpecialScreenColors(data, colorTableOffset) {
   };
   return Object.fromEntries(
     Object.entries(definitions)
+      .filter(([suffix]) => !excluded.has(suffix))
       .map(([suffix, definition]) => {
         const offset = colorTableOffset + definition.relativeOffset;
         const entry = readRgbEntry(data, offset);
@@ -1547,7 +1693,11 @@ export function parse(input, options = {}) {
     );
   }
 
-  const color_settings = parseColorSettings(data, entityOffset);
+  const color_settings = parseColorSettings(
+    data,
+    entityOffset,
+    afterLayerNamesOffset
+  );
   const line_type_settings = parseLineTypeSettings(
     data,
     color_settings,

@@ -10,7 +10,7 @@ import {
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 9;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 10;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -493,8 +493,13 @@ function buildPaperScaleTab(document) {
 
 function buildColorTab(document) {
   const settings = document.settings?.color || {};
-  const rows = [];
-  rows.push(
+  const editable = Boolean(
+    settings.id &&
+      settings.sourceLayout === "jwdatafmt-color-tables-v600-v700" &&
+      settings.sourceSpan?.byteLength === 240
+  );
+  const summaryRows = [];
+  summaryRows.push(
     colorField(
       "background",
       "Background",
@@ -502,35 +507,23 @@ function buildColorTab(document) {
       "settings.color.backgroundColor"
     )
   );
-  for (let number = 1; number <= 10; number += 1) {
-    if (settings.screenColors?.[number]) {
-      rows.push(
-        colorField(
-          `screen-${number}`,
-          `Screen color ${number}`,
-          settings.screenColors[number],
-          `settings.color.screenColors[${number}]`
-        )
-      );
-    }
-  }
   const specialDefinitions = [
     ["S", "Selection color"],
     ["K", "Temporary line color"],
     ["Z", "Zoom frame / crossline color"],
   ];
   for (const [key, label] of specialDefinitions) {
-    rows.push(
+    summaryRows.push(
       colorField(
         `special-${key}`,
         label,
         settings.specialColors?.[key],
         `settings.color.specialColors.${key}`,
-        STATUS.STORED
+        STATUS.UNCONFIRMED
       )
     );
   }
-  rows.push(
+  summaryRows.push(
     notStoredField(
       "lcollor-m",
       "Zoom operation label background (LCOLLOR_M)",
@@ -538,40 +531,151 @@ function buildColorTab(document) {
     )
   );
 
-  const printRows = [];
-  for (let number = 1; number <= 9; number += 1) {
-    const entry = settings.printColors?.[number];
+  const screenRows = [];
+  for (let number = 0; number <= 9; number += 1) {
+    const entry = number === 0
+      ? settings.backgroundColor
+      : settings.screenColors?.[number];
     if (!entry) continue;
+    const role = number === 0 ? "Background" : number === 9 ? "Gray" : "Line";
+    const colorKey = number === 0 ? "backgroundColor" : `screenColors.${number}`;
+    const widthKey = number === 0
+      ? "backgroundLineWidth"
+      : `screenColorWidths.${number}`;
+    screenRows.push({
+      id: `screen-${number}`,
+      cells: [
+        String(number),
+        role,
+        entry.hex || "",
+        `${finiteNumber(entry.red, 0)}, ${finiteNumber(entry.green, 0)}, ${finiteNumber(entry.blue, 0)}`,
+        displayNumber(entry.width),
+      ],
+      swatch: entry.hex || "",
+      swatchColumn: 2,
+      status: STATUS.STORED,
+      source:
+        number === 0
+          ? "settings.color.backgroundColor"
+          : `settings.color.screenColors[${number}]`,
+      edits: editable
+        ? {
+            2: {
+              key: colorKey,
+              control: "color",
+              value: entry.hex || "#000000",
+            },
+            4: {
+              key: widthKey,
+              control: "number",
+              value: finiteNumber(entry.width, 1),
+              min: 1,
+              max: 16,
+              step: 1,
+            },
+          }
+        : undefined,
+    });
+  }
+
+  const printRows = [];
+  for (let number = 0; number <= 9; number += 1) {
+    const entry = number === 0
+      ? settings.printBackgroundColor
+      : settings.printColors?.[number];
+    if (!entry) continue;
+    const role = number === 0 ? "Background" : number === 9 ? "Gray" : "Line";
+    const colorKey = number === 0
+      ? "printBackgroundColor"
+      : `printColors.${number}`;
+    const widthKey = number === 0
+      ? "printBackgroundLineWidth"
+      : `printColorWidths.${number}`;
+    const radiusKey = number === 0
+      ? "printBackgroundPointRadius"
+      : `printPointRadii.${number}`;
     printRows.push({
       id: `print-${number}`,
       cells: [
         String(number),
+        role,
         entry.hex || "",
         `${finiteNumber(entry.red, 0)}, ${finiteNumber(entry.green, 0)}, ${finiteNumber(entry.blue, 0)}`,
         displayNumber(entry.width),
         displayNumber(entry.pointRadius),
       ],
       swatch: entry.hex || "",
+      swatchColumn: 2,
       status: STATUS.STORED,
-      source: `settings.color.printColors[${number}]`,
+      source:
+        number === 0
+          ? "settings.color.printBackgroundColor"
+          : `settings.color.printColors[${number}]`,
+      edits: editable
+        ? {
+            2: {
+              key: colorKey,
+              control: "color",
+              value: entry.hex || "#000000",
+            },
+            4: {
+              key: widthKey,
+              control: "number",
+              value: finiteNumber(entry.width, 1),
+              min: 1,
+              max: 500,
+              step: 1,
+            },
+            5: {
+              key: radiusKey,
+              control: "number",
+              value: finiteNumber(entry.pointRadius, 0.1),
+              min: 0.1,
+              max: 10,
+              step: 0.1,
+            },
+          }
+        : undefined,
     });
   }
   return tab("colors", "Colors & Line Widths", [
-    fieldsSection("screen-colors", "Screen colors", rows),
+    fieldsSection(
+      "color-notes",
+      "Source notes",
+      summaryRows,
+      "Only the official JWW 0-9 screen and print tables are native-editable. Candidate operation colors remain read-only."
+    ),
+    tableSection(
+      "screen-colors",
+      "Screen colors",
+      ["No.", "Role", "Color", "RGB", "Width"],
+      screenRows.length
+        ? screenRows
+        : [
+            {
+              id: "screen-colors-unavailable",
+              cells: ["—", "Not extracted", "—", "—", "—"],
+              status: STATUS.UNCONFIRMED,
+              source: "settings.color.screenColors",
+            },
+          ],
+      "JWW stores color 0 as background, colors 1-8 as line colors, and color 9 as gray. Screen widths are 1-16."
+    ),
     tableSection(
       "print-colors",
       "Print colors",
-      ["No.", "Color", "RGB", "Width", "Point radius"],
+      ["No.", "Role", "Color", "RGB", "Width", "Point radius"],
       printRows.length
         ? printRows
         : [
             {
               id: "print-colors-unavailable",
-              cells: ["—", "Not extracted", "—", "—", "—"],
+              cells: ["—", "Not extracted", "—", "—", "—", "—"],
               status: STATUS.UNCONFIRMED,
               source: "settings.color.printColors",
             },
-          ]
+          ],
+      "JWW stores matching print colors 0-9 with widths 1-500 and point radii 0.1-10."
     ),
   ]);
 }
@@ -1084,6 +1188,10 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
         "settings.grid.spacing_y",
         "settings.grid.base_x",
         "settings.grid.base_y",
+        "settings.color.backgroundColor",
+        "settings.color.screenColors[1..9]",
+        "settings.color.printBackgroundColor",
+        "settings.color.printColors[1..9]",
       ],
       managedInvariantPaths: ["layerGroups[].layers[].state"],
     },

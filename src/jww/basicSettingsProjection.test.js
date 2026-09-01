@@ -125,11 +125,11 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 9,
+      formatVersion: 10,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
-        version: 7,
+        version: 8,
         mode: "native-metadata-safe",
         writablePaths: [
           "header.memo",
@@ -156,6 +156,10 @@ describe("buildJwwBasicSettingsProjection", () => {
           "settings.grid.spacing_y",
           "settings.grid.base_x",
           "settings.grid.base_y",
+          "settings.color.backgroundColor",
+          "settings.color.screenColors[1..9]",
+          "settings.color.printBackgroundColor",
+          "settings.color.printColors[1..9]",
         ],
         managedInvariantPaths: ["layerGroups[].layers[].state"],
       },
@@ -315,6 +319,74 @@ describe("buildJwwBasicSettingsProjection", () => {
       key: "layerProtections.1.1",
       value: 0,
     });
+  });
+
+  it("exposes only the official 0-9 color tables as native-editable controls", () => {
+    const document = nativeDocument();
+    const screenEntry = (number) => ({
+      red: number * 10,
+      green: number * 10,
+      blue: number * 10,
+      width: 1,
+      hex: `#${(number * 10).toString(16).padStart(2, "0").repeat(3)}`,
+    });
+    const printEntry = (number) => ({
+      ...screenEntry(number),
+      width: number + 1,
+      pointRadius: 0.1 + number / 10,
+    });
+    document.settings.color = {
+      ...document.settings.color,
+      id: "jww:color-settings",
+      sourceLayout: "jwdatafmt-color-tables-v600-v700",
+      sourceSpan: { start: 1000, end: 1240, byteLength: 240 },
+      backgroundColor: screenEntry(0),
+      screenColors: Object.fromEntries(
+        Array.from({ length: 9 }, (_, index) => [index + 1, screenEntry(index + 1)])
+      ),
+      printBackgroundColor: printEntry(0),
+      printColors: Object.fromEntries(
+        Array.from({ length: 9 }, (_, index) => [index + 1, printEntry(index + 1)])
+      ),
+    };
+    const projection = buildJwwBasicSettingsProjection(document);
+    const colorTab = projection.tabs.find((tab) => tab.id === "colors");
+    const screenRows = colorTab.sections.find(
+      (section) => section.id === "screen-colors"
+    ).rows;
+    const printRows = colorTab.sections.find(
+      (section) => section.id === "print-colors"
+    ).rows;
+
+    expect(screenRows.map((row) => row.id)).toEqual(
+      Array.from({ length: 10 }, (_, number) => `screen-${number}`)
+    );
+    expect(printRows.map((row) => row.id)).toEqual(
+      Array.from({ length: 10 }, (_, number) => `print-${number}`)
+    );
+    expect(screenRows[0].edits[2]).toMatchObject({
+      key: "backgroundColor",
+      control: "color",
+    });
+    expect(screenRows[1].edits[4]).toMatchObject({
+      key: "screenColorWidths.1",
+      min: 1,
+      max: 16,
+    });
+    expect(printRows[0].edits[5]).toMatchObject({
+      key: "printBackgroundPointRadius",
+      min: 0.1,
+      max: 10,
+    });
+    expect(printRows[9].edits[2]).toMatchObject({
+      key: "printColors.9",
+      control: "color",
+    });
+    expect(printRows[9].edits[4]).toMatchObject({
+      key: "printColorWidths.9",
+      max: 500,
+    });
+    expect(screenRows.some((row) => row.id === "screen-10")).toBe(false);
   });
 
   it("shows protection 1 and 2 controls while locking state 2 rows", () => {

@@ -1,4 +1,5 @@
 import { parse } from "./parser.js";
+import { readFileSync } from "node:fs";
 
 function pushDword(bytes, value) {
   bytes.push(value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255);
@@ -99,6 +100,41 @@ function minimalJwwBytesWithUnicodeMemo(options = {}) {
 }
 
 describe("parse", () => {
+  it("maps the official contiguous screen and print color tables as 0 through 9", () => {
+    const bytes = readFileSync(
+      new URL("../../samples/jwf-pairs/jwf-open-items-core.jww", import.meta.url)
+    );
+    const doc = parse(bytes);
+    const color = doc.color_settings;
+
+    expect(color).toMatchObject({
+      sourceLayout: "jwdatafmt-color-tables-v600-v700",
+      sourceSpan: { start: 4104, end: 4344, byteLength: 240 },
+      screenColorTableSourceSpan: { byteLength: 80 },
+      printColorTableSourceSpan: { byteLength: 160 },
+      backgroundColor: { hex: "#000000", width: 1 },
+      printBackgroundColor: {
+        hex: "#ffffff",
+        width: 1,
+        pointRadius: 0.1,
+      },
+    });
+    expect(Object.keys(color.screenColors)).toEqual([
+      "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    ]);
+    expect(Object.keys(color.printColors)).toEqual([
+      "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    ]);
+    expect(color.screenColors[10]).toBe(undefined);
+    expect(color.screenColors[9]).toMatchObject({ hex: "#6e6e6e", width: 1 });
+    expect(color.printColors[9]).toMatchObject({
+      hex: "#808080",
+      width: 1,
+      pointRadius: 0.1,
+    });
+    expect(doc.line_type_settings.offset).toBe(color.sourceSpan.end);
+  });
+
   it("reads JWW UTF-16LE inline strings without shifting following fields", () => {
     const doc = parse(minimalJwwBytesWithUnicodeMemo(), {
       encoding: "shift_jis",

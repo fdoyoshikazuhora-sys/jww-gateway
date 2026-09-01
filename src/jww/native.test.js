@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import {
   JWW_NATIVE_CONTRACT_VERSION,
@@ -39,6 +40,11 @@ const fixture = (version) =>
     layerGroupScales: { 0: 100 },
     entities: [line()],
   });
+
+const officialColorFixture = () =>
+  readFileSync(
+    new URL("../../samples/jwf-pairs/jwf-open-items-core.jww", import.meta.url)
+  );
 
 function withLayerGroupState(bytes, groupIndex, state) {
   const output = Uint8Array.from(bytes);
@@ -2794,5 +2800,97 @@ describe("JWW native document API", () => {
     expect(saved.bytes.slice(grid.sourceSpan.end)).toEqual(
       document.originalBytes.slice(grid.sourceSpan.end)
     );
+  });
+
+  it("source-splices only the verified official native color tables", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const color = document.settings.color;
+    const patches = [{
+      op: "replace",
+      targetId: color.id,
+      record: {
+        ...color,
+        screenColors: {
+          ...color.screenColors,
+          1: {
+            ...color.screenColors[1],
+            red: 18,
+            green: 52,
+            blue: 86,
+            width: 4,
+            hex: "#123456",
+          },
+        },
+        printColors: {
+          ...color.printColors,
+          1: {
+            ...color.printColors[1],
+            red: 101,
+            green: 67,
+            blue: 33,
+            width: 25,
+            pointRadius: 0.7,
+            hex: "#654321",
+          },
+        },
+      },
+    }];
+    const preflight = preflightNativeJwwSave(document, { patches });
+    const saved = saveNativeJww(document, { patches });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(color).toMatchObject({
+      id: "jww:color-settings",
+      sourceLayout: "jwdatafmt-color-tables-v600-v700",
+      sourceSpan: { byteLength: 240 },
+    });
+    expect(color.screenColors[10]).toBe(undefined);
+    expect(preflight).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      preservesUnsupportedBytes: true,
+      prefixMetadataTargetIds: ["jww:color-settings"],
+    });
+    expect(reopened.settings.color.screenColors[1]).toMatchObject({
+      hex: "#123456",
+      width: 4,
+    });
+    expect(reopened.settings.color.printColors[1]).toMatchObject({
+      hex: "#654321",
+      width: 25,
+      pointRadius: 0.7,
+    });
+    expect(saved.bytes.length).toBe(document.originalBytes.length);
+    expect(saved.bytes.slice(0, color.sourceSpan.start)).toEqual(
+      document.originalBytes.slice(0, color.sourceSpan.start)
+    );
+    expect(saved.bytes.slice(color.sourceSpan.end)).toEqual(
+      document.originalBytes.slice(color.sourceSpan.end)
+    );
+  });
+
+  it("rejects invalid native color values before writing", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const color = document.settings.color;
+    const preflight = preflightNativeJwwSave(document, {
+      patches: [{
+        op: "replace",
+        targetId: color.id,
+        record: {
+          ...color,
+          screenColors: {
+            ...color.screenColors,
+            1: { ...color.screenColors[1], width: 17 },
+          },
+        },
+      }],
+    });
+
+    expect(preflight).toMatchObject({
+      ok: false,
+      code: "JWW_NATIVE_METADATA_PATCH_INVALID",
+      willWriteBytes: false,
+    });
+    expect(preflight.reasons[0]).toContain("1 to 16");
   });
 });

@@ -1,5 +1,9 @@
 import { parse } from "./parser.js";
 import {
+  hasOfficialJwwColorSettingsLayout,
+  normalizeJwwColorSettingsRecord,
+} from "./colorSettings.js";
+import {
   buildJwwRecordPayload,
   buildJwwWriteResult,
   patchJwwTemplatePrefixMetadata,
@@ -14,6 +18,7 @@ export const JWW_NATIVE_HEADER_ID = "jww:header";
 export const JWW_NATIVE_PRINT_SETTINGS_ID = "jww:print-settings";
 export const JWW_NATIVE_DIMENSION_SETTINGS_ID = "jww:dimension-settings";
 export const JWW_NATIVE_GRID_SETTINGS_ID = "jww:grid-settings";
+export const JWW_NATIVE_COLOR_SETTINGS_ID = "jww:color-settings";
 
 export function jwwNativeLayerGroupId(index) {
   return `jww:layer-group:${Number(index)}`;
@@ -387,7 +392,17 @@ function buildNativeDocument(
     blockDefinitions,
     embeddedImages,
     settings: {
-      color: parsed.color_settings || { screenColors: {} },
+      color: parsed.color_settings
+        ? {
+            ...parsed.color_settings,
+            ...(hasOfficialJwwColorSettingsLayout(parsed.color_settings)
+              ? {
+                  id: JWW_NATIVE_COLOR_SETTINGS_ID,
+                  sourceSpan: { ...parsed.color_settings.sourceSpan },
+                }
+              : {}),
+          }
+        : { screenColors: {} },
       lineType: parsed.line_type_settings || null,
       print: parsed.print_settings
         ? {
@@ -475,6 +490,7 @@ function nativeTargetIdExists(document, targetId) {
       targetId === document.settings?.print?.id ||
       targetId === document.settings?.dimension?.id ||
       targetId === document.settings?.grid?.id ||
+      targetId === document.settings?.color?.id ||
       (document.layerGroups || []).some((item) => item.id === targetId) ||
       nativeRecordById(document, targetId) ||
       (document.blockDefinitions || []).some((item) => item.id === targetId) ||
@@ -730,6 +746,86 @@ function replaceNativeGridSettings(next, patch) {
   next.settings = {
     ...next.settings,
     grid: { ...previous, ...grid },
+  };
+}
+
+function rejectChangedColorEntryFields(previous, value, targetId, { print = false } = {}) {
+  rejectChangedMetadataFields(
+    previous,
+    value,
+    new Set([
+      "red",
+      "green",
+      "blue",
+      "width",
+      "hex",
+      ...(print ? ["pointRadius"] : []),
+    ]),
+    targetId
+  );
+}
+
+function replaceNativeColorSettings(next, patch) {
+  const previous = next.settings?.color;
+  const value = cloneValue(unwrap(patch.record));
+  if (
+    !previous?.id ||
+    !hasOfficialJwwColorSettingsLayout(previous) ||
+    !value ||
+    typeof value !== "object"
+  ) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW native color settings require the verified official 240-byte source span"
+    );
+  }
+  rejectChangedMetadataFields(
+    previous,
+    value,
+    new Set([
+      "backgroundColor",
+      "screenColors",
+      "printBackgroundColor",
+      "printColors",
+    ]),
+    previous.id
+  );
+  rejectChangedColorEntryFields(
+    previous.backgroundColor,
+    value.backgroundColor,
+    `${previous.id}.backgroundColor`
+  );
+  rejectChangedColorEntryFields(
+    previous.printBackgroundColor,
+    value.printBackgroundColor,
+    `${previous.id}.printBackgroundColor`,
+    { print: true }
+  );
+  for (let number = 1; number <= 9; number += 1) {
+    rejectChangedColorEntryFields(
+      previous.screenColors?.[number],
+      value.screenColors?.[number],
+      `${previous.id}.screenColors.${number}`
+    );
+    rejectChangedColorEntryFields(
+      previous.printColors?.[number],
+      value.printColors?.[number],
+      `${previous.id}.printColors.${number}`,
+      { print: true }
+    );
+  }
+  let normalized;
+  try {
+    normalized = normalizeJwwColorSettingsRecord(value);
+  } catch (error) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      error?.message || String(error)
+    );
+  }
+  next.settings = {
+    ...next.settings,
+    color: normalized,
   };
 }
 
@@ -1503,6 +1599,7 @@ export function applyNativeJwwPatches(document, patches = []) {
     const printSettingsTarget = patch.targetId === next.settings?.print?.id;
     const dimensionSettingsTarget = patch.targetId === next.settings?.dimension?.id;
     const gridSettingsTarget = patch.targetId === next.settings?.grid?.id;
+    const colorSettingsTarget = patch.targetId === next.settings?.color?.id;
     const layerGroupIndex = next.layerGroups.findIndex(
       (item) => item.id === patch.targetId
     );
@@ -1512,6 +1609,7 @@ export function applyNativeJwwPatches(document, patches = []) {
         printSettingsTarget ||
         dimensionSettingsTarget ||
         gridSettingsTarget ||
+        colorSettingsTarget ||
         layerGroupIndex >= 0
       ) {
         throw nativePatchError(
@@ -1585,6 +1683,9 @@ export function applyNativeJwwPatches(document, patches = []) {
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (gridSettingsTarget) {
         replaceNativeGridSettings(next, patch);
+        pendingPrefixMetadataTargetIds.add(patch.targetId);
+      } else if (colorSettingsTarget) {
+        replaceNativeColorSettings(next, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (layerGroupIndex >= 0) {
         replaceNativeLayerGroup(next, layerGroupIndex, patch);
@@ -2003,6 +2104,7 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
     document.settings?.print?.id,
     document.settings?.dimension?.id,
     document.settings?.grid?.id,
+    document.settings?.color?.id,
     ...(document.layerGroups || []).map((group) => group.id),
   ]);
   const invalidTargetId = targetIds.find((targetId) => !allowedIds.has(targetId));
@@ -2069,6 +2171,9 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
           : null,
         gridSettings: targetIdSet.has(revised.settings?.grid?.id)
           ? revised.settings.grid
+          : null,
+        colorSettings: targetIdSet.has(revised.settings?.color?.id)
+          ? revised.settings.color
           : null,
       }
     );
@@ -2215,6 +2320,23 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
     if (!retained) {
       const error = new Error(
         "Saved JWW grid settings were not retained after reparse"
+      );
+      error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
+      throw error;
+    }
+  }
+  if (targetIdSet.has(revisedDocument.settings?.color?.id)) {
+    const saved = savedDocument.settings?.color;
+    const revised = revisedDocument.settings?.color;
+    const retained = [
+      "backgroundColor",
+      "screenColors",
+      "printBackgroundColor",
+      "printColors",
+    ].every((key) => sameNativeMetadataValue(saved?.[key], revised?.[key]));
+    if (!retained) {
+      const error = new Error(
+        "Saved JWW color settings were not retained after reparse"
       );
       error.code = "JWW_NATIVE_SAVE_REBASE_MISMATCH";
       throw error;

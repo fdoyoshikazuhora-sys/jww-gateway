@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { openNativeJww } from "./native.js";
 import { buildJwwBytes } from "./writer.js";
 import {
@@ -506,6 +508,11 @@ describe("JWW Basic Settings native edits", () => {
     });
   });
 
+const officialColorFixture = () =>
+  readFileSync(
+    new URL("../../samples/jwf-pairs/jwf-open-items-core.jww", import.meta.url)
+  );
+
   it("edits and reparses the official packed dimension settings", async () => {
     const document = await openNativeJww(fixture());
     const dimension = document.settings.dimension;
@@ -692,5 +699,100 @@ describe("JWW Basic Settings native edits", () => {
         willWriteBytes: false,
       });
     }
+  });
+
+  it("edits and reparses official screen and print color settings", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const span = document.settings.color.sourceSpan;
+    const edits = {
+      backgroundColor: "#102030",
+      backgroundLineWidth: 16,
+      screenColors: { 1: "#123456" },
+      screenColorWidths: { 1: 4 },
+      printColors: { 9: "#654321" },
+      printColorWidths: { 9: 25 },
+      printPointRadii: { 9: 0.7 },
+    };
+
+    expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      patchCount: 1,
+      prefixMetadataTargetIds: ["jww:color-settings"],
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(document, edits);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.settings.color.backgroundColor).toMatchObject({
+      hex: "#102030",
+      width: 16,
+    });
+    expect(reopened.settings.color.screenColors[1]).toMatchObject({
+      hex: "#123456",
+      width: 4,
+    });
+    expect(reopened.settings.color.printColors[9]).toMatchObject({
+      hex: "#654321",
+      width: 25,
+      pointRadius: 0.7,
+    });
+    expect(saved.bytes.slice(0, span.start)).toEqual(
+      document.originalBytes.slice(0, span.start)
+    );
+    expect(saved.bytes.slice(span.end)).toEqual(
+      document.originalBytes.slice(span.end)
+    );
+  });
+
+  it("rejects invalid or unverified color edits before writing", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    for (const edits of [
+      { screenColors: { 10: "#000000" } },
+      { screenColorWidths: { 1: 17 } },
+      { printColorWidths: { 1: 501 } },
+      { printPointRadii: { 1: 0 } },
+    ]) {
+      expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+        ok: false,
+        code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        willWriteBytes: false,
+      });
+    }
+    const noOfficialSpan = {
+      ...document,
+      settings: {
+        ...document.settings,
+        color: { ...document.settings.color, id: undefined, sourceSpan: null },
+      },
+    };
+    expect(
+      preflightJwwBasicSettingsSave(noOfficialSpan, {
+        screenColors: { 1: "#000000" },
+      })
+    ).toMatchObject({
+      ok: false,
+      code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      willWriteBytes: false,
+    });
+  });
+
+  it("keeps color source-splice valid when the same Save As lengthens the memo", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const originalPrefixEnd = document.preservedRegions.prefix.end;
+    const saved = saveJwwBasicSettings(document, {
+      memo: "Color table and variable-length memo\r\n",
+      screenColors: { 2: "#abcdef" },
+      printPointRadii: { 2: 0.9 },
+    });
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.header.memo).toBe("Color table and variable-length memo\r\n");
+    expect(reopened.settings.color.screenColors[2].hex).toBe("#abcdef");
+    expect(reopened.settings.color.printColors[2].pointRadius).toBe(0.9);
+    expect(saved.bytes.slice(reopened.preservedRegions.prefix.end)).toEqual(
+      document.originalBytes.slice(originalPrefixEnd)
+    );
   });
 });

@@ -34,6 +34,11 @@ function emptyDraftEdits() {
     layerStates: {},
     layerGroupProtections: {},
     layerProtections: {},
+    screenColors: {},
+    screenColorWidths: {},
+    printColors: {},
+    printColorWidths: {},
+    printPointRadii: {},
   };
 }
 
@@ -79,6 +84,11 @@ function draftValue(edit) {
     "layerStates",
     "layerGroupProtections",
     "layerProtections",
+    "screenColors",
+    "screenColorWidths",
+    "printColors",
+    "printColorWidths",
+    "printPointRadii",
   ].find(
     (family) => edit.key.startsWith(`${family}.`)
   );
@@ -99,6 +109,11 @@ function setDraftValue(edit, value, { rerender = true } = {}) {
     "layerStates",
     "layerGroupProtections",
     "layerProtections",
+    "screenColors",
+    "screenColorWidths",
+    "printColors",
+    "printColorWidths",
+    "printPointRadii",
   ].find(
     (family) => edit.key.startsWith(`${family}.`)
   );
@@ -160,15 +175,20 @@ function renderEditControl(edit) {
     control.rows = Number(edit.rows || 3);
   } else {
     control = createElement("input", "native-edit-control");
-    control.type = "number";
+    control.type = edit.control === "color" ? "color" : "number";
     if (edit.min !== undefined) control.min = String(edit.min);
+    if (edit.max !== undefined) control.max = String(edit.max);
     if (edit.step !== undefined) control.step = String(edit.step);
   }
   control.value = String(draftValue(edit) ?? "");
   control.dataset.editKey = edit.key;
   control.setAttribute("aria-label", edit.key);
   control.addEventListener("change", () => setDraftValue(edit, control.value));
-  if (edit.control === "number" || edit.control === "textarea") {
+  if (
+    edit.control === "number" ||
+    edit.control === "textarea" ||
+    edit.control === "color"
+  ) {
     control.addEventListener("input", () =>
       setDraftValue(edit, control.value, { rerender: false })
     );
@@ -222,7 +242,7 @@ function renderTable(section) {
     const tableRow = createElement("tr");
     row.cells.forEach((cell, index) => {
       const dataCell = createElement("td");
-      if (index === 1 && row.swatch) {
+      if (index === (row.swatchColumn ?? 1) && row.swatch) {
         const swatch = createElement("span", "color-swatch small");
         swatch.style.backgroundColor = row.swatch;
         dataCell.append(swatch);

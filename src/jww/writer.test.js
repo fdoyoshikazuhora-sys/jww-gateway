@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { parse } from "./parser.js";
 import {
   JWW_WRITE_VERSIONS,
@@ -1490,5 +1492,63 @@ describe("JWW writer", () => {
       invalidMessage = error.message;
     }
     expect(invalidMessage).toContain("grid mode");
+  });
+
+  it("patches only the official contiguous screen and print color span", () => {
+    const source = readFileSync(
+      new URL("../../samples/jwf-pairs/jwf-open-items-core.jww", import.meta.url)
+    );
+    const before = parse(source);
+    const color = before.color_settings;
+    const prefixEnd = before.entity_list_offset;
+    const patchedPrefix = patchJwwTemplatePrefixMetadata(
+      source.slice(0, prefixEnd),
+      {
+        colorSettings: {
+          ...color,
+          backgroundColor: {
+            ...color.backgroundColor,
+            red: 16,
+            green: 32,
+            blue: 48,
+            width: 16,
+            hex: "#102030",
+          },
+          printColors: {
+            ...color.printColors,
+            9: {
+              ...color.printColors[9],
+              red: 101,
+              green: 67,
+              blue: 33,
+              width: 25,
+              pointRadius: 0.7,
+              hex: "#654321",
+            },
+          },
+        },
+      }
+    );
+    const bytes = new Uint8Array(patchedPrefix.length + source.length - prefixEnd);
+    bytes.set(patchedPrefix);
+    bytes.set(source.slice(prefixEnd), patchedPrefix.length);
+    const after = parse(bytes);
+
+    expect(color.sourceSpan).toMatchObject({ byteLength: 240 });
+    expect(after.color_settings.backgroundColor).toMatchObject({
+      hex: "#102030",
+      width: 16,
+    });
+    expect(after.color_settings.printColors[9]).toMatchObject({
+      hex: "#654321",
+      width: 25,
+      pointRadius: 0.7,
+    });
+    expect(bytes.slice(0, color.sourceSpan.start)).toEqual(
+      source.slice(0, color.sourceSpan.start)
+    );
+    expect(bytes.slice(color.sourceSpan.end)).toEqual(
+      source.slice(color.sourceSpan.end)
+    );
   });
 });

@@ -30,9 +30,9 @@ JWFについては、環境設定ファイルが `.JWF` のテキストファイ
 
 `jwf:compare` と `jwf:value-scan` は `--scope` / `--family` / `--key` / `--status` で絞り込みできる。例: `--scope drawing --status missing,ambiguous --html -o drawing-open.html`、`--family layerColors,layerLineTypes --html -o layer-defaults.html`、または `--key LTYPE_HC,LCOLLOR_M --html -o core-open.html`。`A-00 断面図.jww` + `断面図.JWF` ではこの絞り込みで63行になり、内訳は `missing 31 / ambiguous 32`。
 
-`jwf:value-scan` には `gatewayStatus` も付与する。これはJWF値のバイト一致ではなく、Gateway本体がそのJWFキーを `extracted` / `missing` / `not-tracked` のどれとして扱っているかを示す。`--gateway-status missing` で絞ると、JWF値そのものは一致しないが既に抽出済みの `LAYSCALE`、`LTYPE_02`、`LCOLLOR_G` などを除外できる。`A-00 断面図.jww` + `断面図.JWF` では特殊画面色対応前は `--scope drawing --gateway-status missing` で53行、さらに `--status missing,ambiguous` を併用すると52行だった。`LCOLLOR_S/K/Z` 対応後は `--scope drawing --gateway-status missing` が50行、`--status missing,ambiguous` 併用が50行になる。
+`jwf:value-scan` には `gatewayStatus` も付与する。これはJWF値のバイト一致ではなく、Gateway本体がそのJWFキーを `extracted` / `missing` / `not-tracked` のどれとして扱っているかを示す。`--gateway-status missing` で絞ると、JWF値そのものは一致しないが既に抽出済みの `LAYSCALE`、`LTYPE_02`、`LCOLLOR_G` などを除外できる。過去の集計では特殊色候補を `extracted` に数えていたため、その件数は公式色表境界の確定後のparser判定とは分けて扱う。
 
-特殊画面色は、`A-00 断面図.jww`、`A-00-3 平面図.jww`、`A-11 仕上表.jww` の3ファイルで、色テーブル基準の相対位置が安定していた。`LCOLLOR_S` は `colorTableOffset + 200`、`LCOLLOR_Z` は `+216`、`LCOLLOR_K` は `+756` で JWF値と一致したため、`color_settings.specialColors.S/K/Z` として抽出する。`LCOLLOR_M` は同じ近傍では JWF値と一致せず、現時点では未抽出扱いを維持する。これにより `A-00 断面図.jww` + `断面図.JWF` のJWF比較は extracted 55 から 58、drawing missing は 53 から 50 へ減った。
+過去の相対位置候補を公式240-byte色表へ重ね直すと、`colorTableOffset + 200` と `+216` はそれぞれ印刷色8と印刷色9のRGB先頭に一致した。したがって旧 `LCOLLOR_S` / `LCOLLOR_Z` 候補は別設定ではなく印刷色のaliasであり、`color_settings.specialColors` への昇格を取り消した。`+756` の `LCOLLOR_K` は公式色表外の互換候補としてのみ残し、native書込み対象にしない。`LCOLLOR_M` はJWF専用のズーム操作文字色で、JWWには保存されない。
 
 出典:
 
@@ -110,13 +110,13 @@ UTF-16文字列には、JWF書出し用と思われるフォーマット列が�
 | `LAYCOL_0..F`                            | 書込レイヤ切替時の既定線色         | JWF専用操作設定 | JWF parserで保持する。JWWには保存されず、既存エンティティは `base.pen_color` を正本とする。                                                                        |
 | `LAYWID_0..F`                            | 書込レイヤ切替時の既定線幅         | JWF専用操作設定 | JWF parserで保持する。JWWには保存されず、既存エンティティは `base.pen_width` を正本とする。                                                                        |
 | `LAYTYP_0..F`                            | 書込レイヤ切替時の既定線種         | JWF専用操作設定 | JWF parserで保持する。JWWには保存されず、既存エンティティは `base.pen_style` を正本とする。                                                                        |
-| `LCOLLOR_1..8`                           | 画面表示基本色、線幅               |       部分対応 | バイナリ内テーブルを推定して `color_settings.screenColors` に格納。確定オフセットではなくスコア推定。                                                             |
-| `LCOLLOR_G`                              | グレー                             |       部分対応 | 色テーブル候補では読める場合あり。意味付けは弱い。                                                                                                                |
-| `LCOLLOR_H`                              | 補助線色                           |       部分対応 | 10色テーブル推定に含まれる可能性あり。専用名としては未固定。                                                                                                      |
-| `LCOLLOR_S/K/Z/M`                        | 選択色、仮線色、ズーム枠色、ズーム文字色 |       部分対応 | `LCOLLOR_S`、`LCOLLOR_K`、`LCOLLOR_Z` はJWW候補オフセットから抽出。`LCOLLOR_M` はJWF専用のズーム操作文字色で、JWWには保存されない。                           |
-| `LCOLLOR_B`                              | 背景色                             |       部分対応 | `color_settings.backgroundColor` として推定。白黒反転判断に利用。                                                                                                 |
-| `PCOLLOR_1..8`                           | 印刷色、印刷線幅、実点半径         |       対応済み | `color_settings.printColors` として推定。`RGB + width + pointRadius` 形式を優先し、実点半径を `pointRadius` として保持。                                          |
-| `PCOLLOR_G`                              | 印刷グレー                         |   対応済み寄り | 推定テーブルに含まれる場合は `PCOLLOR_G` として抽出。専用意味付けはまだ弱い。                                                                                     |
+| `LCOLLOR_1..8`                           | 画面表示基本色、線幅               |       対応済み | 公式0～9画面色表の1～8を `color_settings.screenColors` に格納。                                                                                                   |
+| `LCOLLOR_G`                              | グレー                             |       対応済み | 公式画面色表の9。RGBは利用者が変更できるため無彩色であることを検出条件にしない。                                                                                   |
+| `LCOLLOR_H`                              | 補助線色                           |         未確認 | 公式0～9画面色表に10番は存在しない。旧10番は印刷背景色の誤読だったため除去。                                                                                       |
+| `LCOLLOR_S/K/Z/M`                        | 選択色、仮線色、ズーム枠色、ズーム文字色 |       部分対応 | 旧S/Z候補は印刷色8/9のaliasだったため除去。Kは未確認候補のままread-only。MはJWF専用でJWWに保存されない。                                                      |
+| `LCOLLOR_B`                              | 背景色                             |       対応済み | 公式画面色表の0を `color_settings.backgroundColor` として保持。                                                                                                   |
+| `PCOLLOR_1..8`                           | 印刷色、印刷線幅、実点半径         |       対応済み | 公式0～9印刷色表の1～8を `color_settings.printColors` に格納。                                                                                                    |
+| `PCOLLOR_G`                              | 印刷グレー                         |       対応済み | 公式印刷色表の9。RGB、線幅、実点半径を保持。                                                                                                                       |
 | `P_dpi`                                  | プリンタ dpi                       |         未対応 | JWW 内有無の確認が必要。                                                                                                                                          |
 | `LTYPE_02..09`                           | 基本線種パターン                   |       対応済み | `line_type_settings.rows`、`meta.jwwEnvironment.lineTypes` に抽出。候補テーブルはスコア推定。                                                                     |
 | `LTYPE_R*`                               | ランダム線種                       |       対応済み | `LTYPE_R1..R5` を抽出。                                                                                                                                           |
@@ -419,7 +419,7 @@ Jw_cad 10.02.1で同一の6-entity図面へ、baselineと各1項目だけを変�
 
 `LTYPE_L4` の直後24 bytesは `postLineTypeTailCandidate` として保持する。単独変更試験でJWFの `LTYPE_HC` 6フィールドと連動しないことを確認したため、`LTYPE_HC`というキー名や6項目の意味は付与しない。既存実ファイル比較のためraw `u32` / `u16`だけを中立な診断値として残す。
 
-The same pair also showed that print colors can appear as `RGB + width + pointRadius` rows. Gateway now prefers this richer `print-rgb-width-radius` table over the older plain RGB/width candidate, so `PCOLLOR_1..8` can retain real point radius values when present.
+The same pair also helped identify the official contiguous print table. Gateway now reads all ten `RGB + width + pointRadius` rows directly after the 80-byte screen table, so `PCOLLOR_1..8` and `PCOLLOR_G` retain their point radii without falling back to a plain RGB/width candidate.
 
 ### UTF-16LE inline JWW strings
 

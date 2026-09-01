@@ -1,11 +1,15 @@
 import { preflightNativeJwwSave, saveNativeJww } from "./native.js";
 import {
+  encodeJwwColorSettings,
+  JWW_COLOR_EDIT_KEYS,
+} from "./colorSettings.js";
+import {
   encodeJwwDimensionSettings,
   JWW_DIMENSION_EDIT_KEYS,
 } from "./dimensionSettings.js";
 import { encodeJwwGridSettings, JWW_GRID_EDIT_KEYS } from "./gridSettings.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 7;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 8;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -39,6 +43,7 @@ const EDIT_KEYS = new Set([
   "printOriginY",
   "printScale",
   "printRotationSetting",
+  ...JWW_COLOR_EDIT_KEYS,
   ...JWW_DIMENSION_EDIT_KEYS,
   ...JWW_GRID_EDIT_KEYS,
 ]);
@@ -618,6 +623,45 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
         op: "replace",
         targetId: grid.id,
         record: revisedGrid,
+      });
+    }
+  }
+
+  const colorEditRequested = JWW_COLOR_EDIT_KEYS.some((key) =>
+    Object.hasOwn(edits, key)
+  );
+  if (colorEditRequested) {
+    const color = document.settings?.color;
+    if (!color?.id) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        "JWW native color settings are not backed by the verified official source span"
+      );
+    }
+    let revisedColor;
+    try {
+      revisedColor = encodeJwwColorSettings(color, edits);
+    } catch (error) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        error?.message || String(error)
+      );
+    }
+    const fields = [
+      "backgroundColor",
+      "screenColors",
+      "printBackgroundColor",
+      "printColors",
+    ];
+    if (
+      fields.some(
+        (key) => JSON.stringify(revisedColor[key]) !== JSON.stringify(color[key])
+      )
+    ) {
+      patches.push({
+        op: "replace",
+        targetId: color.id,
+        record: revisedColor,
       });
     }
   }

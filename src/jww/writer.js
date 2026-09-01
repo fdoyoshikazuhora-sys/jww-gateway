@@ -1,4 +1,8 @@
 import { getDefaultJwwSaveTemplatePrefix } from "./defaultJwwSaveTemplatePrefix.js";
+import {
+  hasOfficialJwwColorSettingsLayout,
+  normalizeJwwColorSettingsRecord,
+} from "./colorSettings.js";
 import { normalizeJwwGridSettings } from "./gridSettings.js";
 import { parse } from "./parser.js";
 
@@ -919,6 +923,78 @@ function patchTemplateGridSettings(templatePrefix, gridSettings) {
   return bytes;
 }
 
+function assertOfficialColorSourceBytes(bytes, start) {
+  if (start < 0 || start + 240 > bytes.length) {
+    throw new Error("JWW template prefix ended before the color settings fields");
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let index = 0; index < 10; index += 1) {
+    const offset = start + index * 8;
+    const width = view.getUint32(offset + 4, true);
+    if (bytes[offset + 3] !== 0 || width < 1 || width > 16) {
+      throw new Error(
+        `JWW screen color source span is not the official 0-9 table: ${index}`
+      );
+    }
+  }
+  const printStart = start + 80;
+  for (let index = 0; index < 10; index += 1) {
+    const offset = printStart + index * 16;
+    const width = view.getUint32(offset + 4, true);
+    const pointRadius = view.getFloat64(offset + 8, true);
+    if (
+      bytes[offset + 3] !== 0 ||
+      width < 1 ||
+      width > 500 ||
+      !Number.isFinite(pointRadius) ||
+      pointRadius < 0.1 ||
+      pointRadius > 10
+    ) {
+      throw new Error(
+        `JWW print color source span is not the official 0-9 table: ${index}`
+      );
+    }
+  }
+}
+
+function writeColorEntryAt(bytes, offset, entry, { print = false } = {}) {
+  bytes[offset] = entry.red;
+  bytes[offset + 1] = entry.green;
+  bytes[offset + 2] = entry.blue;
+  writeDwordAt(bytes, offset + 4, entry.width);
+  if (print) writeDoubleAt(bytes, offset + 8, entry.pointRadius);
+}
+
+function patchTemplateColorSettings(templatePrefix, colorSettings) {
+  if (colorSettings === null || colorSettings === undefined) return templatePrefix;
+  if (!hasOfficialJwwColorSettingsLayout(colorSettings)) {
+    throw new Error(
+      "JWW color settings require the verified official 240-byte source span"
+    );
+  }
+  const settings = normalizeJwwColorSettingsRecord(colorSettings);
+  const bytes = templatePrefix.slice();
+  const start = Number(settings.sourceSpan.start);
+  assertOfficialColorSourceBytes(bytes, start);
+  writeColorEntryAt(bytes, start, settings.backgroundColor);
+  for (let number = 1; number <= 9; number += 1) {
+    writeColorEntryAt(bytes, start + number * 8, settings.screenColors[number]);
+  }
+  const printStart = start + 80;
+  writeColorEntryAt(bytes, printStart, settings.printBackgroundColor, {
+    print: true,
+  });
+  for (let number = 1; number <= 9; number += 1) {
+    writeColorEntryAt(
+      bytes,
+      printStart + number * 16,
+      settings.printColors[number],
+      { print: true }
+    );
+  }
+  return bytes;
+}
+
 export function patchJwwTemplatePrefixMetadata(
   templatePrefix,
   {
@@ -934,9 +1010,13 @@ export function patchJwwTemplatePrefixMetadata(
     dimensionSettings = null,
     printSettings = null,
     gridSettings = null,
+    colorSettings = null,
   } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
+  // Color offsets are source spans from the original prefix. Apply this
+  // fixed-width patch before a variable-length memo edit can move the span.
+  bytes = patchTemplateColorSettings(bytes, colorSettings);
   bytes = patchTemplateMemo(bytes, memo);
   bytes = patchTemplatePaperSize(bytes, paperSize);
   bytes = patchTemplateWriteLayerGroup(bytes, writeLayerGroup);
