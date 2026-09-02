@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JWW Gateway</title>
-  <meta name="description" content="JWW Gateway は、Jw_cad .jww ファイルを読み込み、JWW Gateway JSON と診断レポートを出力する単体CLIです。JWW保存/書き出しには未対応です。">
+  <meta name="description" content="JWW Gateway provides a browser app for safely editing proven native settings in Jw_cad .jww files, plus CLI conversion and diagnostics.">
   <meta property="og:title" content="JWW Gateway">
-  <meta property="og:description" content="JWW読み込み・変換・診断用の単体CLI。生成したJSONや診断レポートを他のツールへ受け渡して使います。">
+  <meta property="og:description" content="Inspect, edit, and save proven native JWW settings locally in the browser, with CLI conversion and diagnostics available separately.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://fdoyoshikazuhora-sys.github.io/jww-gateway/">
   <meta name="twitter:card" content="summary">
@@ -224,36 +224,39 @@
     <nav aria-label="Primary">
       <div class="brand">JWW Gateway</div>
       <div class="links">
-        <a href="README.ja.md">取扱説明</a>
+        <a href="apps/jww-basic-settings/">Basic Settings</a>
+        <a href="apps/jww-basic-settings/guide.html">User Guide</a>
+        <a href="README.ja.md">Japanese guide</a>
         <a href="README.md">README</a>
         <a href="https://github.com/fdoyoshikazuhora-sys/jww-gateway">GitHub</a>
         <a href="https://github.com/fdoyoshikazuhora-sys/jww-gateway/releases/tag/v0.1.0">Release</a>
       </div>
     </nav>
 
-    <h1>JWW読み込み・変換・診断用CLI</h1>
-    <p class="lead">Jw_cadの <code>.jww</code> ファイルを読み込み、JWW Gateway JSONと診断レポートを出力します。常駐サーバーや画面アプリへ直接接続するのではなく、生成したファイルを連携先のツールへ受け渡して使います。</p>
-    <p class="notice">JWW保存/書き出しには未対応です。元のJWWファイルは変更しません。</p>
+    <h1>Inspect and edit native JWW settings safely</h1>
+    <p class="lead">Basic Settings opens Jw_cad <code>.jww</code> files locally and displays paper, scale, layer, color, line type, text, dimension, grid, and print settings stored in the document. Only proven native settings are editable, and results are saved as a separate JWW file. CLI conversion and diagnostic reporting remain available.</p>
+    <p class="notice">Files are processed in your browser and are not uploaded. Save As never overwrites the source JWW file.</p>
     <div class="actions">
-      <a class="button primary" href="README.ja.md">取扱説明を見る</a>
-      <a class="button" href="https://github.com/fdoyoshikazuhora-sys/jww-gateway">GitHubで開く</a>
+      <a class="button primary" href="apps/jww-basic-settings/">Open Basic Settings</a>
+      <a class="button" href="apps/jww-basic-settings/guide.html">Read the User Guide</a>
+      <a class="button" href="https://github.com/fdoyoshikazuhora-sys/jww-gateway">Open on GitHub</a>
     </div>
   </header>
 
   <main>
     <section aria-labelledby="workflow">
-      <h2 id="workflow">使い方の流れ</h2>
+      <h2 id="workflow">Basic Settings workflow</h2>
       <ol>
-        <li><code>JWW_Gateway</code> フォルダをPowerShellで開く</li>
-        <li><code>npm run status</code> で配布物が揃っているか確認する</li>
-        <li><code>npm run convert</code> でJWWをJSONへ変換する</li>
-        <li>必要に応じて <code>npm run diagnose</code> で診断レポートを作る</li>
-        <li>連携先のツールで、生成されたJSONや診断レポートを読み込む</li>
+        <li>Open <a href="apps/jww-basic-settings/">JWW Basic Settings</a>.</li>
+        <li>Select a local JWW file with <strong>Open JWW</strong>.</li>
+        <li>Review stored settings, native record counts, IMAGE references, embedded image payloads, and parser diagnostics.</li>
+        <li>Edit only fields marked <strong>Native editable</strong>.</li>
+        <li>Use <strong>Save As JWW</strong> to download a separately named file.</li>
       </ol>
     </section>
 
     <section aria-labelledby="commands">
-      <h2 id="commands">基本コマンド</h2>
+      <h2 id="commands">CLI commands</h2>
       <pre><code>npm run status
 npm run convert -- "C:\path\to\file.jww" -o output.json
 npm run diagnose -- "C:\path\to\file.jww" --html -o diagnostics.html
@@ -261,26 +264,26 @@ npm run validate -- output.json</code></pre>
     </section>
 
     <section aria-labelledby="features">
-      <h2 id="features">できること</h2>
+      <h2 id="features">Capabilities</h2>
       <div class="grid">
         <div class="item">
-          <h3>JWW読み込み</h3>
-          <p>Jw_cad <code>.jww</code> ファイルを読み込み、用紙、縮尺、レイヤ、色、線種、文字情報を抽出します。</p>
+          <h3>Basic Settings</h3>
+          <p>Display proven settings stored in JWW through an English interface and edit supported fields without replacing the native document model.</p>
         </div>
         <div class="item">
-          <h3>JSON変換</h3>
-          <p>連携先のツールが読み込めるように、JWW Gateway JSONとして変換結果を出力します。</p>
+          <h3>Native-safe Save As</h3>
+          <p>Run preflight before saving, preserve the source file, and download the result as a separately named JWW file.</p>
         </div>
         <div class="item">
-          <h3>診断レポート</h3>
-          <p>読み込みログ、未対応クラス、色テーブル、弧/楕円診断、外れ要素候補などを確認できます。</p>
+          <h3>CLI conversion and diagnostics</h3>
+          <p>Convert to JWW Gateway JSON and run parser diagnostics, semantic diff, and related command-line workflows.</p>
         </div>
       </div>
     </section>
 
     <section aria-labelledby="limits">
-      <h2 id="limits">既知の制限</h2>
-      <p>JWW保存/書き出しには対応していません。Jw_cad完全互換ビューアでもありません。詳しい制限と未対応項目は <a href="README.ja.md#既知の制限">取扱説明の既知の制限</a> を参照してください。</p>
+      <h2 id="limits">Known limitations</h2>
+      <p>Basic Settings is not a fully compatible Jw_cad drawing editor or viewer. It edits only proven JWW native metadata fields. JWF-only settings are not inferred from JWW files or applied automatically. See the <a href="docs/JWW_GATEWAY_RELEASE_NOTES.md">release notes</a> for detailed scope and limitations.</p>
     </section>
   </main>
 

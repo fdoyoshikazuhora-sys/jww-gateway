@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A clear user guide for opening, reviewing, editing, and safely saving JWW files with JWW Basic Settings." />
+    <title>JWW Basic Settings User Guide</title>
+    <link rel="stylesheet" href="./guide.css" />
+  </head>
+  <body>
+    <header class="guide-header">
+      <nav class="guide-nav" aria-label="Guide navigation">
+        <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">JW</span><span>JWW Basic Settings</span></a>
+        <div class="nav-links">
+          <a href="./">Open the app</a>
+          <a href="../../">Gateway overview</a>
+          <a href="https://github.com/fdoyoshikazuhora-sys/jww-gateway">GitHub</a>
+        </div>
+      </nav>
+      <div class="hero">
+        <p class="eyebrow">User guide</p>
+        <h1>Open, understand, and safely save JWW settings</h1>
+        <p class="hero-copy">JWW Basic Settings reads a Jw_cad file on your device, shows the native settings that Gateway can prove, and lets you save supported changes to a new file.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="./">Open JWW Basic Settings</a>
+          <a class="button" href="#quick-start">Read the quick start</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="safety-grid" aria-label="Important safety information">
+        <article><strong>Local processing</strong><span>Your JWW file is processed in the browser and is not uploaded.</span></article>
+        <article><strong>Save As only</strong><span>The source file is never overwritten by the app.</span></article>
+        <article><strong>Proven fields only</strong><span>Unconfirmed values are shown, not guessed or silently rewritten.</span></article>
+      </section>
+
+      <div class="guide-layout">
+        <aside class="contents" aria-label="Guide contents">
+          <p>On this page</p>
+          <a href="#quick-start">Quick start</a>
+          <a href="#screen">Reading the screen</a>
+          <a href="#sections">Settings sections</a>
+          <a href="#scale">Understanding scale</a>
+          <a href="#images">Understanding images</a>
+          <a href="#editing">Editing and reset</a>
+          <a href="#saving">Saving safely</a>
+          <a href="#diagnostics">Diagnostics</a>
+          <a href="#limits">Scope and limitations</a>
+        </aside>
+
+        <div class="guide-content">
+          <section id="quick-start">
+            <p class="section-label">Start here</p>
+            <h2>Quick start</h2>
+            <ol class="steps">
+              <li><span>1</span><div><strong>Open the app.</strong><p>Go to <a href="./">JWW Basic Settings</a>.</p></div></li>
+              <li><span>2</span><div><strong>Choose a JWW file.</strong><p>Select <b>Open JWW</b>, then choose a local <code>.jww</code> file. The file stays on your device.</p></div></li>
+              <li><span>3</span><div><strong>Check the document status.</strong><p>Confirm that <b>Parse</b> says <b>Clean</b>. Review the settings and the Diagnostics section before editing an unfamiliar file.</p></div></li>
+              <li><span>4</span><div><strong>Edit supported settings.</strong><p>Only controls marked <b>Native editable</b> can be changed. Read-only values remain visible for reference.</p></div></li>
+              <li><span>5</span><div><strong>Save a separate copy.</strong><p>When the changes pass preflight, select <b>Save As JWW</b> and use a new file name. Open the result in Jw_cad to confirm the drawing.</p></div></li>
+            </ol>
+          </section>
+
+          <section id="screen">
+            <p class="section-label">Orientation</p>
+            <h2>Reading the screen</h2>
+            <div class="definition-grid">
+              <article><h3>Version</h3><p>The internal JWW version reported by the parser.</p></article>
+              <article><h3>Size</h3><p>The byte size of the original file selected from your device.</p></article>
+              <article><h3>Parse</h3><p><b>Clean</b> means the parser reported no unsupported, skipped, or trailing records. It is not a claim of complete Jw_cad compatibility.</p></article>
+              <article><h3>Save</h3><p><b>Unchanged</b> means no editable field has been modified. The Save As button becomes available only after a valid supported change.</p></article>
+            </div>
+            <h3>Status labels</h3>
+            <dl class="status-list">
+              <div><dt><span class="dot stored"></span>Stored in JWW</dt><dd>The value came directly from the opened JWW document.</dd></div>
+              <div><dt><span class="dot derived"></span>Derived</dt><dd>The value was calculated from native document data and is not a separate stored field.</dd></div>
+              <div><dt><span class="dot absent"></span>Not stored in JWW</dt><dd>The setting belongs elsewhere, such as a JWF environment profile.</dd></div>
+              <div><dt><span class="dot unconfirmed"></span>Unsupported / unconfirmed</dt><dd>Gateway does not have enough evidence to edit the value safely.</dd></div>
+              <div><dt><span class="editable-badge">Native editable</span></dt><dd>The field has a verified native representation and may be changed.</dd></div>
+            </dl>
+          </section>
+
+          <section id="sections">
+            <p class="section-label">Reference</p>
+            <h2>Settings sections</h2>
+            <div class="section-table-wrap">
+              <table>
+                <thead><tr><th>Section</th><th>What you can review</th></tr></thead>
+                <tbody>
+                  <tr><td>General</td><td>File name, memo, version, source size, hash, active group, and document state.</td></tr>
+                  <tr><td>Paper &amp; Scale</td><td>Paper size and the scale denominator stored for each layer group.</td></tr>
+                  <tr><td>Colors &amp; Line Widths</td><td>Verified screen and print color tables, line widths, point radii, and read-only unconfirmed colors.</td></tr>
+                  <tr><td>Line Types</td><td>The verified ordinary, random, and doubled JWW line type rows.</td></tr>
+                  <tr><td>Text</td><td>Observed native text count, fonts, types, widths, heights, spacing, and angles. These observations are read-only.</td></tr>
+                  <tr><td>Dimensions</td><td>Native dimension record count and the documented packed dimension settings.</td></tr>
+                  <tr><td>Grid Settings</td><td>Grid display, units, snapping mode, spacing, minimum display spacing, and base point.</td></tr>
+                  <tr><td>Layer Groups &amp; Layers</td><td>Current group and layer, names, visibility/edit state, protection, scale, and write layer.</td></tr>
+                  <tr><td>Print Settings</td><td>Print origin, print scale, and output rotation/reference position.</td></tr>
+                  <tr><td>Diagnostics</td><td>Parser status, record counts, IMAGE references, embedded images, and preserved unknown regions.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="scale">
+            <p class="section-label">Important value</p>
+            <h2>Understanding scale</h2>
+            <p>JWW stores one scale denominator for each layer group. Basic Settings shows that native numeric value without changing it into a different document model.</p>
+            <div class="example-box">
+              <div><code>100</code><span>means a drawing scale of <strong>1/100</strong></span></div>
+              <div><code>1</code><span>means <strong>1/1</strong></span></div>
+              <div><code>1.5</code><span>means <strong>1/1.5</strong>, which is mathematically equal to <strong>2/3</strong></span></div>
+            </div>
+            <p class="note"><strong>Note:</strong> JWW stores the numeric denominator, not the way a fraction was originally written. Changing a group scale changes the stored group setting; the app does not normalize every drawing entity to one scale.</p>
+          </section>
+
+          <section id="images">
+            <p class="section-label">Diagnostics</p>
+            <h2>Understanding images</h2>
+            <p>Open <b>Diagnostics</b> and look under <b>Native record counts</b>. Two separate values describe image use:</p>
+            <div class="comparison">
+              <article><h3>Image entities</h3><p>The number of IMAGE references found in the drawing and inside block definitions.</p></article>
+              <article><h3>Embedded images</h3><p>The number of image payloads physically stored inside the JWW file.</p></article>
+            </div>
+            <p>For example, <b>Image entities: 1</b> and <b>Embedded images: 0</b> means the drawing refers to an image, but the image bytes are not contained in the JWW file. The external BMP file may still be required when the drawing is opened on another computer.</p>
+          </section>
+
+          <section id="editing">
+            <p class="section-label">Making changes</p>
+            <h2>Editing and Reset Changes</h2>
+            <ul>
+              <li>Use only controls marked <b>Native editable</b>.</li>
+              <li>A change is kept in the browser until you save or reset it.</li>
+              <li>Select <b>Reset Changes</b> to discard all unsaved edits and return to the values read from the opened file.</li>
+              <li>Read-only and unconfirmed fields cannot be forced into the JWW file.</li>
+            </ul>
+          </section>
+
+          <section id="saving">
+            <p class="section-label">Output</p>
+            <h2>Saving safely</h2>
+            <ol>
+              <li>Review the fields you changed.</li>
+              <li>Check that the save status is ready and no validation message is shown.</li>
+              <li>Select <b>Save As JWW</b>.</li>
+              <li>Choose a new name. Do not replace the source file during verification.</li>
+              <li>Open the saved file in Jw_cad and confirm paper, scale, layers, colors, line types, text, dimensions, blocks, and images that matter to your drawing.</li>
+            </ol>
+            <p class="note">Gateway runs a native save preflight before starting the browser download. If it cannot preserve the document safely, it blocks the save instead of silently dropping unsupported data.</p>
+          </section>
+
+          <section id="diagnostics">
+            <p class="section-label">When something looks wrong</p>
+            <h2>Using Diagnostics</h2>
+            <ul>
+              <li><b>Clean parse: Yes</b> means no parser loss was reported.</li>
+              <li><b>Unsupported records</b> and <b>Skipped records</b> should normally be zero before editing.</li>
+              <li><b>Record source spans available: Yes</b> means Gateway knows the byte boundaries needed for supported native operations.</li>
+              <li><b>Trailing unparsed bytes</b> reports data after the parsed document boundary.</li>
+              <li><b>Preserved unknown regions</b> lists unknown bytes that Gateway retains rather than discarding.</li>
+            </ul>
+            <p>If parsing is not clean or Save As is blocked, keep the source file unchanged and use the diagnostic details when reporting the problem.</p>
+          </section>
+
+          <section id="limits">
+            <p class="section-label">Scope</p>
+            <h2>What this app does not do</h2>
+            <ul>
+              <li>It is not a complete Jw_cad-compatible drawing editor or viewer.</li>
+              <li>It does not edit drawing geometry such as lines, arcs, dimensions, blocks, or image placement.</li>
+              <li>It does not require, detect, or automatically apply a JWF file.</li>
+              <li>It does not invent values for fields whose binary meaning has not been proven.</li>
+              <li>A clean parser result does not replace a real Jw_cad reload check for an important output file.</li>
+            </ul>
+          </section>
+
+          <section class="final-callout">
+            <h2>Ready to inspect a file?</h2>
+            <p>Keep the original JWW as your reference, save changes under a new name, and verify important outputs in Jw_cad.</p>
+            <a class="button primary" href="./">Open JWW Basic Settings</a>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <span>JWW Gateway</span>
+      <a href="../../">Overview</a>
+      <a href="https://github.com/fdoyoshikazuhora-sys/jww-gateway">Source and technical documentation</a>
+    </footer>
+  </body>
+</html>
