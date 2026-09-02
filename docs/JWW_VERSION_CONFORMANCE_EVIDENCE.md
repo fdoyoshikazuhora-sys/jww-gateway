@@ -210,15 +210,69 @@ The isolated evidence is under:
 .work/e2e-jww/v600-dimension-jw620-intentional-line-reload.png
 ```
 
+## Public legacy-source conversion through Jw_cad 6.20
+
+On 2026-09-02, three non-private, third-party sample drawings were tested in
+the same dedicated Jw_cad 6.20 VM. The DIMENSION source is the `RDT4.jww`
+practice drawing distributed from the public HinoADO RDT4 page
+<https://hinoado.com/index.cgi?eid=13&id=4>. The BLOCK and raster-reference
+sources are the ordinary JWW and `jww-raster` samples distributed from the
+official Shirai Sangyo CAD sample page
+<https://www.shiraisangyo.com/cad/sample.htm>. The source downloads are not
+redistributed by Gateway and remain only in the ignored `.work` evidence tree.
+
+These source files predate v600: Gateway identifies the DIMENSION drawing as
+internal version 351 and both Shirai drawings as version 214. Each source was
+opened visibly in Jw_cad 6.20, saved under a separate name, switched away from,
+and reopened through Jw_cad's Open UI from the saved file. The original source
+files were not overwritten.
+
+| Public sample | Source / v600 output bytes | Stable drawing content | Jw_cad 6.20 and Gateway result |
+| --- | ---: | --- | --- |
+| HinoADO DIMENSION | 119,885 / 130,490 | 1,503 records, including 2 DIMENSION and 1,041 SOLID | Save As produced internal v600; reopened visibly; zero unsupported/skipped records |
+| Shirai BLOCK/INSERT | 37,378 / 49,087 | 606 records, one INSERT named `テスト`, and one five-entity definition | Save As produced internal v600; reopened visibly; zero unsupported/skipped records |
+| Shirai external IMAGE reference | 4,292 / 14,765 | one IMAGE plus one TEXT; `^@BM...tera.bmp,200,85.1752`, position, size, and rotation stayed equal | Save As produced internal v600; reference frame reopened visibly; zero unsupported/skipped records |
+
+Gateway semantic diff reports the format conversion rather than suppressing it.
+The two DIMENSION records retain their main line/text geometry and attributes,
+while Jw_cad 6.20 fills previously absent native helper slots with zero/default
+records. For BLOCK, 63 drawing TEXT records change pen width from `0` to `1`;
+the definition name remains `テスト`, while its raw name gains Jw_cad's
+`@@SfigorgFlag@@4` suffix. For IMAGE, both records change pen width from `0` to
+`1`, while the external file name, image dimensions, position, and rotation
+remain equal. Paper and all 16 group scales remain equal for the BLOCK and
+IMAGE pairs. Every source and output has a complete entity, block, and embedded-
+image list under Gateway conformance.
+
+The raster record contains the historical absolute path
+`G:\DATAFILE\Taka\図面交換\tera.bmp`. Although the distributed `tera.bmp` was
+present in the exchange directory, Jw_cad 6.20 displayed the reference frame
+rather than bitmap pixels because that absolute path was unavailable. This is
+evidence for preserving, saving, and reloading the external IMAGE reference,
+not for relocated-image resolution or embedded-image rendering.
+
+The saved files are real v600 files produced by Jw_cad 6.20 from independently
+published drawing content, but the downloaded source files themselves were
+v214/v351. This materially strengthens old-runtime conversion coverage for
+DIMENSION, BLOCK/INSERT, and IMAGE, but it does not establish independently
+authored or independently distributed native-v600 samples for those families.
+
+The isolated evidence is under:
+
+```text
+.work/native-jww-open/legacy-jwcad/vm/exchange/public-thirdparty-conversion-20260901
+```
+
 ## Remaining independent-sample gate
 
 The remaining `jww-version-conformance` item is now limited to evidence that
 is not supplied by the generated fixtures, installed samples, public mirror,
 the two independently authored Matrix drawings, or the eleven independently
-authored university drawings:
+authored university drawings, or the public legacy-source conversion above:
 
-1. non-private, independently authored v600 files containing native DIMENSION,
-   BLOCK/INSERT, and IMAGE records; and
+1. non-private, independently authored files that were already internal v600
+   before the current test and contain native DIMENSION, BLOCK/INSERT, and
+   IMAGE records; and
 2. equivalent evidence for any additional Jw_cad release for which compatibility
    is claimed.
 
@@ -230,5 +284,7 @@ university drawings, and the recorded Jw_cad 10.02.1 open/edit/save/reload
 result. It may
 also claim the exact Jw_cad 6.20 generated-fixture Open, Save As, reload,
 parser-clean results, automatic normalizations, and single intentional LINE-edit
-cycle listed above, but not version-wide independently authored v600
-compatibility or independent DIMENSION/BLOCK/IMAGE coverage.
+cycle listed above. It may additionally claim the public v214/v351 to v600
+conversion, parser-clean, semantic-diff, and reload results above, but not
+version-wide independently authored v600 compatibility or independent native-
+v600 DIMENSION/BLOCK/IMAGE coverage.

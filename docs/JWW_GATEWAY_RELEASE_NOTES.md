@@ -54,6 +54,13 @@ diagnostics, JWF comparison, and package handoff verification.
   v600 DIMENSION fixture, saved a 16,460-byte parser-clean v600 file, separated
   the LINE from DIMENSION text-endpoint/type and dummy-word normalization in
   Gateway semantic diff, and visibly reloaded the edited output in Jw_cad 6.20.
+- Public third-party v351 DIMENSION and v214 BLOCK/IMAGE samples were opened in
+  Jw_cad 6.20, saved separately as non-empty internal-v600 files, reparsed with
+  zero unsupported/skipped records, and reopened from disk. Gateway records the
+  version-migration normalizations instead of treating the outputs as semantic-
+  equal. The IMAGE absolute-path reference frame reloaded, but relocated bitmap
+  pixels remain unverified. This is legacy-source conversion evidence, not an
+  independently distributed native-v600 sample set.
 - Semantic JWW diff separating drawing order/geometry, document metadata, and Jw_cad internal settings.
 - JWF-like environment coverage reports from JWW files.
 - Cross-file coverage summary reports with a drawing-scope missing gate.
@@ -94,10 +101,10 @@ diagnostics, JWF comparison, and package handoff verification.
   remain the separate `jww-version-conformance` gate. Current evidence includes
   15 Jw_cad-installed v600 samples, thirteen independently authored public v600
   ARC/CIRCLE/LINE/SOLID/TEXT drawings, and a representative Jw_cad 10.02.1
-  open/edit/save/reload cycle, plus the generated-fixture Jw_cad 6.20
-  Open/Save As/reload and intentional LINE-edit results above. The remaining
-  gate is independently authored v600 DIMENSION, BLOCK/INSERT, and IMAGE
-  samples.
+  open/edit/save/reload cycle, plus the generated-fixture and public legacy-
+  source Jw_cad 6.20 Open/Save As/reload and intentional LINE-edit results
+  above. The remaining gate is independently authored/distributed files that
+  were already native v600 and contain DIMENSION, BLOCK/INSERT, and IMAGE.
 - `LTYPE_HC`, `LCOLLOR_M`, and `LAYCOL/LAYWID/LAYTYP_0..F` are classified as
   JWF-only operation/default settings. Controlled Jw_cad 10.02.1 Save As tests
   show that they are not serialized into JWW.

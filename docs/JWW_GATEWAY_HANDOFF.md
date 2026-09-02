@@ -89,8 +89,14 @@ The open-items report classifies each item by status, class, conversion impact, 
   normalizations are documented. A separate generated DIMENSION-fixture cycle
   added one LINE, saved a non-empty parser-clean v600 file, isolated the intended
   LINE from Jw_cad 6.20 normalization in semantic diff, and reloaded visibly in
-  Jw_cad 6.20. Independently authored v600 DIMENSION, BLOCK/INSERT, and IMAGE
-  samples remain the separate conformance gate. See
+  Jw_cad 6.20. Public third-party v351 DIMENSION and v214 BLOCK/IMAGE samples
+  were then converted by Jw_cad 6.20 into non-empty parser-clean v600 outputs
+  and reopened from disk. Entity counts stayed stable; DIMENSION helper slots,
+  BLOCK/TEXT pen widths and raw-name metadata, and IMAGE/TEXT pen widths were
+  normalized explicitly. The IMAGE absolute reference frame reopened, but its
+  unavailable legacy `G:` path prevented bitmap-pixel display. Files that were
+  already independently authored/distributed as native v600 DIMENSION,
+  BLOCK/INSERT, and IMAGE samples remain the separate conformance gate. See
   `JWW_VERSION_CONFORMANCE_EVIDENCE.md`.
 - `LTYPE_HC` and `LCOLLOR_M` are JWF-only operation/display settings and are not serialized into JWW.
 - JWW text decoration raw controls and structured runs survive Gateway write
