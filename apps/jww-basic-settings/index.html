@@ -12,17 +12,19 @@
       <header class="topbar">
         <div class="brand-lockup">
           <div class="brand-mark" aria-hidden="true">JW</div>
-          <div>
+          <div class="brand-copy">
             <p class="eyebrow">JWW Gateway child app</p>
-            <h1>JWW Basic Settings</h1>
+            <div class="brand-title-row">
+              <h1>JWW Basic Settings</h1>
+              <span class="read-only-pill" id="edit-mode-pill">Native-safe edits</span>
+            </div>
           </div>
         </div>
         <div class="topbar-actions">
-          <a class="quiet-button quiet-link" href="./guide.html">User Guide</a>
-          <span class="read-only-pill" id="edit-mode-pill">Native-safe edits</span>
-          <button class="quiet-button" id="reset-button" type="button" disabled>Reset Changes</button>
-          <button class="primary-button" id="save-button" type="button" disabled>Save As JWW</button>
           <button class="primary-button" id="open-button" type="button">Open JWW</button>
+          <button class="primary-button" id="save-button" type="button" disabled>Save As JWW</button>
+          <button class="quiet-button" id="reset-button" type="button" disabled>Reset Changes</button>
+          <a class="quiet-button quiet-link" href="./guide.html">User Guide</a>
           <input id="file-input" type="file" accept=".jww,application/octet-stream" hidden />
         </div>
       </header>
