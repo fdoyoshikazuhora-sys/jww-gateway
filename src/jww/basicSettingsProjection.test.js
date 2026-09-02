@@ -45,8 +45,18 @@ function nativeDocument() {
         },
       },
       { id: "jww:entity:1", kind: "DIMENSION", value: {} },
+      { id: "jww:entity:2", kind: "IMAGE", value: { raw_content: "^@BMexternal.bmp,20,10" } },
     ],
-    blockDefinitions: [{ id: "jww:block:0" }],
+    blockDefinitions: [
+      {
+        id: "jww:block:0",
+        value: {
+          entities: [
+            { id: "jww:block:0:record:0", kind: "IMAGE", value: { raw_content: "^@BMblock.bmp,10,5" } },
+          ],
+        },
+      },
+    ],
     embeddedImages: [{ id: "jww:image:0" }],
     settings: {
       color: {
@@ -126,7 +136,7 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 11,
+      formatVersion: 12,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
@@ -195,6 +205,16 @@ describe("buildJwwBasicSettingsProjection", () => {
     expect(byId.background.value).toContain("#FFFFFF");
     expect(byId["text-fonts"].value).toBe("MS Gothic");
     expect(byId["dimension-count"].value).toBe("1");
+    expect(byId["image-entities"]).toMatchObject({
+      label: "Image entities",
+      value: "2",
+      source: "nativeEntities + blockDefinitions[].value.entities [kind=IMAGE]",
+    });
+    expect(byId["embedded-images"]).toMatchObject({
+      label: "Embedded images",
+      value: "1",
+      source: "embeddedImages.length",
+    });
     expect(byId["dimension-line-color"].edit).toMatchObject({
       key: "dimensionLineColor",
       control: "select",

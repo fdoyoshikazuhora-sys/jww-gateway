@@ -14,7 +14,7 @@ import {
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 11;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 12;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -1152,6 +1152,12 @@ function buildPrintTab(document) {
 
 function buildDiagnosticsTab(document) {
   const diagnostics = document.diagnostics || {};
+  const imageEntityCount = [
+    ...(document.nativeEntities || []),
+    ...(document.blockDefinitions || []).flatMap(
+      (definition) => definition?.value?.entities || []
+    ),
+  ].filter((record) => record?.kind === "IMAGE").length;
   const unknownRows = (diagnostics.preservedUnknownRegions || []).map(
     (region, index) => ({
       id: `unknown-${index}`,
@@ -1177,7 +1183,15 @@ function buildDiagnosticsTab(document) {
     fieldsSection("record-counts", "Native record counts", [
       field({ id: "entities", label: "Drawing entities", value: String((document.nativeEntities || []).length), status: STATUS.DERIVED, source: "nativeEntities.length" }),
       field({ id: "blocks", label: "Block definitions", value: String((document.blockDefinitions || []).length), status: STATUS.DERIVED, source: "blockDefinitions.length" }),
-      field({ id: "images", label: "Embedded images", value: String((document.embeddedImages || []).length), status: STATUS.DERIVED, source: "embeddedImages.length" }),
+      field({
+        id: "image-entities",
+        label: "Image entities",
+        value: String(imageEntityCount),
+        status: STATUS.DERIVED,
+        source: "nativeEntities + blockDefinitions[].value.entities [kind=IMAGE]",
+        note: "IMAGE references in the drawing and block definitions. Embedded image payloads are counted separately.",
+      }),
+      field({ id: "embedded-images", label: "Embedded images", value: String((document.embeddedImages || []).length), status: STATUS.DERIVED, source: "embeddedImages.length" }),
     ]),
     tableSection(
       "unknown-regions",
