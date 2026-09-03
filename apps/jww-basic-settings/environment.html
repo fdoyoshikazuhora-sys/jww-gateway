@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Edit a Jw_cad JWF environment profile with a familiar settings workflow." />
+    <title>JWF Environment Profile</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./environment-dialog.css" />
+  </head>
+  <body>
+    <div class="jwf-window">
+      <header class="profile-toolbar">
+        <div>
+          <p class="eyebrow">JWW Gateway child app</p>
+          <h1>JWF Environment Profile</h1>
+        </div>
+        <div class="file-actions">
+          <button class="secondary-button" id="open-button" type="button">Read JWF</button>
+          <button class="secondary-button" id="new-button" type="button">New Profile</button>
+          <button class="primary-button" id="export-button" type="button" disabled>Export JWF</button>
+          <button class="quiet-button" id="source-button" type="button" disabled>JWF Source</button>
+          <a class="quiet-button quiet-link" href="./">JWW Settings</a>
+          <input id="file-input" type="file" accept=".jwf,text/plain" hidden />
+        </div>
+      </header>
+
+      <section class="profile-summary" aria-live="polite">
+        <div>
+          <strong id="source-name">No JWF profile loaded</strong>
+          <span id="source-detail">Read an existing JWF or create a new profile. Files stay on this device.</span>
+        </div>
+        <div class="source-metrics" id="source-metrics"></div>
+      </section>
+
+      <main class="settings-dialog">
+        <section class="empty-state" id="empty-state">
+          <p class="eyebrow">Environment profile editor</p>
+          <h2>Read or create a JWF profile</h2>
+          <p>The editor follows the Jw_cad Basic Settings tab order. A JWF profile is separate from a JWW drawing.</p>
+          <div class="empty-actions">
+            <button class="secondary-button" id="empty-open-button" type="button">Read JWF</button>
+            <button class="secondary-button secondary-outline" id="empty-new-button" type="button">Create New Profile</button>
+          </div>
+        </section>
+
+        <section id="profile-workspace" hidden>
+          <nav class="jwcad-tabs" id="tab-list" aria-label="Jw_cad Basic Settings sections"></nav>
+          <div class="tab-panel" id="profile-view"></div>
+          <div class="dialog-footer">
+            <div class="dialog-note">
+              <span class="status-dot" id="status-dot"></span>
+              <span id="status-text">Ready.</span>
+            </div>
+            <div class="dialog-actions">
+              <button class="dialog-button primary-dialog-button" id="ok-button" type="button">OK</button>
+              <button class="dialog-button" id="cancel-button" type="button">Cancel</button>
+              <button class="dialog-button" id="apply-button" type="button" disabled>Apply</button>
+              <a class="dialog-button help-button" href="./guide.html#jwf-profile">Help</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="safety-strip">
+        Explicit profile only · Shift_JIS export · no automatic search for or application of <code>Jw_win.JWF</code>
+      </footer>
+    </div>
+    <script type="module" src="./environment-dialog.js"></script>
+  </body>
+</html>

@@ -15,7 +15,7 @@ export function isJwfOnlyOperationKey(key) {
   return JWF_ONLY_OPERATION_KEYS.includes(key);
 }
 
-function decodeBytes(bytes, encoding = DEFAULT_ENCODING) {
+export function decodeJwfBytes(bytes, encoding = DEFAULT_ENCODING) {
   const data = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes || []);
   try {
     return new TextDecoder(encoding).decode(data);
@@ -789,5 +789,338 @@ export function parseJwfText(text, options = {}) {
 
 export function parseJwfBytes(bytes, options = {}) {
   const encoding = options.encoding || DEFAULT_ENCODING;
-  return parseJwfText(decodeBytes(bytes, encoding), options);
+  return parseJwfText(decodeJwfBytes(bytes, encoding), options);
+}
+
+let shiftJisEncodeMap = null;
+
+function addShiftJisMapping(map, decoder, bytes) {
+  const decoded = decoder.decode(Uint8Array.from(bytes));
+  if (!decoded || decoded.includes("\uFFFD") || Array.from(decoded).length !== 1) {
+    return;
+  }
+  if (!map.has(decoded)) map.set(decoded, bytes);
+}
+
+function buildShiftJisEncodeMap() {
+  if (shiftJisEncodeMap) return shiftJisEncodeMap;
+  const decoder = new TextDecoder(DEFAULT_ENCODING);
+  const map = new Map();
+  for (let value = 0; value <= 0x7f; value += 1) {
+    addShiftJisMapping(map, decoder, [value]);
+  }
+  for (let value = 0xa1; value <= 0xdf; value += 1) {
+    addShiftJisMapping(map, decoder, [value]);
+  }
+  const leads = [
+    ...Array.from({ length: 0x9f - 0x81 + 1 }, (_, index) => 0x81 + index),
+    ...Array.from({ length: 0xfc - 0xe0 + 1 }, (_, index) => 0xe0 + index),
+  ];
+  for (const lead of leads) {
+    for (let trail = 0x40; trail <= 0xfc; trail += 1) {
+      if (trail === 0x7f) continue;
+      addShiftJisMapping(map, decoder, [lead, trail]);
+    }
+  }
+  shiftJisEncodeMap = map;
+  return map;
+}
+
+function normalizedJwfLineEndings(text) {
+  return String(text ?? "").replace(/\r\n|\r|\n/g, "\r\n");
+}
+
+export function encodeJwfText(text, options = {}) {
+  const normalized = options.preserveLineEndings
+    ? String(text ?? "")
+    : normalizedJwfLineEndings(text);
+  const map = buildShiftJisEncodeMap();
+  const output = [];
+  const unsupported = [];
+  let position = 0;
+  for (const character of normalized) {
+    const bytes = map.get(character);
+    if (!bytes) {
+      unsupported.push({ character, position, codePoint: character.codePointAt(0) });
+    } else {
+      output.push(...bytes);
+    }
+    position += character.length;
+  }
+  if (unsupported.length) {
+    const preview = unsupported
+      .slice(0, 5)
+      .map((item) => `${JSON.stringify(item.character)} (U+${item.codePoint.toString(16).toUpperCase().padStart(4, "0")})`)
+      .join(", ");
+    const error = new Error(`JWF contains characters that cannot be encoded as Shift_JIS: ${preview}`);
+    error.code = "JWF_SHIFT_JIS_ENCODING_FAILED";
+    error.unsupportedCharacters = unsupported;
+    throw error;
+  }
+  return Uint8Array.from(output);
+}
+
+export function validateJwfText(text, options = {}) {
+  const diagnostics = [];
+  const seen = new Map();
+  const inactiveEntries = [];
+  let endLine = null;
+  String(text ?? "")
+    .split(/\r?\n|\r/)
+    .forEach((line, index) => {
+      const lineNumber = index + 1;
+      const trimmed = line.replace(/\uFEFF/g, "").trim();
+      if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("//")) return;
+      if (/^END\b/i.test(trimmed)) {
+        if (endLine === null) endLine = lineNumber;
+        return;
+      }
+      if (endLine !== null && !options.allowEntriesAfterEnd) {
+        const inactiveMatch = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+        if (inactiveMatch) {
+          inactiveEntries.push({ key: inactiveMatch[1], line: lineNumber });
+        }
+        return;
+      }
+      const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+      if (!match) {
+        diagnostics.push({
+          severity: "error",
+          code: "JWF_INVALID_LINE",
+          line: lineNumber,
+          message: "Expected KEY = value, a comment beginning with #, or END.",
+        });
+        return;
+      }
+      const key = match[1];
+      if (seen.has(key)) {
+        diagnostics.push({
+          severity: "warning",
+          code: "JWF_DUPLICATE_KEY",
+          line: lineNumber,
+          message: `${key} also appears on line ${seen.get(key)}; Jw_cad may use the later value.`,
+        });
+      }
+      seen.set(key, lineNumber);
+    });
+  if (endLine === null) {
+    diagnostics.push({
+      severity: "warning",
+      code: "JWF_END_MISSING",
+      line: null,
+      message: "END is missing. Add END after the active settings for a conventional JWF file.",
+    });
+  }
+  if (inactiveEntries.length) {
+    diagnostics.push({
+      severity: "warning",
+      code: "JWF_ENTRY_AFTER_END",
+      line: inactiveEntries[0].line,
+      message: `${inactiveEntries.length} setting row${inactiveEntries.length === 1 ? " is" : "s are"} after END and inactive when Jw_cad reads the profile.`,
+    });
+  }
+  try {
+    encodeJwfText(text);
+  } catch (error) {
+    diagnostics.push({
+      severity: "error",
+      code: error.code || "JWF_SHIFT_JIS_ENCODING_FAILED",
+      line: null,
+      message: error.message,
+    });
+  }
+  const errors = diagnostics.filter((item) => item.severity === "error");
+  const warnings = diagnostics.filter((item) => item.severity === "warning");
+  return {
+    ok: errors.length === 0,
+    diagnostics,
+    errors,
+    warnings,
+    keyCount: seen.size,
+    inactiveKeyCount: inactiveEntries.length,
+    endLine,
+  };
+}
+
+export function createJwfTemplate(options = {}) {
+  const title = String(options.title || "JWW Gateway Environment Profile")
+    .replace(/[\r\n#]/g, " ")
+    .trim();
+  return [
+    `# ${title || "JWW Gateway Environment Profile"}`,
+    "# Edit only the settings you want Jw_cad to load.",
+    "# This profile is separate from every JWW drawing.",
+    "",
+    "END",
+    "",
+  ].join("\r\n");
+}
+
+function equalBytes(left, right) {
+  if (!left || !right || left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+}
+
+export function openJwfProfile(bytes, options = {}) {
+  const originalBytes = bytes instanceof Uint8Array
+    ? Uint8Array.from(bytes)
+    : Uint8Array.from(bytes || []);
+  if (!originalBytes.length) {
+    const error = new Error("The selected JWF file is empty.");
+    error.code = "JWF_EMPTY_FILE";
+    throw error;
+  }
+  const text = decodeJwfBytes(originalBytes, options.encoding || DEFAULT_ENCODING);
+  const validation = validateJwfText(text);
+  return {
+    kind: "jwf-environment-profile",
+    encoding: DEFAULT_ENCODING,
+    sourceName: String(options.sourceName || options.fileName || ""),
+    originalBytes,
+    originalText: text,
+    text,
+    dirty: false,
+    parsed: parseJwfText(text),
+    validation,
+  };
+}
+
+export function createJwfProfile(options = {}) {
+  const text = createJwfTemplate(options);
+  return {
+    kind: "jwf-environment-profile",
+    encoding: DEFAULT_ENCODING,
+    sourceName: String(options.sourceName || "New Environment Profile.jwf"),
+    originalBytes: null,
+    originalText: null,
+    text,
+    dirty: true,
+    parsed: parseJwfText(text),
+    validation: validateJwfText(text),
+  };
+}
+
+export function editJwfProfile(profile, text) {
+  if (profile?.kind !== "jwf-environment-profile") {
+    throw new TypeError("JWF environment profile is required");
+  }
+  const revisedText = String(text ?? "");
+  let dirty = true;
+  try {
+    const encoded = encodeJwfText(revisedText);
+    dirty = !profile.originalBytes || !equalBytes(profile.originalBytes, encoded);
+  } catch {
+    dirty = true;
+  }
+  return {
+    ...profile,
+    text: revisedText,
+    dirty,
+    parsed: parseJwfText(revisedText),
+    validation: validateJwfText(revisedText),
+  };
+}
+
+function formatJwfToken(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "0";
+  const text = String(value ?? "");
+  if (!text || /[\s,#"]/u.test(text)) {
+    return `"${text.replace(/"/g, "")}"`;
+  }
+  return text;
+}
+
+function inlineCommentSuffix(value) {
+  const text = String(value || "");
+  let inQuote = false;
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === '"') inQuote = !inQuote;
+    if (!inQuote && text[index] === "#") return text.slice(index);
+  }
+  return "";
+}
+
+function formattedJwfValues(values, originalRawValue = "") {
+  const separator = String(originalRawValue).includes(",") ? "," : " ";
+  return (values || []).map(formatJwfToken).join(separator);
+}
+
+export function updateJwfProfileEntry(profile, key, values) {
+  if (profile?.kind !== "jwf-environment-profile") {
+    throw new TypeError("JWF environment profile is required");
+  }
+  const normalizedKey = String(key || "").trim();
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(normalizedKey)) {
+    throw new TypeError(`Invalid JWF setting key: ${normalizedKey || "(empty)"}`);
+  }
+  if (!Array.isArray(values)) {
+    throw new TypeError(`JWF ${normalizedKey} values must be an array`);
+  }
+  const lines = String(profile.text || "").split(/\r\n|\r|\n/);
+  const entry = profile.parsed?.entries?.[normalizedKey];
+  const formatted = formattedJwfValues(values, entry?.rawValue);
+  if (entry?.line && entry.line <= lines.length) {
+    const index = entry.line - 1;
+    const existing = lines[index];
+    const match = existing.match(/^(\s*[A-Za-z_][A-Za-z0-9_]*\s*=\s*)(.*)$/);
+    const suffix = inlineCommentSuffix(match?.[2] || "");
+    lines[index] = `${match?.[1] || `${normalizedKey} = `}${formatted}${suffix ? ` ${suffix}` : ""}`;
+  } else {
+    const endIndex = lines.findIndex((line) => /^\s*END\b/i.test(line));
+    const insertAt = endIndex >= 0 ? endIndex : lines.length;
+    lines.splice(insertAt, 0, `${normalizedKey} = ${formatted}`);
+  }
+  return editJwfProfile(profile, lines.join("\r\n"));
+}
+
+export function removeJwfProfileEntry(profile, key) {
+  if (profile?.kind !== "jwf-environment-profile") {
+    throw new TypeError("JWF environment profile is required");
+  }
+  const entry = profile.parsed?.entries?.[String(key || "")];
+  if (!entry?.line) return profile;
+  const lines = String(profile.text || "").split(/\r\n|\r|\n/);
+  lines.splice(entry.line - 1, 1);
+  return editJwfProfile(profile, lines.join("\r\n"));
+}
+
+export function preflightJwfProfileSave(profile) {
+  if (profile?.kind !== "jwf-environment-profile") {
+    return { ok: false, strategy: "blocked", reasons: ["JWF environment profile is required."], diagnostics: [] };
+  }
+  const validation = validateJwfText(profile.text);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      strategy: "blocked",
+      reasons: validation.errors.map((item) => item.message),
+      diagnostics: validation.diagnostics,
+    };
+  }
+  const editedBytes = encodeJwfText(profile.text);
+  const unchanged = profile.originalBytes && equalBytes(profile.originalBytes, editedBytes);
+  return {
+    ok: true,
+    strategy: unchanged ? "original-bytes" : "shift-jis-reencode",
+    reasons: [],
+    diagnostics: validation.diagnostics,
+    byteLength: unchanged ? profile.originalBytes.length : editedBytes.length,
+  };
+}
+
+export function saveJwfProfile(profile) {
+  const preflight = preflightJwfProfileSave(profile);
+  if (!preflight.ok) {
+    const error = new Error(preflight.reasons.join("; ") || "JWF export is blocked.");
+    error.code = "JWF_PROFILE_SAVE_BLOCKED";
+    error.preflight = preflight;
+    throw error;
+  }
+  const bytes = preflight.strategy === "original-bytes"
+    ? Uint8Array.from(profile.originalBytes)
+    : encodeJwfText(profile.text);
+  return { bytes, strategy: preflight.strategy, validation: validateJwfText(profile.text) };
 }

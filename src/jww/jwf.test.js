@@ -1,4 +1,16 @@
-import { parseJwfText } from "./jwf.js";
+import {
+  createJwfProfile,
+  decodeJwfBytes,
+  editJwfProfile,
+  encodeJwfText,
+  openJwfProfile,
+  parseJwfText,
+  preflightJwfProfileSave,
+  saveJwfProfile,
+  removeJwfProfileEntry,
+  updateJwfProfileEntry,
+  validateJwfText,
+} from "./jwf.js";
 
 describe("parseJwfText", () => {
   it("parses active JWF key value rows before END", () => {
@@ -234,5 +246,132 @@ KEYF2 = 39 40
       key: "KEYF2",
       commandNumbers: [39, 40],
     });
+  });
+});
+
+describe("JWF environment profile read, write, edit, and create", () => {
+  it("preserves untouched source bytes exactly", () => {
+    const bytes = encodeJwfText("# 設備設定\r\nMSET = 2 0 0 500 60 100 0 0 0\r\nEND\r\n", {
+      preserveLineEndings: true,
+    });
+    const profile = openJwfProfile(bytes, { sourceName: "equipment.jwf" });
+    const preflight = preflightJwfProfileSave(profile);
+    const saved = saveJwfProfile(profile);
+
+    expect(profile.sourceName).toBe("equipment.jwf");
+    expect(profile.dirty).toBe(false);
+    expect(preflight).toMatchObject({ ok: true, strategy: "original-bytes" });
+    expect(Array.from(saved.bytes)).toEqual(Array.from(bytes));
+    expect(decodeJwfBytes(saved.bytes)).toContain("# 設備設定");
+  });
+
+  it("re-encodes edited profiles as Shift_JIS and reparses the changes", () => {
+    const source = encodeJwfText("MSET = 1 0 0 500 60 100 0 0 0\r\nEND\r\n");
+    const profile = openJwfProfile(source);
+    const edited = editJwfProfile(
+      profile,
+      "# 日本語\nMSET = 7 0 0 500 60 100 0 0 0\nEND\n"
+    );
+    const saved = saveJwfProfile(edited);
+
+    expect(edited.dirty).toBe(true);
+    expect(saved.strategy).toBe("shift-jis-reencode");
+    expect(decodeJwfBytes(saved.bytes)).toContain("# 日本語\r\nMSET = 7");
+    expect(parseJwfText(decodeJwfBytes(saved.bytes)).entries.MSET.values[0]).toBe(7);
+  });
+
+  it("creates a valid separate environment profile template", () => {
+    const profile = createJwfProfile({ title: "Office profile" });
+    expect(profile.kind).toBe("jwf-environment-profile");
+    expect(profile.dirty).toBe(true);
+    expect(profile.text).toContain("# Office profile");
+    expect(profile.text).toContain("\r\nEND\r\n");
+    expect(preflightJwfProfileSave(profile).ok).toBe(true);
+  });
+
+  it("blocks malformed rows before export", () => {
+    const profile = createJwfProfile();
+    const edited = editJwfProfile(profile, "MSET 1 2 3\nEND\n");
+    const validation = validateJwfText(edited.text);
+    const preflight = preflightJwfProfileSave(edited);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors[0].code).toBe("JWF_INVALID_LINE");
+    expect(preflight.ok).toBe(false);
+    let saveError = null;
+    try {
+      saveJwfProfile(edited);
+    } catch (error) {
+      saveError = error;
+    }
+    expect(saveError?.message).toEqual(
+      expect.stringMatching(/Expected KEY = value/)
+    );
+  });
+
+  it("blocks characters that cannot be represented in Shift_JIS", () => {
+    const validation = validateJwfText("# emoji 😀\nEND\n");
+    expect(validation.ok).toBe(false);
+    expect(validation.errors.some((item) => item.code === "JWF_SHIFT_JIS_ENCODING_FAILED")).toBe(true);
+    let encodingError = null;
+    try {
+      encodeJwfText("😀");
+    } catch (error) {
+      encodingError = error;
+    }
+    expect(encodingError?.message).toEqual(
+      expect.stringMatching(/cannot be encoded as Shift_JIS/)
+    );
+  });
+
+  it("warns for duplicate keys and inactive rows after END", () => {
+    const validation = validateJwfText(
+      "MSET = 1\nMSET = 2\nEND\n97 = documentation text\nKEY_A = 1\n"
+    );
+    expect(validation.ok).toBe(true);
+    expect(validation.keyCount).toBe(1);
+    expect(validation.inactiveKeyCount).toBe(1);
+    expect(validation.warnings.map((item) => item.code)).toEqual([
+      "JWF_DUPLICATE_KEY",
+      "JWF_ENTRY_AFTER_END",
+    ]);
+  });
+
+  it("accepts the double-slash annotation form present in the Jw_cad sample", () => {
+    const validation = validateJwfText(
+      "KEY76 = 0 90\r\n\t//(72) paste and shape rotation note\r\nEND\r\n"
+    );
+
+    expect(validation.ok).toBe(true);
+    expect(validation.errors).toEqual([]);
+    expect(validation.keyCount).toBe(1);
+  });
+
+  it("updates one active setting while preserving comments and other rows", () => {
+    const profile = openJwfProfile(encodeJwfText(
+      "# header\r\nMSET = 1 0 0 # keep this comment\r\nKEY_A = 5 6\r\nEND\r\n"
+    ));
+    const edited = updateJwfProfileEntry(profile, "MSET", [3, 1, 0]);
+
+    expect(edited.text).toContain("# header\r\n");
+    expect(edited.text).toContain("MSET = 3 1 0 # keep this comment");
+    expect(edited.text).toContain("KEY_A = 5 6");
+    expect(edited.parsed.entries.MSET.values).toEqual([3, 1, 0]);
+  });
+
+  it("adds a setting before END and removes only its active row", () => {
+    const profile = createJwfProfile();
+    const added = updateJwfProfileEntry(profile, "LCOLLOR_M", [12, 34, 56]);
+    const removed = removeJwfProfileEntry(added, "LCOLLOR_M");
+
+    expect(added.text.indexOf("LCOLLOR_M")).toBeGreaterThan(0);
+    expect(added.text.indexOf("LCOLLOR_M")).toBeGreaterThan(
+      added.text.indexOf("# This profile")
+    );
+    expect(added.text.indexOf("END")).toBeGreaterThan(
+      added.text.indexOf("LCOLLOR_M")
+    );
+    expect(removed.text.includes("LCOLLOR_M")).toBe(false);
+    expect(removed.text).toContain("END");
   });
 });

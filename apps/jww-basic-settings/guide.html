@@ -23,6 +23,7 @@
         <p class="hero-copy">JWW Basic Settings reads a Jw_cad file on your device, shows the native settings that Gateway can prove, and lets you save supported changes to a new file.</p>
         <div class="hero-actions">
           <a class="button primary" href="./">Open JWW Basic Settings</a>
+          <a class="button" href="./environment.html">Open JWF Environment Profile</a>
           <a class="button" href="#quick-start">Read the quick start</a>
         </div>
       </div>
@@ -45,6 +46,7 @@
           <a href="#images">Understanding images</a>
           <a href="#editing">Editing and reset</a>
           <a href="#saving">Saving safely</a>
+          <a href="#jwf-profile">JWF environment profiles</a>
           <a href="#diagnostics">Diagnostics</a>
           <a href="#limits">Scope and limitations</a>
         </aside>
@@ -161,6 +163,23 @@
               <li><b>Preserved unknown regions</b> lists unknown bytes that Gateway retains rather than discarding.</li>
             </ul>
             <p>If parsing is not clean or Save As is blocked, keep the source file unchanged and use the diagnostic details when reporting the problem.</p>
+          </section>
+
+          <section id="jwf-profile">
+            <p class="section-label">Environment settings</p>
+            <h2>Reading, editing, and creating a JWF profile</h2>
+            <p><a href="./environment.html">JWF Environment Profile</a> is a separate workspace for Jw_cad defaults and operation preferences. A JWF profile is not part of the open JWW drawing, and the app never searches for or automatically applies <code>Jw_win.JWF</code>.</p>
+            <ol>
+              <li>Select <b>Read JWF</b> to inspect an existing local <code>.jwf</code> file, or <b>New Profile</b> to start with a small valid template.</li>
+              <li>Move through the horizontal tabs in the same order as Jw_cad Basic Settings: General (1), General (2), Colors &amp; Screen, Line Types, Text, AUTO, KEY, and DXF · SXF · JWC. Change the visible checkboxes, numbers, color rows, or table cells directly.</li>
+              <li>Select <b>Apply</b> to keep the current form values as the session checkpoint. <b>Cancel</b> discards changes made after that checkpoint. <b>OK</b> applies the current values and leaves the profile ready for a separate export.</li>
+              <li>Use <b>JWF Source</b> only for advanced keys not represented by the forms. JWF syntax uses <code>KEY = values</code>; comments begin with <code>#</code> (the <code>//</code> annotation found in the Jw_cad sample is also accepted); <code>END</code> marks the end of active settings.</li>
+              <li>The DXF · SXF · JWC page marks Jw_cad options with no proven JWF key as <b>Not stored in this JWF</b>. Gateway does not invent those values.</li>
+              <li>Malformed rows and characters that cannot be represented in Shift_JIS block export.</li>
+              <li>Select <b>Export JWF</b> to download a separate profile. An untouched loaded profile reuses its original bytes; an edited profile is encoded as Shift_JIS with Windows line endings.</li>
+              <li>Load the exported profile explicitly in Jw_cad and verify the settings you changed.</li>
+            </ol>
+            <p class="note"><b>Important:</b> Exporting a JWF does not modify a JWW file and does not apply the profile to the JWW Basic Settings workspace. This separation prevents personal operation settings from being mistaken for drawing data.</p>
           </section>
 
           <section id="limits">

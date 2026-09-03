@@ -20,3 +20,15 @@ Grid Settings exposes the documented display/unit/snapping mode, 5–100 dot min
 Print placement edits rewrite only the official fixed 28-byte prefix region. Memo edits rewrite only the official header `CString`; every byte after the original native prefix is retained unchanged and moved to its reparsed position. State labels follow the official JWW 7.02 meanings: `0 Hidden`, `1 Visible only`, `2 Editable`, and `3 Current`. Protection labels are `0 None`, `1 Protected; display state can change`, and `2 Protected; display state fixed`. A current-group change performs the Jw_cad-proven state transition: the previous write group becomes editable (`2`) and a target group in state `0`, `1`, or `2` becomes the write group (`3`). A current-layer change similarly makes the previous write layer editable (`2`) and a selected layer in state `0`, `1`, or `2` the write layer (`3`). Current rows, unrecognized source states/protection values, and display-fixed protection code `2` rows cannot receive a direct state edit. Jw_cad 10.02.1 displayed Gateway-written protection `1` as `/` and `2` as `X`, enforced their documented display-state behavior, loaded and resaved current rows carrying codes `1` and `2`, and retained the protection code while demoting a protected current row to editable state (`2`) when the current selection moved away. A protected non-current row cannot become current. `Save As JWW` runs Gateway preflight before creating a download and never overwrites the source file. The settings projection does not copy the original JWW bytes into UI state.
 
 All other fields remain read-only. Values that belong only to a JWF environment profile are labelled `Not stored in JWW` and are never detected or applied automatically.
+
+## JWF Environment Profile
+
+Open `http://127.0.0.1:4178/apps/jww-basic-settings/environment.html` or select **JWF Profile** in the JWW editor. This separate English workspace implements the Jw_cad environment-file operations without mixing them into a JWW native document:
+
+- **Read JWF** decodes an explicitly selected Shift_JIS profile locally.
+- **New Profile** creates a minimal commented profile ending in `END`.
+- The horizontal tabs follow Jw_cad's Basic Settings order: General (1), General (2), Colors & Screen, Line Types, Text, AUTO, KEY, and DXF · SXF · JWC. Settings are shown as direct checkboxes, numeric fields, color rows, and tables instead of hidden editor cards.
+- **Apply** keeps the current form changes as the session checkpoint, **Cancel** returns to that checkpoint, and **OK** applies the current values. **JWF Source** remains available for advanced keys that are not represented by a form control.
+- The DXF · SXF · JWC page exposes only fields proven to exist in JWF. Jw_cad application options that have no JWF key are labelled `Not stored in this JWF`; Gateway does not invent them.
+- **Export JWF** runs syntax and Shift_JIS preflight before the browser download. Untouched profiles reuse the original bytes; edited profiles use CRLF Shift_JIS output.
+- The app does not search for or automatically apply `Jw_win.JWF`, and exporting a profile never changes a JWW file.

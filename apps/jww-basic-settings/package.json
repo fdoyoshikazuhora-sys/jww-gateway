@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Read-only English Basic Settings child app for native JWW documents.",
+  "description": "English native JWW settings and separate JWF environment profile child app.",
   "scripts": {
     "start": "node --no-warnings ../../tools/jww-basic-settings-app.mjs"
   }
