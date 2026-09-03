@@ -13,8 +13,12 @@ import {
   JWW_LINE_TYPE_EDIT_KEYS,
   JWW_LINE_TYPE_ROW_DEFINITIONS,
 } from "./lineTypeSettings.js";
+import {
+  encodeJwwTextSettings,
+  JWW_TEXT_TYPE_EDIT_KEYS,
+} from "./textSettings.js";
 
-export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 9;
+export const JWW_BASIC_SETTINGS_EDIT_CONTRACT_VERSION = 10;
 
 export const JWW_BASIC_SETTINGS_PAPER_OPTIONS = Object.freeze([
   { value: 0, label: "A0" },
@@ -52,6 +56,7 @@ const EDIT_KEYS = new Set([
   ...JWW_DIMENSION_EDIT_KEYS,
   ...JWW_GRID_EDIT_KEYS,
   ...JWW_LINE_TYPE_EDIT_KEYS,
+  ...JWW_TEXT_TYPE_EDIT_KEYS,
 ]);
 
 function normalizedMemo(value) {
@@ -707,6 +712,41 @@ export function buildJwwBasicSettingsPatches(document, edits = {}) {
         op: "replace",
         targetId: lineType.id,
         record: revisedLineType,
+      });
+    }
+  }
+
+  const textEditRequested = JWW_TEXT_TYPE_EDIT_KEYS.some((key) =>
+    Object.hasOwn(edits, key)
+  );
+  if (textEditRequested) {
+    const text = document.settings?.text;
+    if (!text?.id) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        "JWW native text settings are not backed by the verified official source span"
+      );
+    }
+    let revisedText;
+    try {
+      revisedText = encodeJwwTextSettings(text, edits);
+    } catch (error) {
+      throw editError(
+        "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        error?.message || String(error)
+      );
+    }
+    const changed = revisedText.presets.some((preset, index) => {
+      const previous = text.presets?.[index];
+      return ["width", "height", "spacing", "colorNumber"].some(
+        (key) => preset[key] !== previous?.[key]
+      );
+    });
+    if (changed) {
+      patches.push({
+        op: "replace",
+        targetId: text.id,
+        record: revisedText,
       });
     }
   }

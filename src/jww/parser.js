@@ -9,6 +9,7 @@ import {
   JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH,
   JWW_LINE_TYPE_SETTINGS_SOURCE_LAYOUT,
 } from "./lineTypeSettings.js";
+import { parseJwwTextSettings } from "./textSettings.js";
 import { rgbToHex } from "./shared.js";
 
 const HEADER = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
@@ -43,6 +44,7 @@ function emptyDocument() {
     block_list_complete: false,
     embedded_images: [],
     color_settings: { screenColors: {} },
+    text_settings: null,
     print_settings: {},
     grid_settings: {},
     sunpou_settings: {},
@@ -1727,6 +1729,11 @@ export function parse(input, options = {}) {
     color_settings,
     entityOffset
   );
+  const text_settings = parseJwwTextSettings(data, {
+    version,
+    afterLayerNamesOffset,
+    entityListOffset: entityOffset,
+  });
   const environment_region = scanEnvironmentRegion(
     data,
     afterLayerNamesOffset,
@@ -1807,6 +1814,7 @@ export function parse(input, options = {}) {
     embedded_image_bytes_consumed: embeddedImageResult.bytes_consumed,
     color_settings,
     line_type_settings,
+    text_settings,
     environment_region,
     print_settings,
     print_settings_source_span,

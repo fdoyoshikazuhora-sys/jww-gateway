@@ -911,4 +911,80 @@ const officialColorFixture = () =>
       document.originalBytes.slice(originalPrefixEnd)
     );
   });
+
+  it("edits and reparses official text type width, height, spacing and color", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    const span = document.settings.text.presetSourceSpan;
+    const edits = {
+      textTypePresets: {
+        2: { width: 2.75, height: 3.25, spacing: 0.75, colorNumber: 8 },
+        10: { width: 12, height: 11, spacing: 1.5, colorNumber: 6 },
+      },
+    };
+
+    expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+      ok: true,
+      strategy: "prefix-splice",
+      patchCount: 1,
+      prefixMetadataTargetIds: ["jww:text-settings"],
+      preservesUnsupportedBytes: true,
+      willWriteBytes: true,
+    });
+    const saved = saveJwwBasicSettings(document, edits);
+    const reopened = await openNativeJww(saved.bytes);
+
+    expect(reopened.settings.text.presets[1]).toMatchObject({
+      textType: 2,
+      width: 2.75,
+      height: 3.25,
+      spacing: 0.75,
+      colorNumber: 8,
+    });
+    expect(reopened.settings.text.presets[9]).toMatchObject({
+      textType: 10,
+      width: 12,
+      height: 11,
+      spacing: 1.5,
+      colorNumber: 6,
+    });
+    expect(saved.bytes.slice(0, span.start)).toEqual(
+      document.originalBytes.slice(0, span.start)
+    );
+    expect(saved.bytes.slice(span.end)).toEqual(
+      document.originalBytes.slice(span.end)
+    );
+  });
+
+  it("rejects invalid or unverified text type edits before writing", async () => {
+    const document = await openNativeJww(officialColorFixture());
+    for (const edits of [
+      { textTypePresets: { 11: { width: 3 } } },
+      { textTypePresets: { 1: { width: 0 } } },
+      { textTypePresets: { 1: { spacing: -1 } } },
+      { textTypePresets: { 1: { colorNumber: 10 } } },
+      { textTypePresets: { 1: { font: "MS Gothic" } } },
+    ]) {
+      expect(preflightJwwBasicSettingsSave(document, edits)).toMatchObject({
+        ok: false,
+        code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+        willWriteBytes: false,
+      });
+    }
+    const noOfficialSpan = {
+      ...document,
+      settings: {
+        ...document.settings,
+        text: { ...document.settings.text, id: undefined, sourceSpan: null },
+      },
+    };
+    expect(
+      preflightJwwBasicSettingsSave(noOfficialSpan, {
+        textTypePresets: { 1: { width: 3 } },
+      })
+    ).toMatchObject({
+      ok: false,
+      code: "JWW_BASIC_SETTINGS_EDIT_INVALID",
+      willWriteBytes: false,
+    });
+  });
 });

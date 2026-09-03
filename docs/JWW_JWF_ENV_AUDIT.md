@@ -65,7 +65,7 @@ JWFについては、環境設定ファイルが `.JWF` のテキストファイ
 - JWW 特殊文字、印刷時埋め込み文字の一部
 - 弧、楕円弧系の元角度情報
 
-一方で、JWF にある環境設定全体としてはまだ未対応項目が多い。特に `S_COMM_*`、文字種プリセット、寸法設定の詳細、ハッチ設定、キー割当、クロックメニュー、AUTO モードなどは、JWW 内に存在するか、JWF専用操作設定かを個別に判断する必要がある。線種テーブルは `LTYPE_02..09`、`LTYPE_R1..R5`、`LTYPE_L1..L4` まで構造化済み。`LTYPE_HC`、`LCOLLOR_M`、`LAYCOL/LAYWID/LAYTYP_0..F` はJWF専用設定として解決済み。
+一方で、JWF にある環境設定全体としてはまだ未対応項目が多い。特に `S_COMM_*`、文字種別フォント、ハッチ設定、キー割当、クロックメニュー、AUTO モードなどは、JWW 内に存在するか、JWF専用操作設定かを個別に判断する必要がある。文字種1～10の幅・高さ・間隔・色番号と現在の書込文字設定は公式JWW配置から構造化済み。線種テーブルは `LTYPE_02..09`、`LTYPE_R1..R5`、`LTYPE_L1..L4` まで構造化済み。`LTYPE_HC`、`LCOLLOR_M`、`LAYCOL/LAYWID/LAYTYP_0..F` はJWF専用設定として解決済み。
 
 ### 未対応分類の公開方針
 
@@ -122,12 +122,12 @@ UTF-16文字列には、JWF書出し用と思われるフォーマット列が�
 | `LTYPE_R*`                               | ランダム線種                       |       対応済み | `LTYPE_R1..R5` を抽出。                                                                                                                                           |
 | `LTYPE_L*`                               | 倍長線種など                       |       対応済み | `LTYPE_L1..L4` を抽出。                                                                                                                                           |
 | `LTYPE_HC`                               | 選択仮線・クロスライン・端点設定   | JWF専用操作設定 | 6項目の意味はJWF契約として確定。JWWには保存されない。線種テーブル直後24 bytesは `postLineTypeTailCandidate` として中立な診断名で保持する。                 |
-| `MSET`                                   | 文字設定の基本                     |         未対応 | エンティティ文字の実値は読めるが、文字種プリセットとしては未抽出。                                                                                                |
+| `MSET`                                   | 文字設定の基本                     |       読取済み | JWWの文字種1～10表に続く現在書込文字の幅・高さ・間隔・色番号・文字種（装飾フラグ込み）を読取済み。現在値は表示のみ。                                               |
 | `MHEN`                                   | 文字フォント                       |       部分対応 | 各文字エンティティの `font_name` は読取済み。プリセット側は未対応。                                                                                               |
-| `MWIDE`                                  | 文字種幅                           |         未対応 | 各文字の `size_x` は読取済み。プリセット表は未抽出。                                                                                                              |
-| `MHIGH`                                  | 文字種高さ                         |         未対応 | 各文字の `size_y` は読取済み。プリセット表は未抽出。                                                                                                              |
-| `MDIST`                                  | 文字間隔                           |         未対応 | 各文字の `spacing` は読取済み。プリセット表は未抽出。                                                                                                             |
-| `MPEN`                                   | 文字種ごとの色                     |         未対応 | 各文字の `base.pen_color` は読取済み。プリセット表は未抽出。                                                                                                      |
+| `MWIDE`                                  | 文字種幅                           |     読取・編集済み | 公式JWWの10行表から各文字種の幅を読取。verified source span内だけを書換えてSave As可能。                                                                           |
+| `MHIGH`                                  | 文字種高さ                         |     読取・編集済み | 公式JWWの10行表から各文字種の高さを読取。verified source span内だけを書換えてSave As可能。                                                                         |
+| `MDIST`                                  | 文字間隔                           |     読取・編集済み | 公式JWWの10行表から各文字種の間隔を読取。verified source span内だけを書換えてSave As可能。                                                                         |
+| `MPEN`                                   | 文字種ごとの色                     |     読取・編集済み | 公式JWWの10行表から各文字種の色番号を読取。verified source span内だけを書換えてSave As可能。                                                                       |
 | `MOFST`                                  | 文字基準点ずれ                     |         未対応 | 未抽出。                                                                                                                                                          |
 | `S_STR1..3`                              | 寸法文字設定                       |       部分対応 | 寸法エンティティの線と文字は読取済み。寸法設定表は未抽出。                                                                                                        |
 | `S_SET1..5`                              | 寸法線・矢印・寸法補助設定         |       部分対応 | 寸法エンティティの形状は一部読取済み。設定表は未抽出。                                                                                                            |
@@ -260,7 +260,7 @@ manifest validator は必須 `commands` / `binaries` も検査する。capabilit
 
 ### 優先度 A: 図面再現に直結
 
-1. JWW 内の文字種プリセット `MSET` / `MWIDE` / `MHIGH` / `MDIST` / `MPEN` 相当を抽出する。
+1. 文字種別フォント `MHEN` がJWW内の別領域に保存されるか、JWF専用設定かを実ファイル差分で確定する。
 2. `postLineTypeTailCandidate` は `LTYPE_HC` と無関係な診断領域として保持し、公式仕様で別フィールドを特定できるまで意味付けしない。
 4. `LCOLLOR_G/H/B`、`PCOLLOR_G` など特殊色の意味付けを固定する。
 5. `LTYPE_*` と `PCOLLOR_* pointRadius` は対応済み。実ファイル差分で誤検出がないか継続確認する。
@@ -342,7 +342,7 @@ This region starts immediately after layer/group names and ends at the entity li
 - repeated `u32PairRuns`
 - early numeric `doubleSamples`
 
-The purpose is to compare real JWW files before accepting new extraction rules for serialized text preset tables, hatch settings, and other JWF-like environment data. `LAYCOL_*`, `LAYWID_*`, and `LAYTYP_*` are retained only as historical non-serialization evidence.
+The purpose is to compare real JWW files before accepting new extraction rules for hatch settings and other JWF-like environment data. The official serialized Text Type 1–10 table is now parsed separately from this heuristic scanner. `LAYCOL_*`, `LAYWID_*`, and `LAYTYP_*` are retained only as historical non-serialization evidence.
 
 `npm run env:scan -- <file-or-folder> --recursive --csv -o env-scan.csv` produces a compact multi-file table for this comparison.
 
@@ -363,7 +363,7 @@ For `M-07 1階平面図(衛生).jww` with `設備設計用.jwf`, the scan finds 
 `--key LTYPE_HC,LCOLLOR_M` で `A-00 断面図`、`A-00-3 平面図`、`A-11 仕上表`、`M-08 衛生設備` の4セットを横断確認した旧レポートでは、4セットすべてで直接一致なしだった。現在のscannerは両キーを `nonSerializedJwfKey: true`、`comparisonRequired: false` とする。
 複数の旧 `--key LTYPE_HC,LCOLLOR_M --json` レポートは `core:summary` で横断集計できる。これらは非シリアライズ結論に至るまでの履歴証拠であり、新しいparser昇格ゲートではない。
 
-`--family text --json` で `A-00-3 平面図`、`A-00 断面図`、`A-11 仕上表`、`M-08 衛生設備` の4セットを横断確認した。4セットすべてで `MSET`、`MWIDE`、`MHIGH`、`MDIST`、`MPEN`、`MOFST` は `missing`、`MHEN` は文字列/フォント名設定のため `not-scanned` だった。したがって、文字種プリセットは現時点では単純な連続数値テーブルとしてはJWW内に見つかっていない。各文字エンティティの `font_name`、`size_x`、`size_y`、`spacing`、`base.pen_color` は引き続き個別実体値として保持する。
+`--family text --json` の旧ヒューリスティック走査では `MSET`、`MWIDE`、`MHIGH`、`MDIST`、`MPEN`、`MOFST` が `missing` だったが、公式 `jwdatafmt.txt` の書出し順を根拠に再調査し、entity listの380バイト前から10行×28バイトの文字種表、その直後に32バイトの現在書込文字設定があることを確認した。Gateway生成v600/v700、Jw_cad同梱の実version 600サンプル15件、同梱検証JWW 2件、`TestV600-2.jww`（内部version 700）の全件で同じ配置を確認済み。現在はこの固定配置を直接読取り、文字種1～10の幅・高さ・間隔・色番号をnative編集できる。`MHEN`（文字種別フォント）はこの公式表に含まれないため未確認のままとし、各文字エンティティの `font_name` は個別実体値として保持する。
 
 `--family dimensions,hatch --json` でも同じ4セットを横断確認した。低情報量判定を強めた後は、`S_STR2`、`S_STR3`、`HATCH_4` は `ambiguous` になり、抽出候補としては残るが昇格対象ではない。`S_STR3` は全0、`S_STR2` は短い0/1列、`HATCH_4` は候補一致数が多すぎるため、寸法・ハッチ設定表としては未確定扱いを維持する。寸法エンティティの線・文字そのものは既存パーサで個別実体として扱う。
 複数の value-scan JSON は `value-scan:summary` で横断集計できる。文字、寸法、ハッチのようにファミリ単位で調べる項目は、`core:summary` よりこちらを使い、status/family/key ごとの傾向を見てから抽出へ昇格する。`text-preset-cross-sample-summary.json/html/csv` は4レポート28行を集約し、`missing 24 / not-scanned 4`。`document-settings-cross-sample-summary.json/html/csv` は4レポート56行を集約し、`missing 44 / ambiguous 8 / not-scanned 4`。

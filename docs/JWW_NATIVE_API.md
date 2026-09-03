@@ -34,7 +34,8 @@ Fixed prefix metadata also has stable patch targets: `header.id` is
 `jww:header`, print placement has `id: jww:print-settings`, native dimension
 settings have `id: jww:dimension-settings`, grid settings have
 `id: jww:grid-settings`, verified official color settings have
-`id: jww:color-settings`, and each layer group has
+`id: jww:color-settings`, verified text settings have
+`id: jww:text-settings`, and each layer group has
 `id: jww:layer-group:<index>`. A
 `replace` patch may change `header.memo`, `header.paperSize`,
 `header.writeLayerGroup`, a layer group's `scale`, its `write_layer`,
@@ -76,6 +77,15 @@ screen/print amplitude and pitch. Values are accepted only within Jw_cad's
 documented UI ranges, and only the verified source span is replaced. `LTYPE_HC`
 is a JWF-only operation/display setting; the 24 bytes after `LTYPE_L4` remain a
 neutral read-only diagnostic and are never written by this target.
+Official text settings are read from the fixed v600/v700 environment layout
+380 bytes before the drawing entity list. The first 280 bytes are ten rows of
+`double` width, `double` height, `double` character spacing, and a color-number
+`DWORD`; the following 32 bytes hold the current write-text values and raw text
+type/style code. The native target `id: jww:text-settings` permits fixed-width
+replacement of the ten preset rows only. Current write-text values are exposed
+read-only. The table does not contain font names, so preset fonts are not
+inferred from entity text. Actual `font_name` values remain attached to each
+TEXT or DIMENSION text record.
 Official JWW 7.02 state codes are `0` hidden, `1` visible only, `2` editable, and `3`
 current. Direct state edits accept only `0..2` on non-current rows; current rows
 remain `3`, and protection code `2` (display state fixed) rejects the edit.

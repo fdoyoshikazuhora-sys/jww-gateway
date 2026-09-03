@@ -40,6 +40,7 @@ function emptyDraftEdits() {
     printColorWidths: {},
     printPointRadii: {},
     lineTypeRows: {},
+    textTypePresets: {},
   };
 }
 
@@ -78,10 +79,13 @@ function editableBadge() {
 }
 
 function draftValue(edit) {
-  if (edit.key.startsWith("lineTypeRows.")) {
+  const rowFamily = ["lineTypeRows", "textTypePresets"].find((family) =>
+    edit.key.startsWith(`${family}.`)
+  );
+  if (rowFamily) {
     const [, rowKey, field] = edit.key.split(".");
-    return Object.hasOwn(draftEdits.lineTypeRows?.[rowKey] || {}, field)
-      ? draftEdits.lineTypeRows[rowKey][field]
+    return Object.hasOwn(draftEdits[rowFamily]?.[rowKey] || {}, field)
+      ? draftEdits[rowFamily][rowKey][field]
       : edit.value;
   }
   const groupFamily = [
@@ -109,14 +113,17 @@ function draftValue(edit) {
 }
 
 function setDraftValue(edit, value, { rerender = true } = {}) {
-  if (edit.key.startsWith("lineTypeRows.")) {
+  const rowFamily = ["lineTypeRows", "textTypePresets"].find((family) =>
+    edit.key.startsWith(`${family}.`)
+  );
+  if (rowFamily) {
     const [, rowKey, field] = edit.key.split(".");
     draftEdits = {
       ...draftEdits,
-      lineTypeRows: {
-        ...draftEdits.lineTypeRows,
+      [rowFamily]: {
+        ...draftEdits[rowFamily],
         [rowKey]: {
-          ...(draftEdits.lineTypeRows?.[rowKey] || {}),
+          ...(draftEdits[rowFamily]?.[rowKey] || {}),
           [field]: value,
         },
       },

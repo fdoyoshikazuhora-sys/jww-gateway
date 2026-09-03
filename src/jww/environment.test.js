@@ -62,6 +62,19 @@ describe("buildJwwEnvironment", () => {
           note: "candidate",
         },
       },
+      text_settings: {
+        sourceLayout: "jwdatafmt-text-type-table-v600-v700",
+        offset: 200,
+        byteLength: 312,
+        presets: Array.from({ length: 10 }, (_, index) => ({
+          textType: index + 1,
+          width: index + 2,
+          height: index + 2.5,
+          spacing: index < 2 ? 0 : 0.5,
+          colorNumber: (index % 5) + 1,
+        })),
+        current: { rawTextType: 3, textType: 3 },
+      },
       layer_groups: [
         {
           state: 1,
@@ -89,6 +102,11 @@ describe("buildJwwEnvironment", () => {
     expect(environment.colors.LCOLLOR_Z.hex).toBe("#808080");
     expect(environment.print.scale).toBe(100);
     expect(environment.lineTypes.LTYPE_02.pattern).toBe("99999999");
+    expect(environment.text.MSET).toBe(3);
+    expect(environment.text.MWIDE).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(environment.text.MHIGH[1]).toBe(3.5);
+    expect(environment.text.MDIST[2]).toBe(0.5);
+    expect(environment.text.MPEN[9]).toBe(5);
     expect(environment.lineTypes.postLineTypeTailCandidate.u32).toEqual([
       0,
       1,
@@ -100,6 +118,12 @@ describe("buildJwwEnvironment", () => {
     expect(environment.coverage.supportedKeys).toContain("LAYSCALE");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_1");
     expect(environment.coverage.supportedKeys).toContain("LTYPE_02");
+    expect(environment.coverage.supportedKeys).toContain("MSET");
+    expect(environment.coverage.supportedKeys).toContain("MWIDE");
+    expect(environment.coverage.supportedKeys).toContain("MHIGH");
+    expect(environment.coverage.supportedKeys).toContain("MDIST");
+    expect(environment.coverage.supportedKeys).toContain("MPEN");
+    expect(environment.coverage.missingJwfKeys).toContain("MHEN");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_S");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_K");
     expect(environment.coverage.supportedKeys).toContain("LCOLLOR_Z");

@@ -10,6 +10,12 @@ import {
   JWW_LINE_TYPE_SETTINGS_BYTE_LENGTH,
   normalizeJwwLineTypeSettingsRecord,
 } from "./lineTypeSettings.js";
+import {
+  hasOfficialJwwTextSettingsLayout,
+  JWW_TEXT_TYPE_ROW_BYTE_LENGTH,
+  JWW_TEXT_TYPE_TABLE_BYTE_LENGTH,
+  normalizeJwwTextSettingsRecord,
+} from "./textSettings.js";
 import { parse } from "./parser.js";
 
 const JWW_HEADER = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
@@ -1053,6 +1059,32 @@ function patchTemplateLineTypeSettings(templatePrefix, lineTypeSettings) {
   return bytes;
 }
 
+function patchTemplateTextSettings(templatePrefix, textSettings) {
+  if (textSettings === null || textSettings === undefined) {
+    return templatePrefix;
+  }
+  if (!hasOfficialJwwTextSettingsLayout(textSettings)) {
+    throw new Error(
+      "JWW text settings require the verified official 312-byte source span"
+    );
+  }
+  const settings = normalizeJwwTextSettingsRecord(textSettings);
+  const bytes = templatePrefix.slice();
+  const start = Number(settings.presetSourceSpan.start);
+  if (start < 0 || start + JWW_TEXT_TYPE_TABLE_BYTE_LENGTH > bytes.length) {
+    throw new Error("JWW template prefix ended before the text type preset table");
+  }
+  let cursor = start;
+  for (const preset of settings.presets) {
+    writeDoubleAt(bytes, cursor, preset.width);
+    writeDoubleAt(bytes, cursor + 8, preset.height);
+    writeDoubleAt(bytes, cursor + 16, preset.spacing);
+    writeDwordAt(bytes, cursor + 24, preset.colorNumber);
+    cursor += JWW_TEXT_TYPE_ROW_BYTE_LENGTH;
+  }
+  return bytes;
+}
+
 export function patchJwwTemplatePrefixMetadata(
   templatePrefix,
   {
@@ -1070,12 +1102,14 @@ export function patchJwwTemplatePrefixMetadata(
     gridSettings = null,
     colorSettings = null,
     lineTypeSettings = null,
+    textSettings = null,
   } = {}
 ) {
   let bytes = Uint8Array.from(templatePrefix || []);
   // Color and line type offsets are source spans from the original prefix.
   // Apply fixed-width patches before a variable-length memo edit can move them.
   bytes = patchTemplateLineTypeSettings(bytes, lineTypeSettings);
+  bytes = patchTemplateTextSettings(bytes, textSettings);
   bytes = patchTemplateColorSettings(bytes, colorSettings);
   bytes = patchTemplateMemo(bytes, memo);
   bytes = patchTemplatePaperSize(bytes, paperSize);
@@ -2365,6 +2399,7 @@ export function preflightJwwWrite({
   gridSettings = null,
   colorSettings = null,
   lineTypeSettings = null,
+  textSettings = null,
   dxfMeta = {},
   meta = {},
   version = null,
@@ -2441,6 +2476,12 @@ export function preflightJwwWrite({
       }
       patchTemplateLineTypeSettings(template.bytes, lineTypeSettings);
     }
+    if (textSettings !== null) {
+      if (!template.bytes) {
+        throw new Error("JWW text settings require a template prefix");
+      }
+      patchTemplateTextSettings(template.bytes, textSettings);
+    }
     if (template.version < 700 && embeddedImages.length) {
       throw new Error("Embedded JWW images require version 700");
     }
@@ -2478,6 +2519,7 @@ export function buildJwwWriteResult({
   gridSettings = null,
   colorSettings = null,
   lineTypeSettings = null,
+  textSettings = null,
   templatePrefix = null,
   dxfMeta = {},
   meta = {},
@@ -2540,6 +2582,7 @@ export function buildJwwWriteResult({
           gridSettings,
           colorSettings,
           lineTypeSettings,
+          textSettings,
         }
       )
     : null;

@@ -36,6 +36,7 @@ function nativeDocument() {
         id: "jww:entity:0",
         kind: "TEXT",
         value: {
+          base: { pen_color: 8 },
           font_name: "MS Gothic",
           text_type: 2,
           size_x: 2.5,
@@ -44,7 +45,23 @@ function nativeDocument() {
           angle: 0.5,
         },
       },
-      { id: "jww:entity:1", kind: "DIMENSION", value: {} },
+      {
+        id: "jww:entity:1",
+        kind: "DIMENSION",
+        value: {
+          jww_dimension: {
+            text: {
+              base: { pen_color: 4 },
+              font_name: "Meiryo",
+              text_type: 3,
+              size_x: 3,
+              size_y: 4,
+              spacing: 0.5,
+              angle: 0,
+            },
+          },
+        },
+      },
       { id: "jww:entity:2", kind: "IMAGE", value: { raw_content: "^@BMexternal.bmp,20,10" } },
     ],
     blockDefinitions: [
@@ -53,6 +70,19 @@ function nativeDocument() {
         value: {
           entities: [
             { id: "jww:block:0:record:0", kind: "IMAGE", value: { raw_content: "^@BMblock.bmp,10,5" } },
+            {
+              id: "jww:block:0:record:1",
+              kind: "TEXT",
+              value: {
+                base: { pen_color: 2 },
+                font_name: "MS Gothic",
+                text_type: 2,
+                size_x: 4,
+                size_y: 5,
+                spacing: 0.4,
+                angle: 90,
+              },
+            },
           ],
         },
       },
@@ -97,6 +127,30 @@ function nativeDocument() {
         max_line_width: -300,
         sourceSpan: { start: 100, end: 184, byteLength: 84 },
       },
+      text: {
+        id: "jww:text-settings",
+        sourceLayout: "jwdatafmt-text-type-table-v600-v700",
+        sourceSpan: { start: 1000, end: 1312, byteLength: 312 },
+        presetSourceSpan: { start: 1000, end: 1280, byteLength: 280 },
+        currentSourceSpan: { start: 1280, end: 1312, byteLength: 32 },
+        presets: Array.from({ length: 10 }, (_, index) => ({
+          textType: index + 1,
+          width: index + 2,
+          height: index + 2.5,
+          spacing: index < 2 ? 0 : 0.5,
+          colorNumber: (index % 5) + 1,
+        })),
+        current: {
+          width: 3,
+          height: 3,
+          spacing: 0.5,
+          colorNumber: 2,
+          rawTextType: 20003,
+          textType: 3,
+          italic: false,
+          bold: true,
+        },
+      },
       grid: {
         id: "jww:grid-settings",
         mode: 11,
@@ -136,11 +190,11 @@ describe("buildJwwBasicSettingsProjection", () => {
 
     expect(projection).toMatchObject({
       format: JWW_BASIC_SETTINGS_PROJECTION_FORMAT,
-      formatVersion: 12,
+      formatVersion: 14,
       readOnly: false,
       saveAsOnly: true,
       editContract: {
-        version: 9,
+        version: 10,
         mode: "native-metadata-safe",
         writablePaths: [
           "header.memo",
@@ -174,6 +228,7 @@ describe("buildJwwBasicSettingsProjection", () => {
           "settings.lineType.rows.LTYPE_02..LTYPE_09",
           "settings.lineType.rows.LTYPE_R1..LTYPE_R5",
           "settings.lineType.rows.LTYPE_L1..LTYPE_L4",
+          "settings.text.presets[1..10]",
         ],
         managedInvariantPaths: ["layerGroups[].layers[].state"],
       },
@@ -203,7 +258,54 @@ describe("buildJwwBasicSettingsProjection", () => {
     const byId = Object.fromEntries(fields(projection).map((row) => [row.id, row]));
     expect(byId["paper-summary"].value).toBe("A3 (code 3)");
     expect(byId.background.value).toContain("#FFFFFF");
-    expect(byId["text-fonts"].value).toBe("MS Gothic");
+    expect(byId["text-fonts"].value).toBe("Meiryo, MS Gothic");
+    expect(byId["text-count"].value).toBe("3");
+    const observedTextTypes = projection.tabs
+      .find((item) => item.id === "text")
+      .sections.find((section) => section.id === "observed-text-types");
+    expect(/observations, not a reconstructed/i.test(observedTextTypes.description)).toBe(true);
+    expect(observedTextTypes.rows).toEqual([
+      expect.objectContaining({
+        id: "observed-text-type-2",
+        cells: [
+          "Text type 2",
+          "2",
+          "2.5 – 4",
+          "3.5 – 5",
+          "0.2 – 0.4",
+          "2, 8",
+          "MS Gothic",
+          "Block definition, Drawing",
+        ],
+      }),
+      expect.objectContaining({
+        id: "observed-text-type-3",
+        cells: [
+          "Text type 3",
+          "1",
+          "3",
+          "4",
+          "0.5",
+          "4",
+          "Meiryo",
+          "Drawing dimension",
+        ],
+      }),
+    ]);
+    const textPresetTable = projection.tabs
+      .find((item) => item.id === "text")
+      .sections.find((section) => section.id === "text-type-presets");
+    expect(textPresetTable.rows.length).toBe(10);
+    expect(textPresetTable.rows[1]).toMatchObject({
+      id: "text-type-preset-2",
+      cells: ["Text type 2", "3", "3.5", "0", "2"],
+      edits: {
+        1: { key: "textTypePresets.2.width", value: 3 },
+        4: { key: "textTypePresets.2.colorNumber", value: 2 },
+      },
+    });
+    expect(byId.mset.value).toBe("Text type 3 (raw 20003)");
+    expect(byId["current-text-bold"].value).toBe("On");
     expect(byId["dimension-count"].value).toBe("1");
     expect(byId["image-entities"]).toMatchObject({
       label: "Image entities",

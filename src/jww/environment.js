@@ -248,6 +248,11 @@ function supportedKeySet(doc = {}) {
   for (const key of Object.keys(lineTypeRows)) {
     supported.add(key);
   }
+  if (doc.text_settings?.presets?.length === 10) {
+    for (const key of ["MSET", "MWIDE", "MHIGH", "MDIST", "MPEN"]) {
+      supported.add(key);
+    }
+  }
 
   return supported;
 }
@@ -255,6 +260,7 @@ function supportedKeySet(doc = {}) {
 export function buildJwwEnvironment(doc = {}) {
   const colorSettings = doc.color_settings || {};
   const lineTypeSettings = doc.line_type_settings || null;
+  const textSettings = doc.text_settings || null;
   const layerGroups = doc.layer_groups || [];
   const supported = supportedKeySet(doc);
   const missing = JWF_KEYS.filter(
@@ -330,13 +336,27 @@ export function buildJwwEnvironment(doc = {}) {
       },
     },
     text: {
+      sourceLayout: textSettings?.sourceLayout || null,
+      offset: textSettings?.offset ?? null,
+      byteLength: textSettings?.byteLength ?? null,
+      presets: textSettings?.presets || [],
+      current: textSettings?.current || null,
+      MSET: textSettings?.current?.rawTextType ?? null,
+      MWIDE: textSettings?.presets?.map((preset) => preset.width) || null,
+      MHIGH: textSettings?.presets?.map((preset) => preset.height) || null,
+      MDIST: textSettings?.presets?.map((preset) => preset.spacing) || null,
+      MPEN: textSettings?.presets?.map((preset) => preset.colorNumber) || null,
       missing: {
-        MSET: "not extracted yet",
         MHEN: "entity font names are extracted, preset font setting is not",
-        MWIDE: "entity size_x is extracted, preset width table is not",
-        MHIGH: "entity size_y is extracted, preset height table is not",
-        MDIST: "entity spacing is extracted, preset spacing table is not",
-        MPEN: "entity pen color is extracted, preset text pen table is not",
+        ...(!textSettings?.presets?.length
+          ? {
+              MSET: "official JWW text settings span is unavailable",
+              MWIDE: "official JWW text settings span is unavailable",
+              MHIGH: "official JWW text settings span is unavailable",
+              MDIST: "official JWW text settings span is unavailable",
+              MPEN: "official JWW text settings span is unavailable",
+            }
+          : {}),
       },
     },
     dimensions: {

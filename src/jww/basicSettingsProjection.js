@@ -11,10 +11,11 @@ import {
   hasOfficialJwwLineTypeSettingsLayout,
   JWW_LINE_TYPE_ROW_DEFINITIONS,
 } from "./lineTypeSettings.js";
+import { hasOfficialJwwTextSettingsLayout } from "./textSettings.js";
 
 export const JWW_BASIC_SETTINGS_PROJECTION_FORMAT =
   "jww-basic-settings-projection";
-export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 12;
+export const JWW_BASIC_SETTINGS_PROJECTION_VERSION = 14;
 
 const LAYER_STATE_OPTIONS = Object.freeze([
   { value: 0, label: "Hidden (0)" },
@@ -684,6 +685,81 @@ function buildColorTab(document) {
   ]);
 }
 
+function uniqueNumbers(values) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => finiteNumber(value))
+        .filter((value) => value !== null)
+    )
+  ).sort((left, right) => left - right);
+}
+
+function collectNativeTextObservations(document) {
+  const observations = [];
+  const visit = (record, location) => {
+    const kind = String(record?.kind || "").toUpperCase();
+    const value = nativeValue(record);
+    if (kind === "TEXT") {
+      observations.push({ value, location });
+    } else if (kind === "DIMENSION") {
+      const text = value?.jww_dimension?.text ||
+        (Object.hasOwn(value, "text_type") ? value : null);
+      if (text) observations.push({ value: nativeValue(text), location: `${location} dimension` });
+    }
+    for (const child of value?.entities || []) visit(child, "Block definition");
+  };
+
+  for (const record of document.nativeEntities || []) visit(record, "Drawing");
+  for (const definition of document.blockDefinitions || []) {
+    for (const record of nativeValue(definition).entities || []) {
+      visit(record, "Block definition");
+    }
+  }
+  return observations;
+}
+
+function observedColorDescription(colorNumber, colorSettings = {}) {
+  const entry = colorSettings?.screenColors?.[colorNumber];
+  const hex = String(entry?.hex || "").toUpperCase();
+  return hex ? `${colorNumber} (${hex})` : String(colorNumber);
+}
+
+function buildObservedTextTypeRows(document, observations) {
+  const byType = new Map();
+  for (const observation of observations) {
+    const textType = finiteNumber(observation.value?.text_type, 0);
+    if (!byType.has(textType)) byType.set(textType, []);
+    byType.get(textType).push(observation);
+  }
+  const colorSettings = document.settings?.color || {};
+  return Array.from(byType.entries())
+    .sort(([left], [right]) => left - right)
+    .map(([textType, rows]) => {
+      const values = rows.map((row) => row.value);
+      const colors = uniqueNumbers(values.map((value) => value?.base?.pen_color));
+      const fonts = uniqueText(values.map((value) => value?.font_name));
+      const locations = uniqueText(rows.map((row) => row.location));
+      return {
+        id: `observed-text-type-${textType}`,
+        cells: [
+          textType === 0 ? "Inherited / unspecified (0)" : `Text type ${textType}`,
+          String(rows.length),
+          summarizeNumbers(values.map((value) => value?.size_x)),
+          summarizeNumbers(values.map((value) => value?.size_y)),
+          summarizeNumbers(values.map((value) => value?.spacing)),
+          colors.length
+            ? colors.map((color) => observedColorDescription(color, colorSettings)).join(", ")
+            : "Not observed",
+          fonts.length ? fonts.join(", ") : "Not observed",
+          locations.length ? locations.join(", ") : "Not observed",
+        ],
+        status: STATUS.DERIVED,
+        source: "native TEXT and DIMENSION text records",
+      };
+    });
+}
+
 function buildLineTypeTab(document) {
   const settings = document.settings?.lineType;
   const editable = Boolean(
@@ -790,31 +866,112 @@ function buildLineTypeTab(document) {
 }
 
 function buildTextTab(document) {
-  const texts = (document.nativeEntities || [])
-    .filter((record) => record.kind === "TEXT")
-    .map(nativeValue);
+  const settings = document.settings?.text;
+  const editable = Boolean(settings?.id && hasOfficialJwwTextSettingsLayout(settings));
+  const presetRows = (settings?.presets || []).map((preset) => ({
+    id: `text-type-preset-${preset.textType}`,
+    cells: [
+      `Text type ${preset.textType}`,
+      displayNumber(preset.width),
+      displayNumber(preset.height),
+      displayNumber(preset.spacing),
+      observedColorDescription(preset.colorNumber, document.settings?.color),
+    ],
+    edits: editable
+      ? {
+          1: {
+            key: `textTypePresets.${preset.textType}.width`,
+            control: "number",
+            value: preset.width,
+            min: 0.000001,
+            max: 1000000,
+            step: 0.1,
+          },
+          2: {
+            key: `textTypePresets.${preset.textType}.height`,
+            control: "number",
+            value: preset.height,
+            min: 0.000001,
+            max: 1000000,
+            step: 0.1,
+          },
+          3: {
+            key: `textTypePresets.${preset.textType}.spacing`,
+            control: "number",
+            value: preset.spacing,
+            min: 0,
+            max: 1000000,
+            step: 0.1,
+          },
+          4: {
+            key: `textTypePresets.${preset.textType}.colorNumber`,
+            control: "number",
+            value: preset.colorNumber,
+            min: 0,
+            max: 9,
+            step: 1,
+          },
+        }
+      : undefined,
+    status: STATUS.STORED,
+    source: `settings.text.presets[${preset.textType - 1}]`,
+  }));
+  const observations = collectNativeTextObservations(document);
+  const texts = observations.map((observation) => observation.value);
   const fonts = uniqueText(texts.map((value) => value.font_name));
   const textTypes = uniqueText(texts.map((value) => value.text_type));
+  const textTypeRows = buildObservedTextTypeRows(document, observations);
   return tab("text", "Text", [
+    tableSection(
+      "text-type-presets",
+      "Text type presets stored in JWW",
+      ["Text type", "Width", "Height", "Spacing", "Screen color"],
+      presetRows.length
+        ? presetRows
+        : [{
+            id: "text-type-presets-unavailable",
+            cells: ["—", "Not extracted", "—", "—", "—"],
+            status: STATUS.UNCONFIRMED,
+            source: "settings.text",
+          }],
+      "The official JWW table stores width, height, character spacing and color number for Text Types 1–10. Font names are not part of this table."
+    ),
     fieldsSection(
-      "text-presets",
-      "Basic text presets",
+      "current-text-settings",
+      "Current write-text settings",
       [
-        unavailableField(
-          "mset",
-          "Current text preset (MSET)",
-          "JWW environment",
-          "Entity text attributes are retained, but the Jw_cad preset table is not exposed as a confirmed JWW field."
-        ),
+        settings?.current
+          ? field({
+              id: "mset",
+              label: "Current text type",
+              value: settings.current.textType === 0
+                ? `Custom / unspecified (${settings.current.rawTextType})`
+                : `Text type ${settings.current.textType} (raw ${settings.current.rawTextType})`,
+              source: "settings.text.current.rawTextType",
+              note: "Read-only in this release; style flags are decoded separately.",
+            })
+          : unavailableField(
+              "mset",
+              "Current text type",
+              "settings.text.current",
+              "The verified JWW text settings span was not available."
+            ),
+        ...(settings?.current
+          ? [
+              field({ id: "current-text-width", label: "Current width", value: displayNumber(settings.current.width), source: "settings.text.current.width" }),
+              field({ id: "current-text-height", label: "Current height", value: displayNumber(settings.current.height), source: "settings.text.current.height" }),
+              field({ id: "current-text-spacing", label: "Current spacing", value: displayNumber(settings.current.spacing), source: "settings.text.current.spacing" }),
+              field({ id: "current-text-color", label: "Current screen color", value: observedColorDescription(settings.current.colorNumber, document.settings?.color), source: "settings.text.current.colorNumber" }),
+              field({ id: "current-text-italic", label: "Italic", value: settings.current.italic ? "On" : "Off", source: "settings.text.current.rawTextType" }),
+              field({ id: "current-text-bold", label: "Bold", value: settings.current.bold ? "On" : "Off", source: "settings.text.current.rawTextType" }),
+            ]
+          : []),
         unavailableField("mhen", "Preset fonts (MHEN)", "JWW environment", "Observed entity fonts are listed separately."),
-        unavailableField("mwide", "Preset widths (MWIDE)", "JWW environment", "Observed entity widths are listed separately."),
-        unavailableField("mhigh", "Preset heights (MHIGH)", "JWW environment", "Observed entity heights are listed separately."),
-        unavailableField("mdist", "Preset spacing (MDIST)", "JWW environment", "Observed entity spacing is listed separately."),
       ],
-      "Unconfirmed preset fields remain visibly unavailable rather than receiving guessed defaults."
+      "The current write-text values follow the ten official preset rows in the JWW environment block. Preset font names remain unconfirmed and are not guessed."
     ),
     fieldsSection("observed-text", "Observed native text entities", [
-      field({ id: "text-count", label: "Text record count", value: String(texts.length), status: STATUS.DERIVED, source: "nativeEntities[kind=TEXT]" }),
+      field({ id: "text-count", label: "Observed text record count", value: String(texts.length), status: STATUS.DERIVED, source: "native TEXT and DIMENSION text records" }),
       field({ id: "text-fonts", label: "Fonts used", value: fonts.length ? fonts.join(", ") : "Not observed", status: STATUS.DERIVED, source: "nativeEntities[].value.font_name" }),
       field({ id: "text-types", label: "Text type numbers", value: textTypes.length ? textTypes.join(", ") : "Not observed", status: STATUS.DERIVED, source: "nativeEntities[].value.text_type" }),
       field({ id: "text-widths", label: "Character width range", value: summarizeNumbers(texts.map((value) => value.size_x)), status: STATUS.DERIVED, source: "nativeEntities[].value.size_x" }),
@@ -822,6 +979,20 @@ function buildTextTab(document) {
       field({ id: "text-spacing", label: "Spacing range", value: summarizeNumbers(texts.map((value) => value.spacing)), status: STATUS.DERIVED, source: "nativeEntities[].value.spacing" }),
       field({ id: "text-angles", label: "Angle range", value: summarizeNumbers(texts.map((value) => value.angle)), status: STATUS.DERIVED, source: "nativeEntities[].value.angle" }),
     ]),
+    tableSection(
+      "observed-text-types",
+      "Observed values by text type",
+      ["Text type", "Records", "Width", "Height", "Spacing", "Screen color", "Font", "Location"],
+      textTypeRows.length
+        ? textTypeRows
+        : [{
+            id: "observed-text-types-empty",
+            cells: ["—", "0", "—", "—", "—", "—", "—", "Not observed"],
+            status: STATUS.DERIVED,
+            source: "native TEXT and DIMENSION text records",
+          }],
+      "Values are grouped from text records actually stored in this JWW, including dimension and block text. They are observations, not a reconstructed Jw_cad preset table."
+    ),
   ]);
 }
 
@@ -1269,6 +1440,7 @@ export function buildJwwBasicSettingsProjection(document, options = {}) {
         "settings.lineType.rows.LTYPE_02..LTYPE_09",
         "settings.lineType.rows.LTYPE_R1..LTYPE_R5",
         "settings.lineType.rows.LTYPE_L1..LTYPE_L4",
+        "settings.text.presets[1..10]",
       ],
       managedInvariantPaths: ["layerGroups[].layers[].state"],
     },

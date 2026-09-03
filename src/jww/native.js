@@ -9,6 +9,10 @@ import {
   normalizeJwwLineTypeSettingsRecord,
 } from "./lineTypeSettings.js";
 import {
+  hasOfficialJwwTextSettingsLayout,
+  normalizeJwwTextSettingsRecord,
+} from "./textSettings.js";
+import {
   buildJwwRecordPayload,
   buildJwwWriteResult,
   patchJwwTemplatePrefixMetadata,
@@ -25,6 +29,7 @@ export const JWW_NATIVE_DIMENSION_SETTINGS_ID = "jww:dimension-settings";
 export const JWW_NATIVE_GRID_SETTINGS_ID = "jww:grid-settings";
 export const JWW_NATIVE_COLOR_SETTINGS_ID = "jww:color-settings";
 export const JWW_NATIVE_LINE_TYPE_SETTINGS_ID = "jww:line-type-settings";
+export const JWW_NATIVE_TEXT_SETTINGS_ID = "jww:text-settings";
 
 export function jwwNativeLayerGroupId(index) {
   return `jww:layer-group:${Number(index)}`;
@@ -420,6 +425,17 @@ function buildNativeDocument(
               : {}),
           }
         : null,
+      text: parsed.text_settings
+        ? {
+            ...parsed.text_settings,
+            ...(hasOfficialJwwTextSettingsLayout(parsed.text_settings)
+              ? {
+                  id: JWW_NATIVE_TEXT_SETTINGS_ID,
+                  sourceSpan: { ...parsed.text_settings.sourceSpan },
+                }
+              : {}),
+          }
+        : null,
       print: parsed.print_settings
         ? {
             ...parsed.print_settings,
@@ -508,6 +524,7 @@ function nativeTargetIdExists(document, targetId) {
       targetId === document.settings?.grid?.id ||
       targetId === document.settings?.color?.id ||
       targetId === document.settings?.lineType?.id ||
+      targetId === document.settings?.text?.id ||
       (document.layerGroups || []).some((item) => item.id === targetId) ||
       nativeRecordById(document, targetId) ||
       (document.blockDefinitions || []).some((item) => item.id === targetId) ||
@@ -886,6 +903,44 @@ function replaceNativeLineTypeSettings(next, patch) {
   next.settings = {
     ...next.settings,
     lineType: normalized,
+  };
+}
+
+function replaceNativeTextSettings(next, patch) {
+  const previous = next.settings?.text;
+  const value = cloneValue(unwrap(patch.record));
+  if (
+    !previous?.id ||
+    !hasOfficialJwwTextSettingsLayout(previous) ||
+    !value ||
+    typeof value !== "object"
+  ) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      "JWW native text settings require the verified official 312-byte source span"
+    );
+  }
+  rejectChangedMetadataFields(previous, value, new Set(["presets"]), previous.id);
+  for (let index = 0; index < 10; index += 1) {
+    rejectChangedMetadataFields(
+      previous.presets?.[index],
+      value.presets?.[index],
+      new Set(["width", "height", "spacing", "colorNumber"]),
+      `${previous.id}.presets.${index + 1}`
+    );
+  }
+  let normalized;
+  try {
+    normalized = normalizeJwwTextSettingsRecord(value);
+  } catch (error) {
+    throw nativePatchError(
+      "JWW_NATIVE_METADATA_PATCH_INVALID",
+      error?.message || String(error)
+    );
+  }
+  next.settings = {
+    ...next.settings,
+    text: normalized,
   };
 }
 
@@ -1661,6 +1716,7 @@ export function applyNativeJwwPatches(document, patches = []) {
     const gridSettingsTarget = patch.targetId === next.settings?.grid?.id;
     const colorSettingsTarget = patch.targetId === next.settings?.color?.id;
     const lineTypeSettingsTarget = patch.targetId === next.settings?.lineType?.id;
+    const textSettingsTarget = patch.targetId === next.settings?.text?.id;
     const layerGroupIndex = next.layerGroups.findIndex(
       (item) => item.id === patch.targetId
     );
@@ -1672,6 +1728,7 @@ export function applyNativeJwwPatches(document, patches = []) {
         gridSettingsTarget ||
         colorSettingsTarget ||
         lineTypeSettingsTarget ||
+        textSettingsTarget ||
         layerGroupIndex >= 0
       ) {
         throw nativePatchError(
@@ -1751,6 +1808,9 @@ export function applyNativeJwwPatches(document, patches = []) {
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (lineTypeSettingsTarget) {
         replaceNativeLineTypeSettings(next, patch);
+        pendingPrefixMetadataTargetIds.add(patch.targetId);
+      } else if (textSettingsTarget) {
+        replaceNativeTextSettings(next, patch);
         pendingPrefixMetadataTargetIds.add(patch.targetId);
       } else if (layerGroupIndex >= 0) {
         replaceNativeLayerGroup(next, layerGroupIndex, patch);
@@ -2070,6 +2130,9 @@ function nativeRebuildWriteOptions(
     )
       ? revised.settings.lineType
       : null,
+    textSettings: hasOfficialJwwTextSettingsLayout(revised.settings?.text)
+      ? revised.settings.text
+      : null,
     templatePrefix: document.originalBytes.slice(0, prefixEnd),
     meta: {
       jwwBlockDefinitions: revised.blockDefinitions.map((definition) =>
@@ -2179,6 +2242,7 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
     document.settings?.grid?.id,
     document.settings?.color?.id,
     document.settings?.lineType?.id,
+    document.settings?.text?.id,
     ...(document.layerGroups || []).map((group) => group.id),
   ]);
   const invalidTargetId = targetIds.find((targetId) => !allowedIds.has(targetId));
@@ -2251,6 +2315,9 @@ function preparePrefixMetadataReplacement(document, revised, targetIds) {
           : null,
         lineTypeSettings: targetIdSet.has(revised.settings?.lineType?.id)
           ? revised.settings.lineType
+          : null,
+        textSettings: targetIdSet.has(revised.settings?.text?.id)
+          ? revised.settings.text
           : null,
       }
     );
