@@ -60,6 +60,9 @@ LAYTYP_F = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
 `);
 
     expect(parsed.entries.LAYCOL_F.definition.label).toBe("default layer color");
+    expect(parsed.entries.LAYCOL_F.definition.valueSchema.length).toBe(16);
+    expect(parsed.entries.LAYCOL_F.definition.valueSchema[0]).toBe("layer0");
+    expect(parsed.entries.LAYCOL_F.definition.valueSchema[15]).toBe("layerF");
     expect(parsed.entries.LAYCOL_F.definition.scope).toBe("operation");
     expect(parsed.entries.LAYCOL_F.definition.note).toContain(
       "not serialized into JWW"

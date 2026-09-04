@@ -22,16 +22,18 @@ const TABS = [
   ["general1", "General (1)"], ["general2", "General (2)"],
   ["colors", "Colors & Screen"], ["lineTypes", "Line Types"],
   ["text", "Text"], ["auto", "AUTO"], ["keys", "KEY"],
-  ["exchange", "DXF · SXF · JWC"],
+  ["exchange", "DXF · SXF · JWC"], ["jwfOnly", "JWF-only Settings"],
+  ["other", "Other JWF Settings"],
 ];
 const GROUPS = {
   general1: [/^S_COMM_[0-4]$/, /^R_CROSS_SET$/],
   general2: [/^S_COMM_[5-9]$/, /^S_MESH_0$/, /^ZOOM$/, /^R_STR0_00$/],
-  colors: [/^LCOLLOR_/, /^PCOLLOR_/],
-  lineTypes: [/^LTYPE_/],
+  colors: [/^LCOLLOR_(?!M$)/, /^PCOLLOR_/],
+  lineTypes: [/^LTYPE_(?!HC$)/],
   text: [/^(MSET|MHEN|MWIDE|MHIGH|MDIST|MPEN|MOFST)$/],
   auto: [/^(AC_COM|WD_COM)$/, /^(LD|RD|LD2|RD2)_(AM|PM)$/, /^COM_/, /^GCOM_/],
   keys: [/^N_KEY$/, /^KEY/],
+  jwfOnly: [/^LCOLLOR_M$/, /^LTYPE_HC$/, /^LAY(?:COL|WID|TYP)_[0-9A-F]$/],
 };
 const TITLES = {
   S_COMM_0: "Startup and file defaults", S_COMM_1: "Auto-save, input, and backup",
@@ -79,6 +81,11 @@ function el(tag, className = "", text = "") {
 function status(message, state = "ready") { ui.status.textContent = message; ui.dot.dataset.state = state; }
 function entryTitle(entry) {
   if (TITLES[entry.key]) return TITLES[entry.key];
+  const layerDefault = entry.key.match(/^(LAYNAM|LAYCOL|LAYWID|LAYTYP)_([0-9A-F])$/);
+  if (layerDefault) {
+    const names = { LAYNAM:"Layer names", LAYCOL:"Default layer colors", LAYWID:"Default layer widths", LAYTYP:"Default layer line types" };
+    return `${names[layerDefault[1]]} — Group ${layerDefault[2]}`;
+  }
   const color = entry.key.match(/^(P?LCOLLOR)_(.+)$/);
   if (color) return `${color[1] === "PCOLLOR" ? "Print" : "Screen"} color ${color[2]}`;
   const line = entry.key.match(/^LTYPE_(.+)$/);
@@ -89,6 +96,8 @@ function entryTitle(entry) {
 }
 function fieldName(entry, index) {
   if (/^(MWIDE|MHIGH|MDIST|MPEN)$/.test(entry.key)) return `Text type ${index + 1}`;
+  if (/^LAYNAM_[0-9A-F]$/.test(entry.key)) return index === 0 ? "Group name" : `Layer ${(index - 1).toString(16).toUpperCase()}`;
+  if (/^(LAYCOL|LAYWID|LAYTYP)_[0-9A-F]$/.test(entry.key)) return `Layer ${index.toString(16).toUpperCase()}`;
   return GENERAL_LABELS[entry.key]?.[index] || entry.definition?.valueSchema?.[index] || `Value ${index + 1}`;
 }
 function entriesFor(tab) {
@@ -116,6 +125,38 @@ function mutateEntry(entry, index, value) {
   profile = updateJwfProfileEntry(profile, entry.key, values);
   refreshChrome();
   status(`${entry.key} changed. Select Apply to keep this edit in the current session.`, "ready");
+}
+function numericConstraint(entry,index) {
+  if (/^(?:L|P)COLLOR_/.test(entry.key)&&index<3) return { min:0,max:255,step:1,label:"0–255" };
+  if (/^LCOLLOR_(?:[1-8]|H)$/.test(entry.key)&&index===3) return { min:1,max:16,step:1,label:"1–16" };
+  if (/^PCOLLOR_[1-8]$/.test(entry.key)&&index===3) return { min:1,max:500,step:1,label:"1–500" };
+  if (/^PCOLLOR_[1-8]$/.test(entry.key)&&index===4) return { min:.1,max:10,step:.1,label:"0.1–10" };
+  if (/^LTYPE_(?:0[2-9]|L[1-4])$/.test(entry.key)) {
+    if (index===1) return { min:1,max:32,step:1,label:"1–32" };
+    if (index===2) return { min:1,max:16,step:1,label:"1–16" };
+    if (index===3) return { min:1,max:160,step:1,label:"1–160" };
+  }
+  if (/^LTYPE_R[1-5]$/.test(entry.key)) {
+    if ([1,2,3].includes(index)) return { min:1,max:16,step:1,label:"1–16" };
+    if (index===4) return { min:1,max:160,step:1,label:"1–160" };
+  }
+  if (/^(MWIDE|MHIGH)$/.test(entry.key)) return { min:.1,max:500,step:.1,label:"0.1–500" };
+  if (entry.key==="MDIST") return { min:-100,max:500,step:.1,label:"-100–500" };
+  if (entry.key==="MPEN") return { min:1,max:9,step:1,label:"1–9" };
+  if (entry.key==="MSET") {
+    const ranges=[[0,10,1],[1,9,1],[0,4,1],[500,5000,1],[40,400,1],[-1000,1000,1],[0,12,1],[-1,10,.1],[0,1,1]];
+    const [min,max,step]=ranges[index]||[]; if (min!==undefined) return { min,max,step,label:`${min}–${max}` };
+  }
+  if (entry.key==="LAYSCALE") return { min:0,max:3000000,step:.01,label:"0–3000000" };
+  if (/^LAYCOL_[0-9A-F]$/.test(entry.key)) return { min:0,max:9,step:1,label:"0–9" };
+  if (/^LAYWID_[0-9A-F]$/.test(entry.key)) return { min:-2,max:30000,step:1,label:"-2–30000" };
+  if (/^LAYTYP_[0-9A-F]$/.test(entry.key)) return { min:0,max:19,step:1,excluded:new Set([10]),label:"0–19 except 10" };
+  if (entry.key === "LTYPE_HC") {
+    if ([0,1,3,4].includes(index)) return { min:1,max:9,step:1,label:"1–9" };
+    if (index === 2) return { min:0,max:1,step:1,label:"0–1" };
+    if (index === 5) return { min:0,max:2,step:1,label:"0–2" };
+  }
+  return null;
 }
 const basicPalette = [
   "#ff8080","#ffff80","#80ff80","#00ff80","#80ffff","#0080ff","#ff80c0","#ff80ff",
@@ -218,9 +259,110 @@ function inputFor(entry, index, value) {
   const label = el("label", "value-field"); label.append(el("span", "", fieldName(entry, index)));
   const input = el("input");
   const numeric = typeof value === "number" || (String(value).trim() !== "" && Number.isFinite(Number(value)));
-  input.type = numeric ? "number" : "text"; input.value = value ?? ""; if (numeric) input.step = "any";
-  input.addEventListener("change", () => mutateEntry(entry, index, numeric ? Number(input.value) : input.value));
+  const constraint = numeric ? numericConstraint(entry,index) : null;
+  input.type = numeric&&constraint ? "number" : "text"; input.value = value ?? "";
+  if (constraint) { input.min=String(constraint.min); input.max=String(constraint.max); input.step=String(constraint.step); input.title=`Allowed: ${constraint.label}`; }
+  const validate = () => { const next=Number(input.value); const excluded=constraint?.excluded?.has(next); input.setCustomValidity(excluded?`Enter ${constraint.label}.`:""); return !excluded&&input.checkValidity(); };
+  input.addEventListener("input",validate);
+  input.addEventListener("change", () => { if (numeric&&!validate()) { status(`${entry.key} ${fieldName(entry,index)} must be ${constraint?.label||"a valid number"}.`,"error"); return; } mutateEntry(entry,index,numeric?Number(input.value):input.value); });
   label.append(input); return label;
+}
+function general1Entry(key, index) {
+  const entry = profile.parsed.entries[key];
+  return entry?.values?.length > index ? entry : null;
+}
+function general1Checkbox(key, index, label, options = {}) {
+  const entry = general1Entry(key, index); const control = el("label", "g1-check"); const input = el("input"); input.type = "checkbox";
+  const raw = entry ? Number(entry.values[index]) || 0 : 0;
+  input.checked = entry ? (options.read ? options.read(raw) : raw === 1) : false; input.disabled = !entry;
+  if (!entry) control.title = `${key} is not present in this JWF.`;
+  input.addEventListener("change", () => { const current = Number(profile.parsed.entries[key].values[index]) || 0; mutateEntry(profile.parsed.entries[key],index,options.write ? options.write(input.checked,current) : input.checked ? 1 : 0); if (options.rerender) render(); });
+  control.append(input,el("span","",label)); return control;
+}
+function general1Number(key, index, label, options = {}) {
+  const entry = general1Entry(key,index); const control = el("label","g1-number"); const caption = el("span","",label); const input = el("input"); input.type = "number";
+  if (options.min !== undefined) input.min = String(options.min); if (options.max !== undefined) input.max = String(options.max); if (options.step !== undefined) input.step = String(options.step);
+  const raw = entry ? entry.values[index] : ""; input.value = entry ? String(options.read ? options.read(raw) : raw) : ""; input.placeholder = entry ? "" : "Not in JWF"; input.disabled = !entry;
+  input.addEventListener("change", () => { const numeric = Number(input.value); if (!Number.isFinite(numeric)) return; const bounded = Math.max(options.min ?? -Infinity,Math.min(options.max ?? Infinity,numeric)); const current = profile.parsed.entries[key].values[index]; mutateEntry(profile.parsed.entries[key],index,options.write ? options.write(bounded,current) : bounded); });
+  control.append(caption,input); return control;
+}
+function unavailableGeneral1(label, value = "Not stored in JWF") {
+  const control = el("label","g1-number g1-unavailable"); control.append(el("span","",label)); const input = el("input"); input.type = "text"; input.value = value; input.disabled = true; control.append(input); return control;
+}
+function decimalDigit(value, place) { return Math.floor(Math.abs(Number(value) || 0) / place) % 10; }
+function replaceDecimalDigit(value, place, digit) {
+  const numeric = Number(value) || 0; const sign = numeric < 0 ? -1 : 1; const absolute = Math.abs(numeric); const previous = decimalDigit(absolute,place);
+  return sign * (absolute - previous * place + Number(digit) * place);
+}
+function general1DigitCheckbox(key,index,place,label) {
+  return general1Checkbox(key,index,label,{ read:(value)=>decimalDigit(value,place) === 1, write:(checked,value)=>replaceDecimalDigit(value,place,checked ? 1 : 0) });
+}
+function renderGeneral1() {
+  const section = el("section","general1-panel"); section.append(el("h2","g1-title","General Settings (1)"));
+  const top = el("div","g1-top-grid");
+  top.append(unavailableGeneral1("External editor","Application setting"),unavailableGeneral1("Screen width (mm)","Application setting"),unavailableGeneral1("Overall view mode","Application setting"),unavailableGeneral1("Screen horizontal pixels","Application setting"));
+  top.append(general1Number("S_COMM_1",0,"Auto-save interval (1–1000 min)",{min:1,max:1000}),general1Number("S_COMM_1",8,"Backup file count",{min:-9,max:9}),general1Number("S_COMM_6",0,"Undo count",{min:0,max:1000}));
+  section.append(top);
+  const options = el("div","g1-options-grid");
+  const left = el("div","g1-column"); const right = el("div","g1-column");
+  left.append(general1Checkbox("S_COMM_0",1,"Do not use clock menus",{read:(value)=>Math.abs(value)>=1020,write:(checked,value)=>{const drag=Math.max(20,Math.min(200,Math.abs(value)%1000||35));return checked?1000+drag:drag;},rerender:true}));
+  right.append(general1Checkbox("S_COMM_1",2,"Keep previous AM/PM state for left clock menu"),general1Checkbox("S_COMM_1",3,"Keep previous AM/PM state for right clock menu"));
+  left.append(general1Checkbox("S_COMM_1",1,"Show temporary marks at read points"));
+  right.append(general1Number("S_COMM_0",1,"Clock-menu drag distance (20–200)",{min:20,max:200,read:(value)=>Math.abs(Number(value))%1000,write:(next,value)=>Math.abs(Number(value))>=1000?1000+next:Number(value)<0?-next:next}));
+  left.append(general1DigitCheckbox("S_COMM_1",5,1,"Continue double-line spacing after Enter"));
+  right.append(general1DigitCheckbox("S_COMM_1",6,1,"Redisplay erased portions"));
+  const fileRead = el("fieldset","g1-subgroup g1-span-2"); fileRead.append(el("legend","","File read options")); const fileChecks=el("div","g1-inline-checks"); fileChecks.append(general1DigitCheckbox("S_COMM_1",7,1,"Line colors, line types, and point radii"),general1DigitCheckbox("S_COMM_1",7,10,"Drawing and print state"),general1DigitCheckbox("S_COMM_1",7,100,"Text reference-point offsets")); fileRead.append(fileChecks);
+  options.append(left,right,fileRead);
+  const rows = el("div","g1-wide-options");
+  rows.append(general1DigitCheckbox("S_COMM_2",2,1,"Use white background for printer output images"),general1Checkbox("S_COMM_2",3,"Use eighth-circle snap instead of quarter-circle snap"),general1Checkbox("S_COMM_2",4,"Start with AUTO mode"),general1Checkbox("S_COMM_2",5,"Acquire circumference instead of radius"),general1Checkbox("S_COMM_2",6,"Show paper frame"),general1Checkbox("S_COMM_3",0,"Use large text for numeric input"),general1Checkbox("S_COMM_3",1,"Use large status-bar text"),general1Checkbox("S_COMM_3",2,"Count text-box length in two-byte units"));
+  const paired = el("div","g1-paired-numbers"); paired.append(general1Number("S_COMM_3",3,"Text/frame display switching threshold",{min:2,max:1000}),general1Number("S_COMM_3",6,"Text font display ratio",{min:.5,max:2,step:.01})); rows.append(paired);
+  rows.append(general1Checkbox("S_COMM_3",4,"Hold left/right mouse button for one second to zoom"),general1Checkbox("S_COMM_3",5,"Switch horizontal/vertical and diagonal line by four mouse moves"));
+  const crossline = el("fieldset","g1-subgroup"); crossline.append(el("legend","","Crossline cursor")); const crossEntry=general1Entry("S_COMM_4",0); const crossValue=crossEntry?Number(crossEntry.values[0])||0:0; const crossMaster=general1Checkbox("S_COMM_4",0,"Use crossline cursor",{read:(value)=>value!==0,write:(checked,value)=>checked?(value||1):0,rerender:true}); const modes=el("div","g1-radio-row"); [[2,"Range selection only"],[3,"Range start only"]].forEach(([value,label])=>{const item=el("label","g1-radio");const radio=el("input");radio.type="radio";radio.name="crossline-mode";radio.checked=crossValue===value;radio.disabled=!crossEntry||crossValue===0;radio.addEventListener("change",()=>{if(radio.checked){mutateEntry(profile.parsed.entries.S_COMM_4,0,value);render();}});item.append(radio,el("span","",label));modes.append(item);}); crossline.append(crossMaster,modes); rows.append(crossline);
+  rows.append(general1Checkbox("S_COMM_4",1,"Acquire attributes from display-only layers"),unavailableGeneral1("Use monitor dialog for file selection"),general1Checkbox("S_COMM_4",2,"Reverse drawing order"));
+  const imageOrder = el("fieldset","g1-subgroup"); imageOrder.append(el("legend","","Image and solid drawing order")); imageOrder.append(general1Checkbox("S_COMM_3",8,"Draw image/solid data first",{read:(value)=>[1,2].includes(decimalDigit(value,1)),write:(checked,value)=>replaceDecimalDigit(value,1,checked?(decimalDigit(value,1)===2?2:1):0),rerender:true}),general1Checkbox("S_COMM_3",8,"Draw solids before images",{read:(value)=>decimalDigit(value,1)===2,write:(checked,value)=>replaceDecimalDigit(value,1,checked?2:1),rerender:true}));
+  const orderEntry=general1Entry("S_COMM_3",8); const orderValue=orderEntry?decimalDigit(orderEntry.values[8],10):0; const orderSelect=el("label","g1-number"); orderSelect.append(el("span","","Solid ordering key")); const select=el("select"); [[0,"Layer order"],[3,"Reverse layer order"],[1,"Color number order"],[2,"Reverse color number order"],[6,"Printer output setting order"]].forEach(([value,label])=>{const option=el("option","",label);option.value=String(value);option.selected=orderValue===value;select.append(option);});select.disabled=!orderEntry;select.addEventListener("change",()=>mutateEntry(profile.parsed.entries.S_COMM_3,8,replaceDecimalDigit(profile.parsed.entries.S_COMM_3.values[8],10,Number(select.value))));orderSelect.append(select); imageOrder.append(orderSelect); rows.append(imageOrder);
+  rows.append(general1Checkbox("S_COMM_3",7,"For a new file, reset layer names/states and reload the environment profile"),general1Checkbox("S_COMM_4",3,"Reverse search order"));
+  section.append(options,rows);
+  const counts=el("div","g1-counts"); ["Lines","Circles","Text","Points","Dimensions","Blocks/Solids"].forEach((label)=>{const item=el("span","");item.append(el("small","",label),el("strong","","—"));counts.append(item);}); section.append(counts,el("p","g1-footnote","Entity counts and Windows-only application settings are not stored in a JWF profile.")); ui.view.append(section);
+}
+function selectForEntry(key,index,label,choices,{read=(value)=>Number(value),write=(value)=>Number(value)}={}) {
+  const entry=general1Entry(key,index); const control=el("label","g1-number"); control.append(el("span","",label)); const select=el("select"); const current=entry?read(entry.values[index]):null;
+  choices.forEach(([value,text])=>{const option=el("option","",text);option.value=String(value);option.selected=String(current)===String(value);select.append(option);}); select.disabled=!entry;
+  if (!entry) control.title=`${key} is not present in this JWF.`;
+  select.addEventListener("change",()=>mutateEntry(profile.parsed.entries[key],index,write(select.value,profile.parsed.entries[key].values[index]))); control.append(select); return control;
+}
+function renderGeneral2() {
+  const section=el("section","general1-panel general2-panel"); section.append(el("h2","g1-title","General Settings (2)"));
+  const top=el("fieldset","g1-subgroup"); top.append(el("legend","","AUTO clock-menu behavior")); const topGrid=el("div","g2-top-grid");
+  topGrid.append(selectForEntry("S_COMM_4",4,"After leaving AUTO mode",[[0,"Per-command setting"],[1,"Command selection uses AUTO menu"],[2,"All commands use AUTO menu"],[3,"Add selection on repeated range selection"]]),general1Number("S_COMM_0",5,"AUTO menu 1/2 switch distance (50–1000)",{min:50,max:1000}),general1Checkbox("S_COMM_4",5,"Use the standard clock menu for all non-AUTO commands"),general1Checkbox("S_COMM_6",8,"Use key commands in AUTO mode")); top.append(topGrid); section.append(top);
+  const body=el("div","g1-wide-options");
+  body.append(selectForEntry("S_COMM_4",6,"Hidden-layer command behavior",[[0,"Make layer hidden"],[1,"Make layer display-only"],[2,"Make all layers hidden"],[3,"Make all layers display-only"]],{read:(value)=>decimalDigit(value,1),write:(next,value)=>replaceDecimalDigit(value,1,next)}),general1Checkbox("S_COMM_4",7,"Keep the line-command dimension value"),general1Checkbox("S_COMM_2",7,"Do not change the layer when changing line type"),general1Checkbox("S_COMM_5",0,"Choose the text position before entering text"),general1Checkbox("S_COMM_0",6,"Show embedded file name and output date in print preview"),unavailableGeneral1("Use metre-unit input"),general1Checkbox("S_COMM_5",4,"Use ×1000 for backslash numeric input"),unavailableGeneral1("Confirm offset/copy/move values with End or +"),general1Checkbox("S_COMM_1",4,"Confirm copy/parametric numeric input with arrow keys"));
+  const drawingTime=el("fieldset","g1-subgroup"); drawingTime.append(el("legend","","Drawing time")); const timeGrid=el("div","g2-three-grid"); timeGrid.append(general1Number("S_COMM_6",4,"Inactive interval not counted (seconds)",{min:10,max:3600}),general1Checkbox("S_COMM_6",5,"Allow drawing-time changes"),general1Checkbox("S_COMM_6",6,"Show drawing time on the status bar")); drawingTime.append(timeGrid); body.append(drawingTime);
+  const keyZoom=el("fieldset","g1-subgroup"); keyZoom.append(el("legend","","Arrow, PageUp, PageDown, and Home keys")); const keyGrid=el("div","g2-three-grid"); keyGrid.append(selectForEntry("S_COMM_5",5,"Keyboard zoom mode",[[0,"Disabled"],[1,"Screen-axis movement"],[2,"Axis-angle movement"]]),general1Number("ZOOM",5,"Movement rate (0.1–1.0)",{min:.1,max:1,step:.1}),general1Number("ZOOM",6,"Zoom factor (1.1–5.0)",{min:1.1,max:5,step:.1})); keyZoom.append(keyGrid); body.append(keyZoom);
+  const drag=el("fieldset","g1-subgroup"); drag.append(el("legend","","Both-button drag zoom operation")); const dragGrid=el("div","g2-drag-grid"); const dragChoices=[[0,"No assignment"],[1,"Mark jump 1"],[2,"Mark jump 2"],[3,"Mark jump 3"],[4,"Mark jump 4"],[5,"Remember range"],[6,"Release range"],[7,"Actual size"],[8,"Whole paper"],[9,"Previous zoom"]]; [[0,"12 o'clock"],[1,"3 o'clock"],[2,"6 o'clock"],[3,"9 o'clock"]].forEach(([index,label])=>dragGrid.append(selectForEntry("ZOOM",index,label,dragChoices))); dragGrid.append(general1Number("ZOOM",4,"Movement range (2–50)",{min:2,max:50}),general1Number("ZOOM",7,"Mark-jump distance (50–1000)",{min:50,max:1000})); drag.append(dragGrid); body.append(drag);
+  const wheel=el("fieldset","g1-subgroup"); wheel.append(el("legend","","Mouse and wheel application options")); const wheelGrid=el("div","g2-three-grid"); wheelGrid.append(selectForEntry("ZOOM",8,"Screen zoom",[[0,"Disabled"],[1,"Enabled (+ direction)"],[-1,"Enabled (reverse direction)"]],{read:(value)=>Math.sign(Number(value)||0),write:(next,value)=>{const tens=Math.trunc(Math.abs(Number(value)||0)/10)*10;return Number(next)<0?-(tens+1):Number(next)>0?tens+1:tens;}}),unavailableGeneral1("Shift + both-button drag screen slide"),unavailableGeneral1("Shift + left-button drag screen slide"),unavailableGeneral1("Dismiss Dial standard menu at next startup"),unavailableGeneral1("Wheel-button click selects line / line type")); wheel.append(wheelGrid); body.append(wheel);
+  section.append(body,el("p","g1-footnote","Disabled controls are Jw_cad application settings that are not stored in a JWF profile.")); ui.view.append(section);
+}
+const VISIBLE_GENERAL_FIELDS = {
+  S_COMM_0:new Set([1,5,6]), S_COMM_1:new Set([0,1,2,3,4,5,6,7,8]), S_COMM_2:new Set([2,3,4,5,6,7]), S_COMM_3:new Set([0,1,2,3,4,5,6,7,8]),
+  S_COMM_4:new Set([0,1,2,3,4,5,6,7]), S_COMM_5:new Set([0,4,5]), S_COMM_6:new Set([0,4,5,6,8]), ZOOM:new Set([0,1,2,3,4,5,6,7,8]),
+};
+function renderOther() {
+  const section=el("section","table-section"); section.append(el("h2","","Other JWF Settings"),el("p","tab-help","Settings read from this JWF that are not represented by the General (1), General (2), or dedicated settings pages remain editable here.")); const list=el("div","settings-groups"); const standardPatterns=[...GROUPS.colors,...GROUPS.lineTypes,...GROUPS.text,...GROUPS.auto,...GROUPS.keys,...GROUPS.jwfOnly]; let shown=0;
+  for (const key of profile.parsed.keys) {
+    const entry=profile.parsed.entries[key]; let indexes=[];
+    if (/^S_COMM_[0-9]$/.test(key)||key==="ZOOM") indexes=entry.values.map((_,index)=>index).filter((index)=>!VISIBLE_GENERAL_FIELDS[key]?.has(index));
+    else if (key==="R_CROSS_SET"||key==="S_MESH_0"||key==="R_STR0_00"||!standardPatterns.some((pattern)=>pattern.test(key))) indexes=entry.values.map((_,index)=>index);
+    if (!indexes.length) continue; shown+=1; const group=el("fieldset","direct-group"); const legend=el("legend"); legend.append(el("span","",entryTitle(entry)),el("code","",entry.key)); group.append(legend); const fields=el("div","direct-fields"); indexes.forEach((index)=>fields.append(inputFor(entry,index,entry.values[index]))); group.append(fields); list.append(group);
+  }
+  if (!shown) list.append(el("p","empty-tab","This JWF contains no additional settings outside the dedicated pages.")); section.append(list); ui.view.append(section);
+}
+function renderJwfOnly() {
+  const section=el("section","table-section jwf-only-panel"); section.append(el("h2","","JWF-only Settings"),el("p","tab-help","These operation defaults are stored in the JWF environment profile, not in a JWW drawing. They affect later Jw_cad operations after the profile is loaded."));
+  const list=el("div","settings-groups"); const entries=entriesFor("jwfOnly");
+  if (!entries.length) list.append(el("p","empty-tab","This profile does not contain JWF-only settings."));
+  for (const entry of entries) { const group=el("fieldset","direct-group"); const legend=el("legend"); legend.append(el("span","",entryTitle(entry)),el("code","",entry.key)); group.append(legend); if (entry.definition?.note) group.append(el("p","jwf-only-note",entry.definition.note)); const fields=el("div","direct-fields"); entry.values.forEach((value,index)=>fields.append(inputFor(entry,index,value))); group.append(fields); list.append(group); }
+  section.append(list); ui.view.append(section);
 }
 function renderGeneric(tab) {
   const list = el("div", "settings-groups");
@@ -283,9 +425,8 @@ function renderColors() {
   const printerStack = el("div", "printer-color-stack"); printerStack.append(printGroup);
   const layout = el("div", "color-tables-layout"); layout.append(screenGroup, printerStack); section.append(layout);
   const specialKeys = ["LCOLLOR_B","LCOLLOR_Z"].filter((key) => profile.parsed.entries[key]);
-  const textColor = profile.parsed.entries.LCOLLOR_M;
-  if (specialKeys.length || textColor) {
-    const special = el("fieldset", "color-group special-color-group"); special.append(el("legend", "", "Screen Background, Zoom Frame, and Text"));
+  if (specialKeys.length) {
+    const special = el("fieldset", "color-group special-color-group"); special.append(el("legend", "", "Screen Background and Zoom Frame"));
     const body = el("div", "special-color-layout"); const grid = el("div", "special-color-grid");
     ["", "Red", "Green", "Blue"].forEach((label) => grid.append(el("span", "special-color-heading", label)));
     specialKeys.forEach((key) => {
@@ -296,7 +437,6 @@ function renderColors() {
       entry.values.slice(0,3).forEach((value,index) => grid.append(inputFor(entry,index,value)));
     });
     body.append(grid);
-    if (textColor) { const textButton = el("button", "special-text-color-button", "Text Color"); textButton.type = "button"; textButton.addEventListener("click", () => openColorDialog(textColor,labelMap.LCOLLOR_M)); body.append(textButton); }
     special.append(body); printerStack.append(special);
   }
   const options = el("fieldset", "color-group color-options-group"); options.append(el("legend", "", "Display and Print Options"));
@@ -313,12 +453,6 @@ function renderColors() {
     unitCheck.addEventListener("change", () => mutateEntry(profile.parsed.entries.S_COMM_2, 1, (unitCheck.checked ? -1 : 1) * Math.max(1, Math.abs(Number(profile.parsed.entries.S_COMM_2.values[1]) || 100))));
     number.addEventListener("change", () => { const magnitude = Math.max(1, Math.min(100, Math.abs(Number(number.value) || 100))); mutateEntry(profile.parsed.entries.S_COMM_2, 1, (unitCheck.checked ? -1 : 1) * magnitude); });
     unit.append(unitToggle, maximum); optionFields.append(unit);
-  }
-  const helper = profile.parsed.entries.LTYPE_HC;
-  if (helper?.values?.length > 5) {
-    const endpoint = el("label", "endpoint-style-control"); endpoint.append(el("span", "", "Line endpoint style"));
-    const select = el("select"); [[0,"Round"],[1,"Square"],[2,"Flat"]].forEach(([value,label]) => { const option = el("option", "", label); option.value = value; option.selected = Number(helper.values[5]) === value; select.append(option); });
-    select.addEventListener("change", () => mutateEntry(profile.parsed.entries.LTYPE_HC, 5, Number(select.value))); endpoint.append(select); optionFields.append(endpoint);
   }
   const dpiEntry = profile.parsed.entries.P_dpi;
   const dpi = el("div", "dpi-control"); dpi.append(el("span", "", "Printer resolution"));
@@ -368,7 +502,7 @@ function renderTabs() {
 function render() {
   if (!profile) return;
   renderTabs(); ui.view.replaceChildren(); ui.source.classList.toggle("active", active === "source");
-  if (active === "source") renderSource(); else if (active === "colors") renderColors(); else if (active === "exchange") renderExchange(); else renderGeneric(active);
+  if (active === "source") renderSource(); else if (active === "general1") renderGeneral1(); else if (active === "general2") renderGeneral2(); else if (active === "colors") renderColors(); else if (active === "exchange") renderExchange(); else if (active === "jwfOnly") renderJwfOnly(); else if (active === "other") renderOther(); else renderGeneric(active);
   refreshChrome();
 }
 function showProfile() { ui.empty.hidden = true; ui.workspace.hidden = false; active = "general1"; appliedText = profile.text; render(); }

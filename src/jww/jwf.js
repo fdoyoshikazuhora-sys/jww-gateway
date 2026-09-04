@@ -167,27 +167,27 @@ function definitionForKey(key) {
   if (/^LAYNAM_[0-9A-F]$/.test(key)) {
     return {
       label: "layer group and layer names",
-      valueSchema: ["groupName", "layer0", "layer1", "...", "layerF"],
+      valueSchema: ["groupName", ...Array.from({ length: 16 }, (_, index) => `layer${index.toString(16).toUpperCase()}`)],
     };
   }
   if (/^LAYCOL_[0-9A-F]$/.test(key)) {
     return {
       label: "default layer color",
-      valueSchema: ["layer0", "layer1", "...", "layerF"],
+      valueSchema: Array.from({ length: 16 }, (_, index) => `layer${index.toString(16).toUpperCase()}`),
       note: "JWF-only write-layer operation default; not serialized into JWW. 0 means no color switch; 1..9 are JWW line colors, with 9 for auxiliary line.",
     };
   }
   if (/^LAYWID_[0-9A-F]$/.test(key)) {
     return {
       label: "default layer width",
-      valueSchema: ["layer0", "layer1", "...", "layerF"],
+      valueSchema: Array.from({ length: 16 }, (_, index) => `layer${index.toString(16).toUpperCase()}`),
       note: "JWF-only write-layer operation default; not serialized into JWW. -2 keeps current width, -1 uses the current color width, 0..30000 sets width.",
     };
   }
   if (/^LAYTYP_[0-9A-F]$/.test(key)) {
     return {
       label: "default layer line type",
-      valueSchema: ["layer0", "layer1", "...", "layerF"],
+      valueSchema: Array.from({ length: 16 }, (_, index) => `layer${index.toString(16).toUpperCase()}`),
       note: "JWF-only write-layer operation default; not serialized into JWW. 0 means no line type switch; valid line types are 0..19 except 10.",
     };
   }
