@@ -6,6 +6,7 @@ import {
   saveJwfProfile,
   updateJwfProfileEntry,
 } from "../../src/jww/jwf.js";
+import { decodeLinePattern, encodeLinePattern } from "./line-pattern.js";
 
 const $ = (selector) => document.querySelector(selector);
 const ui = {
@@ -57,6 +58,9 @@ const GENERAL_LABELS = {
   S_COMM_7: ["Show layer-group name", "Reset copy / paste attributes", "Hide endpoint dimension", "Double-line click interval", "Copy / move click interval", "2.5D view interval", "Spaces around 2.5D separators", "Proportional-division mode", "Shape-file list mode"],
   S_COMM_8: ["Visible-only layer read controls", "Reserved", "Save / load dimension settings", "Dimension-value screen color", "Disable transform preview", "Close layer list after selection", "Mouse wheel while drawing", "Swap attribute click actions", "Default three-point mode to arc"],
   S_COMM_9: ["Auxiliary-point screen radius", "Temporary continuous-line type", "Block-tree transparency", "Repeat erase / dimension behavior"],
+  MSET: ["Right-click text type", "Right-click reference point", "Text input dialog mode", "Text input width (dots)", "Text input height (dots)", "Image read width", "Background drawing mode", "Text-range expansion (mm)", "Keep text angle"],
+  MHEN: ["Existing text conversion", "Default font"],
+  MOFST: ["Use text reference offsets", "X offset — left", "X offset — center", "X offset — right", "Y offset — lower", "Y offset — center", "Y offset — upper", "Remember reference point for JWC / DXF"],
 };
 const BOOLEAN_FIELDS = new Set([
   "S_COMM_0:3","S_COMM_0:4","S_COMM_0:6","S_COMM_1:1","S_COMM_1:2","S_COMM_1:3","S_COMM_1:4",
@@ -66,7 +70,23 @@ const BOOLEAN_FIELDS = new Set([
   "S_COMM_5:0","S_COMM_5:2","S_COMM_5:3","S_COMM_5:4","S_COMM_5:6","S_COMM_5:7","S_COMM_5:8",
   "S_COMM_6:2","S_COMM_6:3","S_COMM_6:5","S_COMM_6:6","S_COMM_6:8","S_COMM_7:0","S_COMM_7:2",
   "S_COMM_7:6","S_COMM_7:7","S_COMM_8:5","S_COMM_8:6","S_COMM_8:7","S_COMM_8:8","S_COMM_9:3",
+  "MSET:8","MOFST:0","MOFST:7",
 ]);
+
+const GENERAL_NUMBER_BEHAVIOR = {
+  "S_COMM_1:0": "Higher values increase the time between automatic saves.",
+  "S_COMM_1:8": "Sets how many backup files Jw_cad keeps.",
+  "S_COMM_6:0": "Higher values keep more operations available for Undo; 0 keeps no Undo history.",
+  "S_COMM_0:1": "Higher values require a longer mouse drag before the clock menu opens.",
+  "S_COMM_3:3": "Sets the on-screen dot threshold for switching between text and frame display.",
+  "S_COMM_3:6": "Higher values display text larger on screen; the stored text size is unchanged.",
+  "S_COMM_0:5": "Higher values require a longer drag to switch between AUTO clock-menu pages.",
+  "S_COMM_6:4": "Drawing-time counting pauses after this many inactive seconds; higher values wait longer.",
+  "ZOOM:4": "Higher values widen the both-button drag zone used to choose a zoom action.",
+  "ZOOM:5": "Higher values move the view farther with each arrow-key operation.",
+  "ZOOM:6": "Higher values make each keyboard zoom step larger.",
+  "ZOOM:7": "Higher values move farther when a mark-jump action is used.",
+};
 
 let profile = null;
 let appliedText = "";
@@ -120,7 +140,7 @@ function refreshChrome() {
   ui.apply.disabled = !hasPending();
 }
 function mutateEntry(entry, index, value) {
-  const values = [...entry.values];
+  const values = [...(profile.parsed.entries[entry.key]?.values || entry.values)];
   values[index] = value;
   profile = updateJwfProfileEntry(profile, entry.key, values);
   refreshChrome();
@@ -144,7 +164,9 @@ function numericConstraint(entry,index) {
   if (entry.key==="MDIST") return { min:-100,max:500,step:.1,label:"-100–500" };
   if (entry.key==="MPEN") return { min:1,max:9,step:1,label:"1–9" };
   if (entry.key==="MSET") {
-    const ranges=[[0,10,1],[1,9,1],[0,4,1],[500,5000,1],[40,400,1],[-1000,1000,1],[0,12,1],[-1,10,.1],[0,1,1]];
+    if (index===5) return { min:-1000,max:1000,step:1,label:"-1000–-10 or 10–1000",valid:(value)=>Math.abs(value)>=10&&Math.abs(value)<=1000 };
+    if (index===6) return { min:0,max:12,step:1,label:"0, 1, 2, 10, 11, or 12",valid:(value)=>[0,1,2,10,11,12].includes(value) };
+    const ranges=[[0,10,1],[1,9,1],[0,4,1],[500,5000,1],[40,400,1],null, null,[-1,10,.1],[0,1,1]];
     const [min,max,step]=ranges[index]||[]; if (min!==undefined) return { min,max,step,label:`${min}–${max}` };
   }
   if (entry.key==="LAYSCALE") return { min:0,max:3000000,step:.01,label:"0–3000000" };
@@ -157,6 +179,75 @@ function numericConstraint(entry,index) {
     if (index === 5) return { min:0,max:2,step:1,label:"0–2" };
   }
   return null;
+}
+function numericBehavior(entry, index) {
+  const exact = GENERAL_NUMBER_BEHAVIOR[`${entry.key}:${index}`];
+  if (exact) return exact;
+  if (/^(?:L|P)COLLOR_/.test(entry.key) && index < 3) {
+    return `Higher values add more ${["red", "green", "blue"][index]} to this color.`;
+  }
+  if (/^LCOLLOR_(?:[1-8]|H)$/.test(entry.key) && index === 3) return "Higher values draw this screen line thicker.";
+  if (/^PCOLLOR_[1-8]$/.test(entry.key) && index === 3) return "Higher values print this line thicker.";
+  if (/^PCOLLOR_[1-8]$/.test(entry.key) && index === 4) return "Higher values print real points with a larger radius.";
+  if (/^LTYPE_(?:0[2-9]|L[1-4])$/.test(entry.key)) {
+    return [
+      "Changes the 32-bit dash pattern used by this line type.",
+      "Higher values use more dots in one repeating pattern unit.",
+      "Higher values lengthen the pattern pitch on screen.",
+      "Higher values lengthen the pattern pitch in printer output.",
+    ][index] || "Changes this line-type pattern value.";
+  }
+  if (/^LTYPE_R[1-5]$/.test(entry.key)) {
+    return [
+      "Changes the 32-bit random-line pattern.",
+      "Higher values increase the random amplitude on screen.",
+      "Higher values lengthen the random pattern pitch on screen.",
+      "Higher values increase the random amplitude in printer output.",
+      "Higher values lengthen the random pattern pitch in printer output.",
+    ][index] || "Changes this random-line parameter.";
+  }
+  if (entry.key === "MWIDE") return "Higher values make this text type wider.";
+  if (entry.key === "MHIGH") return "Higher values make this text type taller.";
+  if (entry.key === "MDIST") return "Higher values increase character spacing; negative values tighten it.";
+  if (entry.key === "MPEN") return "Selects line color 1–8, or 9 for the auxiliary color.";
+  if (entry.key === "MSET") {
+    return [
+      "0 selects custom size; 1–10 select the text type recalled by right-click.",
+      "1–9 select the reference point recalled by right-click: lower-left is 1 and upper-right is 9.",
+      "0 keeps the standard dialog; 1–4 resize it and progressively hide font controls.",
+      "Higher values make the text input dialog wider.",
+      "Higher values make the text input dialog taller.",
+      "Absolute values 10–1000 set image-read width; a negative value stores same-folder images by file name only.",
+      "Ones digit: 0 none, 1 outline, 2 range. Tens digit 1 draws dimension/block text last.",
+      "Higher values enlarge the background text range; -1–10 mm.",
+      "Off allows the write angle to change; On keeps the current angle.",
+    ][index] || "Changes this text-command setting.";
+  }
+  if (entry.key === "LAYSCALE") return "Sets this layer group's scale denominator; higher values make the paper-scale view smaller.";
+  if (/^LAYCOL_[0-9A-F]$/.test(entry.key)) return "0 keeps the current color; 1–8 select a line color; 9 selects the auxiliary color.";
+  if (/^LAYWID_[0-9A-F]$/.test(entry.key)) return "-2 keeps the current width; -1 uses the current color width; 0–30000 sets a width.";
+  if (/^LAYTYP_[0-9A-F]$/.test(entry.key)) return "0 keeps the current line type; 1–19 select a line type (10 is unused).";
+  if (entry.key === "LTYPE_HC") {
+    const notes = [
+      "Selects the temporary selection-frame line type number.",
+      "Selects the crossline-cursor line type number.",
+      "0 keeps a fixed dash pitch; 1 adjusts the pitch automatically.",
+      "Selects the right-click reference line color number.",
+      "Selects the right-click reference line type number.",
+      "0 = round, 1 = square, 2 = flat line ends.",
+    ];
+    return notes[index] || "Changes this JWF-only helper setting.";
+  }
+  if (/^(?:KEY|N_KEY)/.test(entry.key)) return "0 disables the shortcut; a nonzero command number assigns the shortcut.";
+  if (/^(?:LD|RD|LD2|RD2)_(?:AM|PM)$/.test(entry.key)) return "0 cancels; positive selects a command; negative selects it and keeps it active.";
+  if (/^(?:COM_|GCOM_|AC_COM|WD_COM)/.test(entry.key)) return "Selects the Jw_cad command number used at this position.";
+  const constraint = numericConstraint(entry, index);
+  const range = constraint ? ` Allowed: ${constraint.label}.` : "";
+  return `Raw JWF value for ${fieldName(entry, index)}.${range} Keep the original value unless its Jw_cad behavior is known.`;
+}
+function appendBehavior(control, description) {
+  if (description) control.append(el("small", "field-behavior", description));
+  return control;
 }
 const basicPalette = [
   "#ff8080","#ffff80","#80ff80","#00ff80","#80ffff","#0080ff","#ff80c0","#ff80ff",
@@ -249,7 +340,7 @@ function openColorDialog(entry, label) {
   dialog.addEventListener("close", () => { if (dialog.returnValue === "ok") { const revised = [...profile.parsed.entries[entry.key].values]; working.forEach((value,index) => { revised[index] = Math.round(value); }); profile = updateJwfProfileEntry(profile,entry.key,revised); refreshChrome(); render(); status(`${label} color changed.`,"ready"); } dialog.remove(); });
   dialog.showModal();
 }
-function inputFor(entry, index, value) {
+function inputFor(entry, index, value, { describe = true } = {}) {
   if (BOOLEAN_FIELDS.has(`${entry.key}:${index}`) && [0, 1].includes(Number(value))) {
     const label = el("label", "check-field");
     const input = el("input"); input.type = "checkbox"; input.checked = Number(value) === 1;
@@ -259,13 +350,15 @@ function inputFor(entry, index, value) {
   const label = el("label", "value-field"); label.append(el("span", "", fieldName(entry, index)));
   const input = el("input");
   const numeric = typeof value === "number" || (String(value).trim() !== "" && Number.isFinite(Number(value)));
+  const linePattern = /^LTYPE_(?:0[2-9]|R[1-5]|L[1-4])$/.test(entry.key) && index === 0;
   const constraint = numeric ? numericConstraint(entry,index) : null;
   input.type = numeric&&constraint ? "number" : "text"; input.value = value ?? "";
   if (constraint) { input.min=String(constraint.min); input.max=String(constraint.max); input.step=String(constraint.step); input.title=`Allowed: ${constraint.label}`; }
-  const validate = () => { const next=Number(input.value); const excluded=constraint?.excluded?.has(next); input.setCustomValidity(excluded?`Enter ${constraint.label}.`:""); return !excluded&&input.checkValidity(); };
+  if (linePattern) { input.pattern="[0-9a-fA-F]{8}"; input.maxLength=8; input.title="Enter exactly eight hexadecimal digits (00000001–ffffffff)."; }
+  const validate = () => { const next=Number(input.value); const excluded=constraint?.excluded?.has(next); const invalidValue=constraint?.valid&&!constraint.valid(next); const invalidPattern=linePattern&&!/^[0-9a-fA-F]{8}$/.test(input.value); input.setCustomValidity(excluded||invalidValue?`Enter ${constraint.label}.`:invalidPattern?"Enter exactly eight hexadecimal digits.":""); return !excluded&&!invalidValue&&!invalidPattern&&input.checkValidity(); };
   input.addEventListener("input",validate);
-  input.addEventListener("change", () => { if (numeric&&!validate()) { status(`${entry.key} ${fieldName(entry,index)} must be ${constraint?.label||"a valid number"}.`,"error"); return; } mutateEntry(entry,index,numeric?Number(input.value):input.value); });
-  label.append(input); return label;
+  input.addEventListener("change", () => { if ((numeric||linePattern)&&!validate()) { status(`${entry.key} ${fieldName(entry,index)} must be ${linePattern?"exactly eight hexadecimal digits":constraint?.label||"a valid number"}.`,"error"); return; } mutateEntry(entry,index,numeric?Number(input.value):input.value); });
+  label.append(input); return appendBehavior(label, numeric && describe ? numericBehavior(entry, index) : "");
 }
 function general1Entry(key, index) {
   const entry = profile.parsed.entries[key];
@@ -284,7 +377,7 @@ function general1Number(key, index, label, options = {}) {
   if (options.min !== undefined) input.min = String(options.min); if (options.max !== undefined) input.max = String(options.max); if (options.step !== undefined) input.step = String(options.step);
   const raw = entry ? entry.values[index] : ""; input.value = entry ? String(options.read ? options.read(raw) : raw) : ""; input.placeholder = entry ? "" : "Not in JWF"; input.disabled = !entry;
   input.addEventListener("change", () => { const numeric = Number(input.value); if (!Number.isFinite(numeric)) return; const bounded = Math.max(options.min ?? -Infinity,Math.min(options.max ?? Infinity,numeric)); const current = profile.parsed.entries[key].values[index]; mutateEntry(profile.parsed.entries[key],index,options.write ? options.write(bounded,current) : bounded); });
-  control.append(caption,input); return control;
+  control.append(caption,input); return appendBehavior(control, GENERAL_NUMBER_BEHAVIOR[`${key}:${index}`]);
 }
 function unavailableGeneral1(label, value = "Not stored in JWF") {
   const control = el("label","g1-number g1-unavailable"); control.append(el("span","",label)); const input = el("input"); input.type = "text"; input.value = value; input.disabled = true; control.append(input); return control;
@@ -361,8 +454,95 @@ function renderJwfOnly() {
   const section=el("section","table-section jwf-only-panel"); section.append(el("h2","","JWF-only Settings"),el("p","tab-help","These operation defaults are stored in the JWF environment profile, not in a JWW drawing. They affect later Jw_cad operations after the profile is loaded."));
   const list=el("div","settings-groups"); const entries=entriesFor("jwfOnly");
   if (!entries.length) list.append(el("p","empty-tab","This profile does not contain JWF-only settings."));
-  for (const entry of entries) { const group=el("fieldset","direct-group"); const legend=el("legend"); legend.append(el("span","",entryTitle(entry)),el("code","",entry.key)); group.append(legend); if (entry.definition?.note) group.append(el("p","jwf-only-note",entry.definition.note)); const fields=el("div","direct-fields"); entry.values.forEach((value,index)=>fields.append(inputFor(entry,index,value))); group.append(fields); list.append(group); }
+  for (const entry of entries) { const group=el("fieldset","direct-group"); const legend=el("legend"); legend.append(el("span","",entryTitle(entry)),el("code","",entry.key)); group.append(legend); if (entry.definition?.note) group.append(el("p","jwf-only-note",entry.definition.note)); const fields=el("div","direct-fields"); const repeatedLayerMeaning=/^LAY(?:COL|WID|TYP)_[0-9A-F]$/.test(entry.key); entry.values.forEach((value,index)=>fields.append(inputFor(entry,index,value,{describe:!repeatedLayerMeaning}))); group.append(fields); list.append(group); }
   section.append(list); ui.view.append(section);
+}
+function appendExtraEntries(parent, entries, title = "Additional JWF settings") {
+  if (!entries.length) return;
+  const details = el("details", "jw-extra-settings");
+  details.append(el("summary", "", title));
+  for (const entry of entries) {
+    const group = el("fieldset", "direct-group");
+    group.append(el("legend", "", `${entryTitle(entry)} (${entry.key})`));
+    const fields = el("div", "direct-fields");
+    entry.values.forEach((value, index) => fields.append(inputFor(entry, index, value)));
+    group.append(fields); details.append(group);
+  }
+  parent.append(details);
+}
+function commandReference() {
+  const group = el("div", "jw-command-reference");
+  group.append(el("p", "", "コマンド一覧（0：無指定／キャンセル）"));
+  const names = ["AUTO", "線", "矩形", "円弧", "文字", "点", "寸法", "2線", "中心線", "連続線", "複線", "コーナー", "伸縮", "面取", "消去", "複写", "移動", "接線", "接円", "建具平面", "建具断面", "建具立面", "多角形", "曲線", "包絡", "分割", "図形", "記号変形", "パラメトリック", "外部変形", "測定", "登録選択図", "範囲選択", "貼付", "ハッチ", "データ整理", "座標ファイル", "接楕円", "表計算", "距離", "式計算", "属性変更", "ソリッド"];
+  group.append(el("p", "", names.map((name, i) => `${i + 1} ${name}`).join("　")));
+  group.append(el("p", "", "負数：AUTOモードでコマンド継続（対応するコマンドのみ）。未収録の欄は — で表示。"));
+  return group;
+}
+function renderAuto() {
+  const page = el("section", "jw-auto-page jw-native-page");
+  const header = el("div", "jw-auto-header");
+  const switcher = el("button", "mini-action", "クロックメニュー（1）"); switcher.type = "button";
+  header.append(switcher, el("span", "", "0～11時のコマンド番号を編集")); page.append(header);
+  const clocks = el("div", "jw-clock-grid"); page.append(clocks);
+  let menuPage = 1;
+  const drawClocks = () => {
+    clocks.replaceChildren();
+    for (const [side, meridiem, label] of [["LD", "AM", "左 AM"], ["RD", "AM", "右 AM"], ["LD", "PM", "左 PM"], ["RD", "PM", "右 PM"]]) {
+      const key = `${side}${menuPage === 2 ? "2" : ""}_${meridiem}`;
+      const entry = profile.parsed.entries[key];
+      const clock = el("div", "jw-clock"); clock.setAttribute("aria-label", `${label} clock menu ${menuPage}`);
+      clock.append(el("span", "jw-clock-center", label));
+      const fixed = meridiem !== "AM" ? {} : side === "LD" ? {5:"線種変更",6:"属性取得",9:"AUTO"} : {0:"円1/4",3:"中心点",4:"戻る",5:"進む",6:"オフセット",9:"線上点"};
+      for (let hour = 0; hour < 12; hour += 1) {
+        const angle = hour * Math.PI / 6;
+        const number = el("span", "jw-clock-hour", String(hour));
+        number.style.left = `${50 + Math.sin(angle) * 22}%`; number.style.top = `${50 - Math.cos(angle) * 22}%`;
+        const slot = el("div", "jw-clock-slot");
+        slot.style.left = `${50 + Math.sin(angle) * 40}%`; slot.style.top = `${50 - Math.cos(angle) * 40}%`;
+        if (Object.hasOwn(fixed, hour)) {
+          const value = fixedCompactInput(fixed[hour], `${label} ${hour}:00 fixed`, "Jw_cad fixed function; stored value is preserved.");
+          slot.append(value);
+        } else slot.append(compactInput(entry, hour, `${key} ${hour}:00 command`));
+        clock.append(number, slot);
+      }
+      clocks.append(clock);
+    }
+  };
+  switcher.addEventListener("click", () => { menuPage = menuPage === 1 ? 2 : 1; switcher.textContent = `クロックメニュー（${menuPage}）`; drawClocks(); });
+  drawClocks(); page.append(commandReference());
+  appendExtraEntries(page, entriesFor("auto").filter(entry => !/^(LD|RD|LD2|RD2)_(AM|PM)$/.test(entry.key)));
+  ui.view.append(page);
+}
+function renderKeys() {
+  const page = el("section", "jw-key-page jw-native-page");
+  const columns = el("div", "jw-key-columns"); const shown = new Set();
+  const groups = [Array.from("ABCDEFGHIJKL"), Array.from("MNOPQRSTUVWX"), ["Y", "Z", ...Array.from({length:8}, (_, i) => `F${i + 2}`)]];
+  groups.forEach((keys, columnIndex) => {
+    const column = el("div", "jw-key-column");
+    const heading = el("div", "jw-key-row jw-key-heading"); heading.append(el("span"), el("span", "", "通常"), el("span", "", "Shift")); column.append(heading);
+    keys.forEach(key => {
+      const jwfKey = key.startsWith("F") && key.length > 1 ? `KEY${key}` : `KEY_${key}`;
+      const entry = profile.parsed.entries[jwfKey]; shown.add(jwfKey);
+      const row = el("div", "jw-key-row"); row.append(el("span", "", key), compactInput(entry, 0, `${key} command`), compactInput(entry, 1, `Shift+${key} command`)); column.append(row);
+    });
+    if (columnIndex === 0) {
+      const row = el("div", "jw-key-row jw-space-key"); row.append(el("span", "", "Space"), compactInput(profile.parsed.entries.KEYSP, 0, "Space command")); column.append(row); shown.add("KEYSP");
+    }
+    if (columnIndex === 2) column.append(el("p", "jw-key-shortcuts", "Tab：属性取得\nShift+Tab：レイヤ非表示化\nEsc：戻る\nShift+Esc：進む"));
+    columns.append(column);
+  });
+  page.append(columns);
+  const flags = el("div", "jw-key-flags");
+  const mode = profile.parsed.entries.N_KEY;
+  [[2,"直接属性取得を行う"],[0,"キーによるコマンド選択を無効にする"],[1,"Numキーのコマンド選択を無効にする"]].forEach(([index,label]) => {
+    const row = el("label", "g1-check"); const input = el("input"); input.type = "checkbox";
+    input.disabled = !mode || mode.values.length <= index; input.checked = Number(mode?.values[index]) === 1;
+    input.addEventListener("change", () => mutateEntry(profile.parsed.entries.N_KEY, index, input.checked ? 1 : 0));
+    row.append(input, el("span", "", label)); flags.append(row);
+  });
+  page.append(flags, commandReference());
+  appendExtraEntries(page, entriesFor("keys").filter(entry => !shown.has(entry.key)));
+  ui.view.append(page);
 }
 function renderGeneric(tab) {
   const list = el("div", "settings-groups");
@@ -377,9 +557,122 @@ function renderGeneric(tab) {
   }
   ui.view.append(list);
 }
+function compactInput(entry, index, ariaLabel) {
+  if (!entry?.values || entry.values.length <= index) {
+    const missing = el("input", "compact-input"); missing.type = "text"; missing.value = "—"; missing.disabled = true; missing.setAttribute("aria-label", ariaLabel); return missing;
+  }
+  const control = inputFor(entry, index, entry.values[index], { describe:false });
+  control.classList.add("compact-value");
+  const input = control.querySelector("input");
+  input?.setAttribute("aria-label", ariaLabel);
+  return control;
+}
+function fixedCompactInput(value, ariaLabel, title = "Not stored in this JWF") {
+  const input = el("input", "compact-input"); input.type = "text"; input.value = value; input.disabled = true; input.title = title; input.setAttribute("aria-label", ariaLabel); return input;
+}
+function lineTypeRow(label, key, kind = "standard") {
+  const entry = profile.parsed.entries[key]; const row = el("tr"); row.append(el("th", "row-heading", label));
+  if (!entry) {
+    for (let index = 0; index < 5; index += 1) { const cell = el("td", "missing-value-cell"); cell.append(fixedCompactInput("—", `${label} unavailable`)); row.append(cell); }
+    return row;
+  }
+  const indexes = kind === "random" ? [0,1,2,3,4] : [0,1,2,null,3];
+  indexes.forEach((index,column) => { const cell = el("td", index === null ? "missing-value-cell" : ""); cell.append(index === null ? fixedCompactInput("—", `${label} printer amplitude`, "This line type has no amplitude value.") : compactInput(entry,index,`${label} ${["pattern","screen value","screen pitch","printer amplitude","printer pitch"][column]}`)); row.append(cell); });
+  return row;
+}
+function renderLineTypes() {
+  const section = el("section", "jw-line-page");
+  const layout = el("div", "jw-line-layout");
+  const names = el("div", "jw-line-names");
+  const makeGroup = (title, className) => {
+    const group = el("fieldset", `jw-line-column ${className}`);
+    group.append(el("legend", "", title)); return group;
+  };
+  const patterns = makeGroup("Line Pattern", "jw-pattern-column");
+  const screen = makeGroup("Screen Display", "jw-screen-column");
+  const print = makeGroup("Printer Output", "jw-print-column");
+  const heading = (parent, text) => parent.append(el("div", "jw-line-heading", text));
+  heading(names, ""); heading(patterns, '32 characters: "-" or space');
+  const pair = (parent, first, second, className = "") => {
+    const row = el("div", `jw-line-pair ${className}`); row.append(first, second); parent.append(row);
+  };
+  pair(screen, el("span", "", "Dots"), el("span", "", "Pitch"), "jw-line-heading");
+  pair(print, el("span"), el("span", "", "Pitch"), "jw-line-heading");
+  const patternInput = (entry, label, random = false, fixed = false) => {
+    const input = el("input", "jw-pattern-input"); input.type = "text";
+    input.setAttribute("aria-label", `${label} pattern`); input.spellcheck = false;
+    input.maxLength = 32; input.disabled = fixed || !entry;
+    const raw = fixed ? "ffffffff" : entry?.values[0];
+    input.value = raw == null ? "" : decodeLinePattern(raw, random);
+    input.title = random ? "32 positions: comma or apostrophe. Converted to the stored JWF bit pattern." : "32 positions: dash draws a segment; space leaves a gap.";
+    input.addEventListener("change", () => {
+      let hex;
+      try { hex = encodeLinePattern(input.value, random); }
+      catch (error) { input.setCustomValidity(error.message); input.reportValidity(); return; }
+      input.setCustomValidity("");
+      if (!random && hex === "00000000") { input.setCustomValidity("The pattern needs at least one drawn segment."); input.reportValidity(); return; }
+      mutateEntry(profile.parsed.entries[entry.key], 0, hex);
+    });
+    input.addEventListener("input", () => input.setCustomValidity(""));
+    return input;
+  };
+  for (let n = 1; n <= 9; n += 1) {
+    const label = n === 9 ? "Auxiliary" : `Line Type ${n}`;
+    const entry = profile.parsed.entries[`LTYPE_0${n}`];
+    names.append(el("div", "jw-line-label", label)); patterns.append(patternInput(entry, label, false, n === 1));
+    pair(screen, n === 1 ? fixedCompactInput("32", `${label} dots`, "Fixed solid line") : compactInput(entry, 1, `${label} dots`), n === 1 ? fixedCompactInput("1", `${label} screen pitch`, "Fixed solid line") : compactInput(entry, 2, `${label} screen pitch`));
+    pair(print, el("span"), n === 9 ? el("span") : n === 1 ? fixedCompactInput("10", `${label} printer pitch`, "Fixed solid line") : compactInput(entry, 3, `${label} printer pitch`));
+  }
+  heading(names, ""); heading(patterns, "32 characters: apostrophe (') / comma (,)");
+  pair(screen, el("span", "", "Amplitude"), el("span", "", "Pitch"), "jw-line-heading jw-random-heading");
+  pair(print, el("span", "", "Amplitude"), el("span", "", "Pitch"), "jw-line-heading jw-random-heading");
+  for (let n = 1; n <= 5; n += 1) {
+    const label = `Random ${n}`; const entry = profile.parsed.entries[`LTYPE_R${n}`];
+    names.append(el("div", "jw-line-label", label)); patterns.append(patternInput(entry, label, true));
+    pair(screen, compactInput(entry,1,`${label} screen amplitude`),compactInput(entry,2,`${label} screen pitch`));
+    pair(print, compactInput(entry,3,`${label} printer amplitude`),compactInput(entry,4,`${label} printer pitch`));
+  }
+  layout.append(names,patterns,screen,print); section.append(layout);
+  const bottom = el("div", "jw-line-bottom");
+  const reset = el("button", "mini-action", "Initialize Lines"); reset.type="button"; reset.disabled=true; reset.title="Jw_cad initialization values have not been verified.";
+  bottom.append(reset, general1Number("LTYPE_HC",0,"Selection-frame line No.",{min:1,max:9}),general1Number("LTYPE_HC",1,"Crossline-cursor line No.",{min:1,max:9}));
+  section.append(bottom);
+  const extra=el("details","line-extra-settings");extra.append(el("summary","","Additional JWF line types"));
+  const table=el("table","settings-table line-type-table");const body=el("tbody");
+  for(let n=1;n<=4;n+=1) if(profile.parsed.entries[`LTYPE_L${n}`]) body.append(lineTypeRow(`Doubled ${n}`,`LTYPE_L${n}`));
+  table.append(body);extra.append(table);section.append(extra); ui.view.append(section);
+}
+function textFlagCheckbox(entry, label, read, write) {
+  const control=el("label","g1-check");const input=el("input");input.type="checkbox";input.checked=Boolean(entry&&read(Number(entry.values[6])||0));input.disabled=!entry;input.addEventListener("change",()=>{const value=Number(profile.parsed.entries.MSET.values[6])||0;mutateEntry(profile.parsed.entries.MSET,6,write(input.checked,value));render();});control.append(input,el("span","",label));return control;
+}
+function renderText() {
+  const section=el("section","table-section text-panel");
+  section.append(el("h2","jwcad-page-title","Text Size and Color Settings"),el("p","tab-help","Width and height: 0.1–500 mm · Spacing: -100–500 mm · Color No.: 1–8, or 9 for auxiliary text"));
+  const main=el("div","text-main-layout"); const tableWrap=el("div","text-table-wrap");
+  const table=el("table","settings-table text-type-table"); const header=el("tr");["","Width","Height","Spacing","Color No.","Used Characters","Custom-size Types"].forEach((value)=>header.append(el("th","",value)));const thead=el("thead");thead.append(header);table.append(thead);const body=el("tbody");
+  const custom=el("tr");custom.append(el("th","row-heading","Custom Size"));for(let index=0;index<4;index+=1)custom.append(el("td","muted-cell","—"));const customUsage=el("td");customUsage.append(fixedCompactInput("—","Custom-size used characters","Entity usage counts are stored in the drawing, not in a JWF profile."));const customTypes=el("td");customTypes.append(fixedCompactInput("—","Custom-size type count","Custom-size type counts are stored in the drawing, not in a JWF profile."));custom.append(customUsage,customTypes);body.append(custom);
+  const textEntries=["MWIDE","MHIGH","MDIST","MPEN"].map((key)=>profile.parsed.entries[key]);
+  for(let type=0;type<10;type+=1){const row=el("tr");row.append(el("th","row-heading",`Text Type ${type+1}`));textEntries.forEach((entry,column)=>{const cell=el("td");cell.append(compactInput(entry,type,`Text Type ${type+1} ${["width","height","spacing","color number"][column]}`));row.append(cell);});const used=el("td");used.append(fixedCompactInput("—",`Text Type ${type+1} used characters`,`Entity usage counts are stored in the drawing, not in a JWF profile.`));row.append(used,el("td","muted-cell","—"));body.append(row);} table.append(body);tableWrap.append(table,el("p","jwcad-page-note","Used-character and custom-size type counts are drawing statistics and are not stored in JWF."));
+  const side=el("aside","text-side-panel"); const mset=profile.parsed.entries.MSET;
+  const current=el("fieldset","jwcad-group");current.append(el("legend","","Current Text Command"));if(mset){current.append(inputFor(mset,0,mset.values[0],{describe:false}),inputFor(mset,1,mset.values[1],{describe:false}));}else current.append(el("p","empty-tab","MSET is not present."));
+  const movement=el("fieldset","jwcad-group ctrl-move-group");movement.append(el("legend","","Ctrl-key Text Movement"));[["Shift","X"],["Ctrl","Y"],["Alt","XY"]].forEach(([key,value])=>{const row=el("label","ctrl-move-row");row.append(el("span","",key),fixedCompactInput(value,`${key} text movement direction`,`This is a Jw_cad application setting and is not stored in JWF.`));movement.append(row);});movement.append(el("small","field-behavior","Application setting — not stored in JWF."));side.append(current,movement);main.append(tableWrap,side);section.append(main);
+  const mhen=profile.parsed.entries.MHEN; const resize=el("fieldset","jwcad-group text-resize-group");resize.append(el("legend","","Existing Text Size Conversion"));
+  if(mhen){const resizeToggle=el("label","g1-check");const toggle=el("input");toggle.type="checkbox";toggle.checked=Number(mhen.values[0])>=0;resizeToggle.append(toggle,el("span","","Change the size of existing text when this JWF is read"));toggle.addEventListener("change",()=>{mutateEntry(profile.parsed.entries.MHEN,0,toggle.checked?1:-1);render();});resize.append(resizeToggle);const anchors=el("div","text-anchor-grid");[[7,"Upper Left"],[8,"Upper Center"],[9,"Upper Right"],[4,"Middle Left"],[5,"Center"],[6,"Middle Right"],[1,"Lower Left"],[2,"Lower Center"],[3,"Lower Right"]].forEach(([value,label])=>{const item=el("label","text-anchor");const radio=el("input");radio.type="radio";radio.name="text-resize-anchor";radio.value=String(value);radio.checked=Number(mhen.values[0])===value;radio.disabled=!toggle.checked;radio.addEventListener("change",()=>{if(radio.checked)mutateEntry(profile.parsed.entries.MHEN,0,value);});item.append(radio,el("span","",label));anchors.append(item);});const customAnchor=el("label","text-anchor custom-anchor");const customRadio=el("input");customRadio.type="radio";customRadio.name="text-resize-anchor";customRadio.checked=Number(mhen.values[0])===0;customRadio.disabled=!toggle.checked;customRadio.addEventListener("change",()=>{if(customRadio.checked)mutateEntry(profile.parsed.entries.MHEN,0,0);});customAnchor.append(customRadio,el("span","","Custom size (0)"));resize.append(anchors,customAnchor,inputFor(mhen,1,mhen.values[1],{describe:false}));}else resize.append(el("p","empty-tab","MHEN is not present."));section.append(resize);
+  if(mset){const options=el("fieldset","jwcad-group text-options-group");options.append(el("legend","","Text Display and Input Options"));const optionGrid=el("div","text-option-grid");
+    optionGrid.append(textFlagCheckbox(mset,"Draw text outlines in the background",value=>Math.abs(value)%10===1,(checked,value)=>replaceDecimalDigit(value,1,checked?1:0)),textFlagCheckbox(mset,"Draw the text range in the background",value=>Math.abs(value)%10===2,(checked,value)=>replaceDecimalDigit(value,1,checked?2:0)),textFlagCheckbox(mset,"Draw text in dimension and block figures last",value=>decimalDigit(value,10)===1,(checked,value)=>replaceDecimalDigit(value,10,checked?1:0)),inputFor(mset,7,mset.values[7]),inputFor(mset,8,mset.values[8]));options.append(optionGrid);
+    const advanced=el("details","text-command-extra");advanced.append(el("summary","","Additional text-command settings from MSET"));const fields=el("div","direct-fields");[2,3,4,5].forEach((index)=>fields.append(inputFor(mset,index,mset.values[index])));advanced.append(fields);options.append(advanced);section.append(options);
+  }
+  const offset=profile.parsed.entries.MOFST;if(offset){const group=el("details","text-command-extra");group.append(el("summary","","Text reference-point offsets (MOFST)"));const fields=el("div","direct-fields");offset.values.forEach((value,index)=>fields.append(inputFor(offset,index,value)));group.append(fields);section.append(group);}
+  // Keep command-only JWF values available without displacing the native text grid.
+  const currentSettings = side.firstElementChild;
+  const commandDetails = el("details", "text-command-extra");
+  commandDetails.append(el("summary", "", "Current text command (JWF)"), currentSettings);
+  section.append(commandDetails);
+  ui.view.append(section);
+}
 function renderColors() {
   const section = el("section", "table-section");
-  section.append(el("h2", "color-page-title", "Line Color and Width Settings"), el("p", "tab-help", "Color values: 0–255 · Screen width: 1–16 · Printer width: 1–500"));
+  section.append(el("h2", "color-page-title", "Line Color and Width Settings"), el("p", "tab-help", "RGB: higher channel values add more of that color · Screen/print width: higher values make lines thicker · Point: higher values enlarge printed real points"));
   const labelMap = {
     LCOLLOR_1:"Color 1", LCOLLOR_2:"Color 2", LCOLLOR_3:"Color 3", LCOLLOR_4:"Color 4",
     LCOLLOR_5:"Color 5", LCOLLOR_6:"Color 6", LCOLLOR_7:"Color 7", LCOLLOR_8:"Color 8",
@@ -449,7 +742,7 @@ function renderColors() {
     const unit = el("div", "line-width-unit-control");
     const unitToggle = el("label", "check-field"); const unitCheck = el("input"); unitCheck.type = "checkbox"; unitCheck.checked = Number(widthEntry.values[1]) < 0;
     unitToggle.append(unitCheck, el("span", "", "Use 1/N mm line-width units"));
-    const maximum = el("label", "value-field"); const maximumLabel = el("span", "", unitCheck.checked ? "N value" : "Maximum width"); const number = el("input"); number.type = "number"; number.min = "1"; number.max = "100"; number.value = String(Math.abs(Number(widthEntry.values[1]))); maximum.append(maximumLabel, number);
+    const maximum = el("label", "value-field"); const maximumLabel = el("span", "", unitCheck.checked ? "N value" : "Maximum width"); const number = el("input"); number.type = "number"; number.min = "1"; number.max = "100"; number.value = String(Math.abs(Number(widthEntry.values[1]))); maximum.append(maximumLabel, number, el("small", "field-behavior", unitCheck.checked ? "Higher N values make each 1/N mm width unit finer." : "Higher values allow thicker screen lines."));
     unitCheck.addEventListener("change", () => mutateEntry(profile.parsed.entries.S_COMM_2, 1, (unitCheck.checked ? -1 : 1) * Math.max(1, Math.abs(Number(profile.parsed.entries.S_COMM_2.values[1]) || 100))));
     number.addEventListener("change", () => { const magnitude = Math.max(1, Math.min(100, Math.abs(Number(number.value) || 100))); mutateEntry(profile.parsed.entries.S_COMM_2, 1, (unitCheck.checked ? -1 : 1) * magnitude); });
     unit.append(unitToggle, maximum); optionFields.append(unit);
@@ -459,7 +752,7 @@ function renderColors() {
   const dpiValue = el("strong", "", dpiEntry ? `${dpiEntry.values[0]} dpi` : "Not specified in this JWF");
   const dpiButton = el("button", "mini-action", dpiEntry && Number(dpiEntry.values[0]) === 600 ? "Switch to 300 dpi" : "Switch to 600 dpi"); dpiButton.type = "button";
   dpiButton.addEventListener("click", () => { const next = dpiEntry && Number(profile.parsed.entries.P_dpi?.values?.[0]) === 600 ? 300 : 600; profile = updateJwfProfileEntry(profile, "P_dpi", [next]); refreshChrome(); render(); status(`Printer resolution set to ${next} dpi.`, "ready"); });
-  dpi.append(dpiValue, dpiButton); optionFields.append(dpi);
+  dpi.append(dpiValue, dpiButton, el("small", "field-behavior", "Higher DPI uses a finer printer-resolution basis for line widths; it is not an output limit.")); optionFields.append(dpi);
   options.append(optionFields); section.append(options);
   const presets = el("div", "color-preset-row");
   const note = "Jw_cad does not document the complete multi-color transformation performed by this preset button. Edit the verified color rows directly.";
@@ -496,13 +789,13 @@ function renderTabs() {
   ui.tabs.replaceChildren();
   for (const [id, label] of TABS) {
     const button = el("button", `jwcad-tab${active === id ? " active" : ""}`, label); button.type = "button";
-    button.addEventListener("click", () => { active = id; render(); }); ui.tabs.append(button);
+    button.addEventListener("click", () => { active = id; render(); ui.view.scrollTop = 0; }); ui.tabs.append(button);
   }
 }
 function render() {
   if (!profile) return;
   renderTabs(); ui.view.replaceChildren(); ui.source.classList.toggle("active", active === "source");
-  if (active === "source") renderSource(); else if (active === "general1") renderGeneral1(); else if (active === "general2") renderGeneral2(); else if (active === "colors") renderColors(); else if (active === "exchange") renderExchange(); else if (active === "jwfOnly") renderJwfOnly(); else if (active === "other") renderOther(); else renderGeneric(active);
+  if (active === "source") renderSource(); else if (active === "general1") renderGeneral1(); else if (active === "general2") renderGeneral2(); else if (active === "colors") renderColors(); else if (active === "lineTypes") renderLineTypes(); else if (active === "text") renderText(); else if (active === "auto") renderAuto(); else if (active === "keys") renderKeys(); else if (active === "exchange") renderExchange(); else if (active === "jwfOnly") renderJwfOnly(); else if (active === "other") renderOther(); else renderGeneric(active);
   refreshChrome();
 }
 function showProfile() { ui.empty.hidden = true; ui.workspace.hidden = false; active = "general1"; appliedText = profile.text; render(); }
