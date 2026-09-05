@@ -43,9 +43,15 @@ function parseToken(token) {
   return text;
 }
 
-function parseValue(rawValue) {
+function parseValue(rawValue, key = "") {
   const value = stripInlineComment(rawValue).trim();
   if (!value) return [];
+  // Sample.jwf uses an opening quote only: MHEN = -1 "$<ＭＳ ゴシック>
+  // Spaces (and commas) inside the font marker are part of the font name.
+  if (key === "MHEN") {
+    const font = value.match(/^([-+]?\d+)\s+"?(\$<[^>\r\n]+>\/?)"?\s*(?:#.*)?$/u);
+    if (font) return [parseToken(font[1]), font[2]];
+  }
   if (value.includes(",")) {
     return value.split(",").map((item) => parseToken(item));
   }
@@ -735,7 +741,7 @@ export function parseJwfText(text, options = {}) {
       const match = raw.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
       if (!match) return;
       const key = match[1].trim();
-      const values = parseValue(match[2]);
+      const values = parseValue(match[2], key);
       const family = familyForKey(key);
       entries[key] = {
         key,
@@ -1043,7 +1049,10 @@ function inlineCommentSuffix(value) {
   return "";
 }
 
-function formattedJwfValues(values, originalRawValue = "") {
+function formattedJwfValues(values, originalRawValue = "", key = "") {
+  if (key === "MHEN" && values.length === 2 && /^\$<[^>\r\n]+>\/?$/u.test(String(values[1]))) {
+    return `${formatJwfToken(values[0])} "${values[1]}`;
+  }
   const separator = String(originalRawValue).includes(",") ? "," : " ";
   return (values || []).map(formatJwfToken).join(separator);
 }
@@ -1061,7 +1070,7 @@ export function updateJwfProfileEntry(profile, key, values) {
   }
   const lines = String(profile.text || "").split(/\r\n|\r|\n/);
   const entry = profile.parsed?.entries?.[normalizedKey];
-  const formatted = formattedJwfValues(values, entry?.rawValue);
+  const formatted = formattedJwfValues(values, entry?.rawValue, normalizedKey);
   if (entry?.line && entry.line <= lines.length) {
     const index = entry.line - 1;
     const existing = lines[index];

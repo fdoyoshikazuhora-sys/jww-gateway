@@ -13,6 +13,26 @@ import {
 } from "./jwf.js";
 
 describe("parseJwfText", () => {
+  it("keeps the native MHEN font marker intact across spaces and italic suffixes", () => {
+    for (const font of ["$<ＭＳ ゴシック>", "$<ＭＳ Ｐゴシック>/", "$<Font, Name>"]) {
+      for (const token of [font, `"${font}`, `"${font}"`]) {
+        const profile = openJwfProfile(encodeJwfText(`MHEN = -1 ${token}\r\nEND\r\n`));
+        expect(profile.parsed.entries.MHEN.values).toEqual([-1, font]);
+        expect(profile.parsed.normalizedSettings.text.conversion.fontFamily).toBe(font);
+        const edited = updateJwfProfileEntry(profile, "MHEN", [3, font]);
+        expect(edited.text).toContain(`MHEN = 3 "${font}\r\n`);
+        const reopened = openJwfProfile(saveJwfProfile(edited).bytes);
+        expect(reopened.parsed.entries.MHEN.values).toEqual([3, font]);
+      }
+    }
+  });
+  it("exports a changed MHEN font name without retaining the old name suffix", () => {
+    const profile = openJwfProfile(encodeJwfText('MHEN = -1 "$<ＭＳ ゴシック>\r\nEND\r\n'));
+    const edited = updateJwfProfileEntry(profile, "MHEN", [-1, "$<ＭＳ 明朝>"]);
+    const saved = saveJwfProfile(edited);
+    expect(decodeJwfBytes(saved.bytes)).not.toContain("ゴシック");
+    expect(openJwfProfile(saved.bytes).parsed.entries.MHEN.values).toEqual([-1, "$<ＭＳ 明朝>"]);
+  });
   it("parses active JWF key value rows before END", () => {
     const parsed = parseJwfText(`
 LCOLLOR_1 = 120 120 120 1
