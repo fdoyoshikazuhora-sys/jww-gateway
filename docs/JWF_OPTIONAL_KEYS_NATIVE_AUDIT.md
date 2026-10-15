@@ -4,6 +4,8 @@ Updated: 2026-10-16. **Incomplete: 19 definitions reviewed, 4 keys partially obs
 
 This continues [JWF Activation Audit](JWF_ACTIVATION_AUDIT.md). Definitions, browser editing, native behavior, and persistence are separate evidence layers. This is not full JWF/JWW compatibility, engineering acceptance, or a mep-draft integration result.
 
+Latest continuation: [TNKN fields and planned-name audit](JWF_TNKN_NAME_NATIVE_AUDIT.md). Five more TNKN_SET fields have native Save As evidence; only field 1 was reopened before the automation connection failed. Fields 7/8 and all new name boundary/Japanese cases remain unexecuted. Whole-key status stays partial.
+
 ## Sources
 
 - [Official downloads](https://www.jwcad.net/download.htm) and [official release history](https://www.jwcad.net/versioninfo.htm), checked 2026-10-15. Current release is 10.03.7; testing used the already installed 10.02.1, not the latest release. No installation or upgrade was performed.
@@ -34,7 +36,7 @@ All 19 rows below have parser/serialization unit tests and individual browser re
 | TNKZ_SET | 1650-1717 | Nine integers, including decimal-packed fields | **Partial:** radius 25 -> 50; native save and clean-process reopen retained 50 | Other eight fields, radius zero/bounds, packed defaults and generated geometry not certified |
 | TNK3_NM1 | 1719-1721 | One literal string, documented 20 Shift_JIS bytes | **Partial:** `AuditReference` reflected; generated table saved and visibly reloaded | 20-byte boundary/truncation, Japanese boundary variants and repeated application not tested |
 | TNK3_NM2 | 1723-1725 | One literal string, documented 20 Shift_JIS bytes | **Partial:** AuditPlanned reflected only on planned option; three generated texts saved and clean-reopened | Boundary/truncation, Japanese variants, manual reload and native JWF export not run |
-| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | **Partial:** field 3 prefix Q3 reflected in building numbers and clean-reopened; planned triangle affixes unchanged | Other seven fields, six-byte boundary/truncation, reference-side controls and decoration unresolved |
+| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | **Partial:** fields 1..6 have native Save As evidence across continuations; field 3 clean-reopened, field 1 reopen screenshot has framing limits | Fields 2/4/5/6 reopen pending; fields 7/8, six-byte boundaries and decoration unverified; see latest continuation |
 | REF_FILE | 1764-1778 | Literal reference filename; TAB-separated substitutions on printing | Not run; distributed placeholder remains blocked | Synthetic local reference/drawing pair, print-preview and missing-file behavior; no real print job |
 
 Scope remains `unknown` at whole-key level, including TNKZ_SET: one proven document field does not prove all nine fields persist. Definition evidence points here and marks the four native observations as `partial`.

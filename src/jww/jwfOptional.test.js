@@ -100,3 +100,26 @@ test("unsupported escaping is rejected and unverified aliases remain undefined",
   entry.definition.valueSchema[0] = "line";
   assert.equal(validateJwfText("COM_RV41=1 3 3").ok, false);
 });
+
+test("TNK3_NM2 uses Shift_JIS bytes at the documented name boundary", () => {
+  for (const [name, length] of [
+    ["1234567890123456789", 19], ["12345678901234567890", 20], ["123456789012345678901", 21],
+    ["\u8a08\u753b\u5efa\u7269\u691c\u8a3c", 12],
+    ["\u6771\u4eac\u8a08\u753b\u5efa\u7269\u78ba\u8a8d\u8a66\u9a13", 20],
+    ["1234567890123456789\u5efa", 21],
+  ]) {
+    assert.equal(encodeJwfText(name).length, length);
+    const profile = openJwfProfile(encodeJwfText(`TNK3_NM2=${name}\r\nEND\r\n`));
+    assert.equal(profile.validation.ok, length <= 20);
+    assert.equal(profile.parsed.entries.TNK3_NM2.values[0], name);
+    assert.equal(validateJwfText(`#TNK3_NM2=${name}\r\nEND\r\n`).ok, true);
+    const baseline = openJwfProfile(encodeJwfText("TNK3_NM2=old\r\nEND\r\n"));
+    if (length <= 20) {
+      assert.deepEqual(saveJwfProfile(profile).bytes, profile.originalBytes);
+      const changed = updateJwfProfileEntry(baseline, "TNK3_NM2", [name]);
+      assert.equal(parseJwfBytes(saveJwfProfile(changed).bytes).entries.TNK3_NM2.values[0], name);
+    } else {
+      assert.throws(() => updateJwfProfileEntry(baseline, "TNK3_NM2", [name]));
+    }
+  }
+});

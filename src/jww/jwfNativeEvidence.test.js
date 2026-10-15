@@ -82,3 +82,32 @@ for (const [path, sha256, expected] of [
     assert.equal(diff.roundTripCompatible, true);
   });
 }
+
+const nativeFields = process.env.JWF_NATIVE_FIELDS_DIR;
+for (const [field, sha256, labels, controls] of [
+  [1, "e302acb151ad72eca7f20f47fb7b84e88a99e34ccdb07e9c494d6f21b15debe0", ["Q13}", "Q14}", "Q16}"], ["[1]", "[2]", "[3]", "[4]", "[5]"]],
+  [2, "36177e75f8ec994396bde6c3b803c1d33c998641a8f153eff8a3e16cd96f75a3", ["{3Q2", "{4Q2", "{6Q2"], ["[1]", "[2]", "[3]", "[4]", "[5]"]],
+  [4, "d57e6efcc5da761d8209f28170816bdf872fce780f5963761a1178236318d64e", ["(3Q4", "(4Q4", "(6Q4"], ["<1>", "<2>", "<3>", "<4>", "<5>"]],
+  [5, "04b5fd631a2e2bc7f5d281a1f90f379ecae900dd71a4ca8b479b4c29943a3dca", ["Q51]", "Q52]", "Q53]", "Q54]", "Q55]"], ["{3}", "{4}", "{6}"]],
+  [6, "7a13d11ec80b9c2bd90829244fcbd54f9f968d443b5a0a8e00503dcbdfd4d7e5", ["[1Q6", "[2Q6", "[3Q6", "[4Q6", "[5Q6"], ["{3}", "{4}", "{6}"]],
+]) {
+  test(`private TNKN field ${field}: native-saved text and Gateway round trip`, { skip: !nativeFields }, async () => {
+    const source = new Uint8Array(readFileSync(`${nativeFields}/field-${field}/output.jww`));
+    assert.equal(hash(source), sha256);
+    const input = new Uint8Array(readFileSync(`${nativeFields}/field-${field}/input.jww`));
+    assert.equal(hash(input), "a574ab02d25d5dcefb4ed4e0d18b192c45c6fa264f58769dedcd7a904d7afb8b");
+    const inputCount = convertJwwBytes(input).entities.length;
+    const drawing = convertJwwBytes(source);
+    const texts = drawing.entities.slice(inputCount).filter(item => item.type === "TEXT").map(item => item.entity.text);
+    for (const label of labels) assert.equal(texts.filter(text => text === label).length, 2, label);
+    for (const label of controls) assert.equal(texts.filter(text => text === label).length, 2, label);
+    assert.deepEqual(saveNativeJww(await openNativeJww(source)).bytes, source);
+    const before = hash(JSON.stringify(drawing));
+    const rebuilt = buildJwwBytes({ version: drawing.meta.jwwVersion, entities: drawing.entities, meta: drawing.meta });
+    assert.equal(hash(JSON.stringify(drawing)), before);
+    const diff = buildJwwSemanticDiff(drawing, convertJwwBytes(rebuilt));
+    assert.equal(diff.parserClean, true);
+    assert.equal(diff.roundTripCompatible, true);
+    // A regression over saved bytes is not a native GUI reopen test.
+  });
+}

@@ -94,6 +94,7 @@
     "docs/JWF_ACTIVATION_AUDIT.md",
     "docs/JWF_OPTIONAL_KEYS_NATIVE_AUDIT.md",
     "docs/JWF_NATIVE_MANUAL_PROTOCOL.md",
+    "docs/JWF_TNKN_NAME_NATIVE_AUDIT.md",
     "docs/JWF_SAMPLE_ACTIVATION_MATRIX.md",
     "docs/jww-gateway-json.schema.json",
     "docs/jww-gateway-manifest.schema.json",
