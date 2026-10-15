@@ -1,3 +1,5 @@
+import { optionalJwfDefinition, parseOptionalJwfValue, formatOptionalJwfValues, validateOptionalJwfValues } from "./jwfOptional.js";
+
 const DEFAULT_ENCODING = "shift_jis";
 const JWF_HEX_KEYS = "0123456789ABCDEF".split("");
 
@@ -45,6 +47,8 @@ function parseToken(token) {
 
 function parseValue(rawValue, key = "") {
   const value = stripInlineComment(rawValue).trim();
+  const optional = parseOptionalJwfValue(key, value);
+  if (optional !== undefined) return optional;
   if (!value) return [];
   // Sample.jwf uses an opening quote only: MHEN = -1 "$<ＭＳ ゴシック>
   // Spaces (and commas) inside the font marker are part of the font name.
@@ -80,6 +84,8 @@ function familyForKey(key) {
 }
 
 function scopeForKey(key) {
+  const optional = optionalJwfDefinition(key);
+  if (optional) return optional.scope;
   if (isJwfOnlyOperationKey(key)) {
     return "operation";
   }
@@ -100,6 +106,8 @@ function definitionWithScope(key, definition) {
 }
 
 function definitionForKey(key) {
+  const optional = optionalJwfDefinition(key);
+  if (optional) return optional;
   if (/^LCOLLOR_[1-8]$/.test(key)) {
     return {
       label: "screen line color",
@@ -901,6 +909,13 @@ export function validateJwfText(text, options = {}) {
         return;
       }
       const key = match[1];
+      try {
+        for (const message of validateOptionalJwfValues(key, parseValue(match[2], key), (value) => encodeJwfText(value).length)) {
+          diagnostics.push({ severity: "error", code: "JWF_OPTIONAL_VALUE_INVALID", line: lineNumber, message });
+        }
+      } catch (error) {
+        diagnostics.push({ severity: "error", code: error.code || "JWF_OPTIONAL_VALUE_INVALID", line: lineNumber, message: error.message });
+      }
       if (seen.has(key)) {
         diagnostics.push({
           severity: "warning",
@@ -1052,6 +1067,8 @@ function inlineCommentSuffix(value) {
 }
 
 function formattedJwfValues(values, originalRawValue = "", key = "") {
+  const optional = formatOptionalJwfValues(key, values, (value) => encodeJwfText(value).length);
+  if (optional !== undefined) return optional;
   if (key === "MHEN" && values.length === 2 && /^\$<[^>\r\n]+>\/?$/u.test(String(values[1]))) {
     return `${formatJwfToken(values[0])} "${values[1]}`;
   }

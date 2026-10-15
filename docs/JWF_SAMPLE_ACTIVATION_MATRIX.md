@@ -8,20 +8,20 @@ A commented assignment may be an example, an alternative, or an optional setting
 Named fields do not mean all field ranges, dependencies, or native behavior are verified.
 Documentation-only keys mentioned within explanatory sentences require a separate manual review; they are not executable rows.
 
-Summary: {"assignmentRows":236,"uniqueKeys":230,"activeRows":0,"commentedRows":26,"afterEndRows":210,"unverifiedDefinitionRows":23,"commentCount":1543,"blankCount":16,"otherLineCount":127}
+Summary: {"assignmentRows":236,"uniqueKeys":230,"activeRows":0,"commentedRows":26,"afterEndRows":210,"unverifiedDefinitionRows":0,"commentCount":1543,"blankCount":16,"otherLineCount":127}
 First END line: 34
 
 | Line | Key | Source state | After END | Same-key lines | Gateway definition | Review reasons |
 | ---: | --- | --- | --- | --- | --- | --- |
 | 95 | S_COMM_0 | after-END | true | 95 | partial | blocked-by-END-in-source, startup-only-reference |
-| 126 | LD2_RV | commented-assignment | true | 126 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 128 | RD2_RV | commented-assignment | true | 128 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 139 | COM_RV01 | commented-assignment | true | 139 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 142 | COM_RV11 | commented-assignment | true | 142 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 145 | COM_RV21 | commented-assignment | true | 145 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 148 | COM_RV31 | commented-assignment | true | 148 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 151 | COM_RV41 | commented-assignment | true | 151 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 159 | COM_RV_C | commented-assignment | true | 159 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
+| 126 | LD2_RV | commented-assignment | true | 126 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 128 | RD2_RV | commented-assignment | true | 128 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 139 | COM_RV01 | commented-assignment | true | 139 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 142 | COM_RV11 | commented-assignment | true | 142 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 145 | COM_RV21 | commented-assignment | true | 145 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 148 | COM_RV31 | commented-assignment | true | 148 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 151 | COM_RV41 | commented-assignment | true | 151 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 159 | COM_RV_C | commented-assignment | true | 159 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
 | 206 | S_COMM_1 | after-END | true | 206 | partial | blocked-by-END-in-source |
 | 261 | S_COMM_2 | after-END | true | 261 | partial | blocked-by-END-in-source |
 | 295 | S_COMM_3 | after-END | true | 295 | partial | blocked-by-END-in-source |
@@ -35,15 +35,15 @@ First END line: 34
 | 625 | R_STR0_00 | commented-assignment | true | 622, 625, 628 | partial | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
 | 628 | R_STR0_00 | commented-assignment | true | 622, 625, 628 | partial | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
 | 669 | R_CROSS_SET | after-END | true | 669 | partial | blocked-by-END-in-source |
-| 681 | R_CROSS_ST1 | commented-assignment | true | 681, 687 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified, alternative-or-duplicate-key |
-| 682 | R_CROSS_ST2 | commented-assignment | true | 682, 688 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified, alternative-or-duplicate-key |
-| 683 | R_CROSS_ST3 | commented-assignment | true | 683, 689 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified, alternative-or-duplicate-key |
-| 687 | R_CROSS_ST1 | commented-assignment | true | 681, 687 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key, key-semantics-unverified |
-| 688 | R_CROSS_ST2 | commented-assignment | true | 682, 688 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key, key-semantics-unverified |
-| 689 | R_CROSS_ST3 | commented-assignment | true | 683, 689 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key, key-semantics-unverified |
-| 690 | R_CROSS_ST4 | commented-assignment | true | 690 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 691 | R_CROSS_ST5 | commented-assignment | true | 691 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 692 | R_CROSS_ST6 | commented-assignment | true | 692 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
+| 681 | R_CROSS_ST1 | commented-assignment | true | 681, 687 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 682 | R_CROSS_ST2 | commented-assignment | true | 682, 688 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 683 | R_CROSS_ST3 | commented-assignment | true | 683, 689 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 687 | R_CROSS_ST1 | commented-assignment | true | 681, 687 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 688 | R_CROSS_ST2 | commented-assignment | true | 682, 688 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 689 | R_CROSS_ST3 | commented-assignment | true | 683, 689 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 690 | R_CROSS_ST4 | commented-assignment | true | 690 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 691 | R_CROSS_ST5 | commented-assignment | true | 691 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 692 | R_CROSS_ST6 | commented-assignment | true | 692 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
 | 715 | S_MESH_0 | after-END | true | 715 | named-fields-not-native-verified | blocked-by-END-in-source, startup-only-reference |
 | 752 | ZOOM | after-END | true | 752 | named-fields-not-native-verified | blocked-by-END-in-source |
 | 768 | LAYSCALE | after-END | true | 768 | named-fields-not-native-verified | blocked-by-END-in-source |
@@ -243,12 +243,12 @@ First END line: 34
 | 1580 | KEY76 | after-END | true | 1580 | partial | blocked-by-END-in-source |
 | 1608 | WD_COM | after-END | true | 1608 | partial | blocked-by-END-in-source |
 | 1639 | AC_COM | after-END | true | 1639 | partial | blocked-by-END-in-source |
-| 1714 | TNKZ_SET | commented-assignment | true | 1714 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 1721 | TNK3_NM1 | commented-assignment | true | 1721 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 1725 | TNK3_NM2 | commented-assignment | true | 1725 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified |
-| 1740 | TNKN_SET | commented-assignment | true | 1740, 1744 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified, alternative-or-duplicate-key |
-| 1744 | TNKN_SET | commented-assignment | true | 1740, 1744 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key, key-semantics-unverified |
-| 1766 | REF_FILE | commented-assignment | true | 1766 | unverified | commented-assignment-requires-context-review, blocked-by-END-in-source, key-semantics-unverified, external-reference-requires-review |
+| 1714 | TNKZ_SET | commented-assignment | true | 1714 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 1721 | TNK3_NM1 | commented-assignment | true | 1721 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 1725 | TNK3_NM2 | commented-assignment | true | 1725 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source |
+| 1740 | TNKN_SET | commented-assignment | true | 1740, 1744 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 1744 | TNKN_SET | commented-assignment | true | 1740, 1744 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, alternative-or-duplicate-key |
+| 1766 | REF_FILE | commented-assignment | true | 1766 | named-fields-not-native-verified | commented-assignment-requires-context-review, blocked-by-END-in-source, external-reference-requires-review |
 
 ## Unclassified Lines
 

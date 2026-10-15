@@ -346,7 +346,7 @@ function openColorDialog(entry, label) {
 }
 function inputFor(entry, index, value, { describe = true } = {}) {
   if (entry.key === "R_STR0_00" && entry.values.length === 3 && index === 2 && value === "") return document.createDocumentFragment();
-  if (BOOLEAN_FIELDS.has(`${entry.key}:${index}`) && [0, 1].includes(Number(value))) {
+  if ((BOOLEAN_FIELDS.has(`${entry.key}:${index}`) || /^(LD2|RD2)_RV$/.test(entry.key)) && [0, 1].includes(Number(value))) {
     const label = el("label", "check-field");
     const input = el("input"); input.type = "checkbox"; input.checked = Number(value) === 1;
     input.addEventListener("change", () => mutateEntry(entry, index, input.checked ? 1 : 0));
@@ -355,10 +355,12 @@ function inputFor(entry, index, value, { describe = true } = {}) {
   const label = el("label", "value-field"); label.append(el("span", "", fieldName(entry, index)));
   if (entry.key === "R_STR0_00" && entry.values.length === 3 && index === 0) label.classList.add("unit-parameters");
   const input = el("input");
-  const numeric = typeof value === "number" || (String(value).trim() !== "" && Number.isFinite(Number(value)));
+  const literalText = /^(TNK3_NM[12]|TNKN_SET|REF_FILE)$/.test(entry.key);
+  const numeric = !literalText && (typeof value === "number" || (String(value).trim() !== "" && Number.isFinite(Number(value))));
   const linePattern = /^LTYPE_(?:0[2-9]|R[1-5]|L[1-4])$/.test(entry.key) && index === 0;
   const constraint = numeric ? numericConstraint(entry,index) : null;
   input.type = numeric&&constraint ? "number" : "text"; input.value = value ?? "";
+  if (/^COM_RV\d/.test(entry.key) && entry.definition?.valueSchema?.[index]?.startsWith("reserved")) input.disabled = true;
   if (constraint) { input.min=String(constraint.min); input.max=String(constraint.max); input.step=String(constraint.step); input.title=`Allowed: ${constraint.label}`; }
   if (linePattern) { input.pattern="[0-9a-fA-F]{8}"; input.maxLength=8; input.title="Enter exactly eight hexadecimal digits (00000001–ffffffff)."; }
   const validate = () => { const next=Number(input.value); const excluded=constraint?.excluded?.has(next); const invalidValue=constraint?.valid&&!constraint.valid(next); const invalidPattern=linePattern&&!/^[0-9a-fA-F]{8}$/.test(input.value); input.setCustomValidity(excluded||invalidValue?`Enter ${constraint.label}.`:invalidPattern?"Enter exactly eight hexadecimal digits.":""); return !excluded&&!invalidValue&&!invalidPattern&&input.checkValidity(); };

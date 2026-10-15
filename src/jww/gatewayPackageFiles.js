@@ -34,6 +34,7 @@ export const GATEWAY_PACKAGE_ROOT_FILES = [
   "reports/.gitkeep",
   "reports/README.md",
   "reports/jwf-activation-browser.json",
+  "reports/jwf-optional-browser.json",
   "samples/roundtrip/README.md",
 ];
 
@@ -52,6 +53,7 @@ export const GATEWAY_PACKAGE_TOOL_FILES = [
   "jww-semantic-diff.mjs",
   "jwf-parse.mjs",
   "jwf-activation-audit.mjs",
+  "jwf-optional-browser-check.mjs",
   "jww-jwf-compare.mjs",
   "jww-jwf-value-scan.mjs",
   "jww-layer-defaults-audit.mjs",
@@ -79,6 +81,7 @@ export const GATEWAY_PACKAGE_DOC_FILES = [
   "JWW_FORMAT_FIELD_MATRIX.md",
   "JWW_JWF_ENV_AUDIT.md",
   "JWF_ACTIVATION_AUDIT.md",
+  "JWF_OPTIONAL_KEYS_NATIVE_AUDIT.md",
   "JWF_SAMPLE_ACTIVATION_MATRIX.md",
   "JWW_GATEWAY_RELEASE_CHECKLIST.md",
   "JWW_GATEWAY_RELEASE_NOTES.md",
@@ -99,6 +102,8 @@ export const GATEWAY_PACKAGE_SAMPLE_FILES = [
   "jwf-open-items-core.jww",
   "jwf-open-items-layer-defaults.jwf",
   "jwf-open-items-layer-defaults.jww",
+  "native-tnkz-radius25.jww",
+  "native-tnkz-radius50.jww",
 ];
 
 export const GATEWAY_PACKAGE_SRC_FILES = [
@@ -140,6 +145,9 @@ export const GATEWAY_PACKAGE_SRC_FILES = [
   "jwfAudit.js",
   "jwfAudit.test.js",
   "jwfAuditCli.test.js",
+  "jwfOptional.js",
+  "jwfOptional.test.js",
+  "jwfNativeEvidence.test.js",
   "jwfFixturePairs.test.js",
   "jwfValueScan.js",
   "jwfValueScan.test.js",

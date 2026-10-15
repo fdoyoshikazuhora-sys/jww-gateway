@@ -49,7 +49,7 @@ test("probes require reviewed line identity and never remove END or explanation 
 });
 
 test("unverified keys and external-reference examples are not automatically activated", () => {
-  for (const key of ["UNKNOWN", "TNKZ_SET", "REF_FILE"]) {
+  for (const key of ["UNKNOWN", "CROSS_ST1", "R_CROSS_ST30", "REF_FILE"]) {
     const source = encodeJwfText(`#${key}=1\r\n`);
     assert.throws(() => createJwfActivationProbe(source, { line: 1, expectedKey: key, reviewed: true, loadMode: "manual" }), /unverified/);
   }

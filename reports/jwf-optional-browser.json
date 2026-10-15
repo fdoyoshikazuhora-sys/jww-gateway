@@ -1,0 +1,108 @@
+{
+  "url": "http://localhost:3000/apps/jww-basic-settings/environment.html",
+  "browser": "Chrome 155.0.8059.41 headless",
+  "checks": [
+    {
+      "key": "LD2_RV",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "RD2_RV",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "COM_RV01",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "COM_RV11",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "COM_RV21",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "COM_RV31",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "COM_RV41",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "COM_RV_C",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "R_CROSS_ST1",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "R_CROSS_ST2",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "R_CROSS_ST3",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "R_CROSS_ST4",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "R_CROSS_ST5",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "R_CROSS_ST6",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "TNKZ_SET",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "TNK3_NM1",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "TNK3_NM2",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "TNKN_SET",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    },
+    {
+      "key": "REF_FILE",
+      "unchangedBytes": true,
+      "editApplyExportReopen": true
+    }
+  ],
+  "invalidEditRestored": true,
+  "errors": [],
+  "narrowLayout": {
+    "viewportWidth": 390,
+    "documentWidth": 720
+  },
+  "nativeJwCad": "separate evidence, not exercised by this test"
+}

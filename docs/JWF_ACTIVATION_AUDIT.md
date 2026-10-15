@@ -2,6 +2,8 @@
 
 Date: 2026-10-15. Status: investigation and scoped remediation, **not complete JWF support**.
 
+Follow-up: [Optional JWF Keys: Native Audit](JWF_OPTIONAL_KEYS_NATIVE_AUDIT.md) adds source-backed definitions and individual browser tests for the 19 previously undefined keys, plus partial native radius/building-name evidence. The baseline results below describe the earlier pass and are not the latest verification totals. The generated row matrix has been refreshed; zero undefined sample rows does not mean complete native coverage.
+
 ## Scope And Sources
 
 Follow the JWF-first investigation requested by the owner. Do not automatically apply a JWF to an existing JWW or propagate `JWW_CIRCULAR_SOLID` into consumers as part of this change.

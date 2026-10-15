@@ -1,4 +1,4 @@
-import { decodeJwfBytes, parseJwfText } from "./jwf.js";
+import { decodeJwfBytes, parseJwfText, validateJwfText } from "./jwf.js";
 
 const ASSIGNMENT = /^[ \t]*([A-Za-z_][A-Za-z0-9_]*)[ \t]*=[ \t]*(.*)$/;
 const STARTUP_ONLY = new Set(["S_COMM_0", "S_MESH_0"]);
@@ -73,6 +73,7 @@ export function auditJwfBytes(input) {
       state: commented ? "commented-assignment" : afterEnd ? "after-END" : "active-assignment",
       values: entry?.values || [], family: entry?.family || "unknown",
       label: definition?.label || null,
+      definitionEvidence: definition?.evidence || null,
       scope: definition?.scope || "unknown",
       definitionCoverage: !definition ? "unverified" : definition.valueSchema?.some((field) => field.includes("...")) ? "partial" : "named-fields-not-native-verified",
       requiredLoadMode: STARTUP_ONLY.has(key) ? "startup" : "unverified",
@@ -130,6 +131,8 @@ export function createJwfActivationProbe(input, { line, expectedKey, reviewed = 
   const activeBytes = concatenate(active, suffix);
   const inactiveParsed = parseJwfText(decodeJwfBytes(inactiveBytes));
   const activeParsed = parseJwfText(decodeJwfBytes(activeBytes));
+  const validation = validateJwfText(decodeJwfBytes(activeBytes));
+  if (!validation.ok) throw new Error(`Invalid activation values: ${validation.errors.map((item) => item.message).join(" ")}`);
   if (inactiveParsed.entryCount !== 0 || activeParsed.entryCount !== 1 || activeParsed.keys[0] !== row.key) throw new Error("Probe isolation failed");
   return {
     inactiveBytes, activeBytes,
