@@ -27,6 +27,19 @@ Source: installed Jw_cad 10.02.1 Sample.jwf, SHA-256 c6ca97617d4f2b037cec4c4c280
 8. Record PASS only for the exact tested value/command/side/hour, FAIL for an observed mismatch, UNVERIFIED for missing semantics and BLOCKED for unavailable operation. Attach screenshots, exported JWF and output JWW paths/hashes. Never turn NOT_RUN into PASS merely because a profile loaded.
 9. Close the test process and restore its captured baseline. Verify hashes of both original JWF files and installed sample drawings. Keep evidence; do not restore another person's or an older session's registry state.
 
+## Seven-Field Boundary Resume
+
+The private `.work/jwf-native-seven-20261016` pack has 21 independent profiles: fields 1/2/4/5/6/7/8, each with ASCII5/6/7. Its `cases.json` is a preparation record, not execution evidence. Read `native-results.json` and [the latest status matrix](JWF_TNKN_NAME_NATIVE_AUDIT.md) first. Do not recreate the pack or overwrite existing output.jww/screenshots.
+
+1. After tool recovery, confirm no unrelated native session is open and recheck the captured original-file/registry baseline. The interrupted field-4 ASCII7 process was closed and the baseline restored; do not reuse its old handle or coordinates.
+2. First start clean with the target key inactive and reopen the five saved but unreviewed outputs: field-1 ASCII6/7, field-2 ASCII6/7 and field-4 ASCII6. Inspect enlarged relevant table labels, capture evidence, and do not resave these files.
+3. In separately restored active-startup sessions, generate field-4 ASCII7 and fields 5/6/7/8 ASCII6/7. Fields 1/2/5/6 use the reference branch; fields 4/7/8 use planned. Use Sky -> Triangulation, the same measurement position, building-position and triangle tables, and separate output placement. Record geometry/position if it differs from the previous run.
+4. Native Save As to a new case output, close/restore/restart inactive, and reopen each output. For fields 5..8 enlarge the TRIANGLE-number table; a building-table screenshot is insufficient. Parse saved bytes separately to check all affected and unaffected labels/counts. Seven-byte inputs are out of spec and cannot justify changing the six-byte editor limit.
+5. Complete the unrun ASCII5 controls for fields 2/4/5/6/7/8 similarly. Retain explicit UNVERIFIED for any unfinished phase; never substitute a Gateway rebuild for native reopen.
+6. Post-generation JWF Write/Read has already been performed for field-1 ASCII5 and did not preserve TNKN_SET. Keep that unmodified export and result. Any additional export test must use a fresh filename, a clean inactive-key session for Read, and NEW geometry after Read; merely reopening old generated text does not test environment persistence.
+
+The current pack does not contain Japanese/mixed boundary cases for these seven fields, and no such native result is claimed.
+
 ## Manual Input Boundaries
 
 The current computer-use API supports left drag and right click, but not right drag, holding a button while capturing a menu, or mouse motion without a click. Clock-menu side/color checks and passive cursor screenshots therefore require manual input. Do not substitute a left drag for a right-drag result. Capture held menus with another person/camera if necessary; record which mouse button is held.

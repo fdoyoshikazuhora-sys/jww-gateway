@@ -211,6 +211,79 @@ test("private native JWF export omits TNKN_SET and clean reimport uses default n
   // This pins the observed limitation, not successful environment round-trip preservation.
 });
 
+const nativeSeven = process.env.JWF_NATIVE_SEVEN_DIR;
+for (const [field, size, sha256] of [
+  [1, 5, "a2a5422a5990c4883f1cfa3d4437ea4e24160732cd7e23d71e0eb53e85779d10"],
+  [1, 6, "8cd08656154863e1f740b70bdf310d406f6ec402505efb27f13895aed037829b"],
+  [1, 7, "05ae39264f21762a91ab7b19c3f8a75acbb81b0422101bb8b5a1953dcd391aea"],
+  [2, 6, "c61e3088847a2cccd7510f31ab994132c1247ffc321e8f54c8d0312e3049b94c"],
+  [2, 7, "b16af48c16597afbf1cd365485575782ca3092df20592f7af31cd108781ecfbb"],
+  [4, 6, "e9a91a11fb9906fc78c41c6d784acc342f7bb246452aec749b3b9f677f98ab69"],
+]) {
+  test(`private TNKN field ${field} ASCII${size}: saved bytes only, not native reopen acceptance`, { skip: !nativeSeven }, async () => {
+    const folder = `${nativeSeven}/field-${field}-ascii${size}`;
+    const affixes = ["{", "}", "(", ")", "[", "]", "<", ">"];
+    affixes[field - 1] = "ABCDEFG".slice(0, size);
+    const on = readFileSync(`${folder}/on.jwf`);
+    assert.equal(decodeJwfBytes(on), `TNKN_SET=${affixes.join(",")}\r\nEND\r\n`);
+    assert.deepEqual(parseJwfBytes(on).entries.TNKN_SET.values, affixes);
+    assert.equal(decodeJwfBytes(readFileSync(`${folder}/off.jwf`)), `#${decodeJwfBytes(on)}`);
+    assert.equal(parseJwfBytes(readFileSync(`${folder}/off.jwf`)).entryCount, 0);
+    assert.equal(hash(readFileSync(`${folder}/input.jww`)), "a574ab02d25d5dcefb4ed4e0d18b192c45c6fa264f58769dedcd7a904d7afb8b");
+    const source = new Uint8Array(readFileSync(`${folder}/output.jww`));
+    assert.equal(hash(source), sha256);
+    const drawing = convertJwwBytes(source);
+    assert.equal(drawing.meta.jwwVersion, 700);
+    assert.equal(drawing.entities.length, field === 4 ? 2003 : 2008);
+    const texts = drawing.entities.slice(1740).filter(item => item.type === "TEXT").map(item => item.entity.text);
+    const observedAffix = size === 5 ? "ABCDE" : "ABCDEF";
+    const labels = [3, 4, 5].map(n => field === 1 ? `${observedAffix}${n}}` : `${field === 2 ? "{" : "("}${n}${observedAffix}`);
+    labels.push(...[1, 2, 3, 4, 5, 6, 7].map(n => field === 4 ? `<${n}>` : `[${n}]`));
+    for (const label of labels) assert.equal(texts.filter(text => text === label).length, 2, label);
+    assert.equal(texts.some(text => text.includes("ABCDEFG")), false);
+    assert.deepEqual(saveNativeJww(await openNativeJww(source)).bytes, source);
+    const json = JSON.parse(JSON.stringify(drawing));
+    const snapshot = hash(JSON.stringify(json));
+    const rebuilt = buildJwwBytes({ version: 700, entities: json.entities, meta: json.meta });
+    assert.equal(hash(JSON.stringify(json)), snapshot);
+    const reopened = convertJwwBytes(rebuilt);
+    const diff = buildJwwSemanticDiff(drawing, reopened);
+    assert.equal(diff.parserClean, true);
+    assert.equal(diff.roundTripCompatible, true);
+    assert.deepEqual(reopened.entities.filter(e => e.type === "TEXT").map(e => e.entity.text),
+      drawing.entities.filter(e => e.type === "TEXT").map(e => e.entity.text));
+  });
+}
+
+test("private post-generation native JWF export still omits TNKN_SET", { skip: !nativeSeven }, async () => {
+  const folder = `${nativeSeven}/field-1-ascii5`;
+  const bytes = new Uint8Array(readFileSync(`${folder}/post-generation-export.jwf`));
+  assert.equal(bytes.length, 10275);
+  assert.equal(hash(bytes), "ff3efa6944e3f99259e4f3c1b7281be5002918d7710d0c984ae100cfd2246ab1");
+  const profile = openJwfProfile(bytes);
+  assert.equal(profile.validation.ok, true);
+  assert.equal(profile.parsed.entryCount, 209);
+  assert.equal(profile.parsed.entries.TNKN_SET, undefined);
+  assert.equal(decodeJwfBytes(bytes).includes("TNKN_SET"), false);
+  assert.deepEqual(saveJwfProfile(profile).bytes, bytes);
+  const source = new Uint8Array(readFileSync(`${folder}/post-export-reimport.jww`));
+  assert.equal(hash(source), "ce244bb94c1387cba20145ef9e930ecad945e8fd5e068fc6bdc12391336fe7d5");
+  const drawing = convertJwwBytes(source);
+  assert.equal(drawing.meta.jwwVersion, 700);
+  assert.equal(drawing.entities.length, 2008);
+  const texts = drawing.entities.slice(1740).filter(item => item.type === "TEXT").map(item => item.entity.text);
+  for (const label of ["{3}", "{4}", "{5}", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]"]) {
+    assert.equal(texts.filter(text => text === label).length, 2, label);
+  }
+  assert.equal(texts.some(text => text.includes("ABCDE")), false);
+  const original = convertJwwBytes(readFileSync(`${folder}/output.jww`));
+  assert.equal(buildJwwSemanticDiff(original, drawing).drawingSemanticEqual, false);
+  assert.deepEqual(saveNativeJww(await openNativeJww(source)).bytes, source);
+  const rebuilt = buildJwwBytes({ version: 700, entities: drawing.entities, meta: drawing.meta });
+  assert.equal(buildJwwSemanticDiff(drawing, convertJwwBytes(rebuilt)).roundTripCompatible, true);
+  // Successful parsing/export does not mean the environment setting survived native JWF Write/Read.
+});
+
 // These expectations record 10.02.1 observations, not new valid JWF lengths.
 for (const [id, sha256, inputName, inputBytes, savedName] of [
   ["ascii19", "23e2562d8a792071e04d04c4a02926e87f28cc9d9478560bf66f77418a1a7625", "1234567890123456789", 19, "1234567890123456789"],
