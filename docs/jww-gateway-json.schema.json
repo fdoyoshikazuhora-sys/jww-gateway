@@ -190,6 +190,9 @@
       "type": "object",
       "required": ["sentinel", "records"],
       "properties": {
+        "document": {
+          "anyOf": [{ "$ref": "#/$defs/jwwDocumentHeader" }, { "type": "null" }]
+        },
         "sentinel": {
           "type": "object",
           "required": ["start", "end"],
@@ -232,6 +235,30 @@
               "jww": { "type": "object" }
             },
             "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "jwwDocumentHeader": {
+      "type": "object",
+      "required": ["sourceLayout", "byteLength", "fields", "sourceBytes"],
+      "properties": {
+        "sourceLayout": { "const": "jwdatafmt-7.02-v600-v700" },
+        "byteLength": { "type": "integer", "minimum": 12 },
+        "sourceBytes": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 255 } },
+        "fields": {
+          "type": "array", "minItems": 3221, "maxItems": 3221,
+          "items": {
+            "type": "object", "required": ["name", "type", "value", "offset", "byteLength"],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "enum": ["u32", "i32", "f64", "string"] },
+              "value": { "type": ["number", "string"] },
+              "offset": { "type": "integer", "minimum": 8 },
+              "byteLength": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": false
           }
         }
       },

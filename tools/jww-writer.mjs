@@ -44,8 +44,8 @@ export async function writeJwwJsonFile(args) {
     entities: document.entities,
     meta: document.meta,
     dxfMeta: document.meta?.dxf || document.dxfMeta || {},
-    paperSize: document.meta?.paperCode,
-    memo: document.meta?.memo,
+    paperSize: document.meta?.jwwInternalSettings?.document ? null : document.meta?.paperCode,
+    memo: document.meta?.jwwInternalSettings?.document ? null : document.meta?.memo,
     templatePrefix: template?.prefixBytes || null,
     version:
       args.version || template?.version || document.meta?.jwwVersion || 700,
@@ -61,7 +61,8 @@ export async function writeJwwJsonFile(args) {
     blockDefinitionsWritten: result.blockDefinitionsWritten,
     embeddedImagesWritten: result.embeddedImagesWritten,
     unsupportedEntities: result.unsupportedEntities,
-    template: args.template ? path.resolve(args.template) : "built-in-v700",
+    sourceIssues: result.sourceIssues,
+    template: args.template ? path.resolve(args.template) : document.meta?.jwwInternalSettings?.document ? "gateway-document-header" : "built-in-v700",
   };
 }
 
@@ -75,6 +76,7 @@ async function main() {
     return;
   }
   const summary = await writeJwwJsonFile(args);
+  if (summary.sourceIssues.length || summary.unsupportedEntities.length) console.error(`WARNING: unsupported source accepted; output may omit data. ${JSON.stringify({ sourceIssues: summary.sourceIssues, unsupportedEntities: summary.unsupportedEntities })}`);
   if (args.summary) process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
   else {
     process.stdout.write(

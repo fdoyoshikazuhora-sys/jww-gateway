@@ -47,6 +47,7 @@ export const GATEWAY_PACKAGE_TOOL_FILES = [
   "jww-conformance.mjs",
   "jww-writer.mjs",
   "jww-roundtrip-corpus.mjs",
+  "jww-format-field-matrix.mjs",
   "jww-semantic-diff.mjs",
   "jwf-parse.mjs",
   "jww-jwf-compare.mjs",
@@ -72,6 +73,8 @@ export const GATEWAY_PACKAGE_DOC_FILES = [
   "jww-gateway-manifest.schema.json",
   "jww-gateway-sample-sets.schema.json",
   "JWW_GATEWAY_SPEC.md",
+  "JWW_FORMAT_GAPS_AUDIT.md",
+  "JWW_FORMAT_FIELD_MATRIX.md",
   "JWW_JWF_ENV_AUDIT.md",
   "JWW_GATEWAY_RELEASE_CHECKLIST.md",
   "JWW_GATEWAY_RELEASE_NOTES.md",
@@ -95,6 +98,11 @@ export const GATEWAY_PACKAGE_SAMPLE_FILES = [
 ];
 
 export const GATEWAY_PACKAGE_SRC_FILES = [
+  "attributeFlags.js",
+  "documentHeader.js",
+  "formatAudit.test.js",
+  "parseSafety.js",
+  "solidGeometry.js",
   "parser.js",
   "parser.test.js",
   "basicSettingsEdits.js",

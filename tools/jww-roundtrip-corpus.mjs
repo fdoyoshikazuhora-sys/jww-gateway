@@ -2,11 +2,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
+import { openNativeJww, saveNativeJww } from "../src/jww/native.js";
+import { parseJwwDocumentHeader } from "../src/jww/documentHeader.js";
+import { JWW_INTERNAL_SETTING_KEYS } from "../src/jww/internalSettings.js";
 import { convertJwwBytes } from "./jww-gateway.mjs";
 import { buildJwwSemanticDiff } from "../src/jww/semanticDiff.js";
 import {
   buildJwwWriteResult,
-  extractJwwTemplatePrefix,
 } from "../src/jww/writer.js";
 
 const base = { penColor: 2, penStyle: 1, penWidth: 0, layerGroup: 0, layer: 0 };
@@ -114,8 +117,29 @@ function casesFor(version) {
       meta: { jwwEmbeddedImages: [{ fileName: "fixture.bmp", bytes: Uint8Array.from([0x42, 0x4d, 1, 2, 3, 4]) }] },
     });
   }
+  const variants = [[101, -1, 1], [101, 0, 2], [101, 5, 2], [101, 100, Math.PI * 2], [105, 4, 2], [105, 4, Math.PI * 2], [106, 4, 2], [106, 4, Math.PI * 2], [111, 0, 2], [111, 100, Math.PI * 2]];
+  for (const [index, [penStyle, parameter, arcAngle]] of variants.entries()) {
+    cases.push({ name: `circular-solid-${index + 1}`, entities: [{ type: "JWW_CIRCULAR_SOLID", entity: {
+      jww: { ...base, penStyle, penColor: 10, flag: 0xffff }, jwwSolidColor: 0x123456,
+      jwwCircularSolid: { penStyle, center: { x: 5, y: -7 }, radius: 10, flatness: 0.6, tiltAngle: 0.2, startAngle: -0.3, arcAngle, parameter },
+    } }], meta: {} });
+  }
+  const text = (value, flags = 0) => ({ type: "TEXT", entity: { position: { x: 0, y: 0 }, endPoint: { x: 5, y: 0 }, text: value, paperTextWidth: 2, paperTextHeight: 3, fontFamily: "", jww: { ...base, flag: flags, penWidth: 0xffff } } });
+  cases.push({ name: "attribute-bits", entities: Array.from({ length: 16 }, (_, i) => text("R1,234.00", 1 << i)), meta: {} });
+  cases.push({ name: "internal-sentinels", entities: JWW_INTERNAL_SETTING_KEYS.flatMap((key, index) => {
+    const item = text(`${key} = ${index}`, 0xffff);
+    Object.assign(item.entity, { position: { x: 0, y: -1000 }, endPoint: { x: 0, y: -1000 } });
+    return [line({ x: index, y: 0 }, { x: index, y: 10 }), item];
+  }), meta: {} });
+  const header = parseJwwDocumentHeader(buildJwwWriteResult({ version, entities: [] }).bytes);
+  const changes = { m_nMaxDrawWid: -423, m_nMemoriMode: -11, m_nPrtKyoutsuuGray: 1, "m_aPenColor[356]": 0x123456, "m_astrUDColorName[256]": "SXF color", "m_astrUDLTypeName[32]": "SXF pattern", "m_anUDLTypeSegment[32]": 10 };
+  for (let i = 1; i <= 10; i += 1) changes[`m_aadUDLTypePitch[32][${i}]`] = i * 0.125;
+  for (const field of header.fields) if (Object.hasOwn(changes, field.name)) field.value = changes[field.name];
+  cases.push({ name: "header-sxf-signed-settings", entities: [line({ x: 0, y: 0 }, { x: 10, y: 10 })], meta: { jwwInternalSettings: { document: header } } });
   return cases;
 }
+
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 async function main() {
   const outputArg = process.argv.includes("--output")
@@ -136,17 +160,21 @@ async function main() {
       const firstPath = path.join(outputDir, `${stem}.jww`);
       await writeFile(firstPath, first.bytes);
       const converted = convertJwwBytes(first.bytes, { sourcePath: firstPath });
-      const template = extractJwwTemplatePrefix(first.bytes);
+      const json = JSON.parse(JSON.stringify(converted));
       const second = buildJwwWriteResult({
         version,
-        entities: converted.entities,
-        meta: converted.meta,
-        templatePrefix: template.prefixBytes,
+        entities: json.entities,
+        meta: json.meta,
       });
       const secondPath = path.join(outputDir, `${stem}.roundtrip.jww`);
       await writeFile(secondPath, second.bytes);
       const convertedAgain = convertJwwBytes(second.bytes, { sourcePath: secondPath });
       const diff = buildJwwSemanticDiff(converted, convertedAgain);
+      const native = saveNativeJww(await openNativeJww(first.bytes));
+      const firstSha256 = sha256(first.bytes);
+      const secondSha256 = sha256(second.bytes);
+      const binaryEqual = Buffer.from(first.bytes).equals(Buffer.from(second.bytes));
+      const nativeUnchanged = native.byteIdentical && native.savedSha256 === firstSha256 && Buffer.from(first.bytes).equals(Buffer.from(native.bytes));
       await writeFile(
         path.join(outputDir, `${stem}.semantic.json`),
         `${JSON.stringify(diff, null, 2)}\n`,
@@ -163,20 +191,25 @@ async function main() {
         drawingRoundTripCompatible: diff.drawingRoundTripCompatible,
         documentRoundTripCompatible: diff.roundTripCompatible,
         parserClean: diff.parserClean,
+        firstSha256,
+        secondSha256,
+        binaryEqual,
+        nativeUnchanged,
+        passed: diff.roundTripCompatible && binaryEqual && nativeUnchanged,
       });
     }
   }
 
   const report = {
     format: "jww-gateway-roundtrip-corpus",
-    formatVersion: 1,
+    formatVersion: 2,
     generatedAt: new Date().toISOString(),
     outputDir,
     rows,
     summary: {
       fixtures: rows.length,
-      passed: rows.filter((row) => row.documentRoundTripCompatible).length,
-      failed: rows.filter((row) => !row.documentRoundTripCompatible).length,
+      passed: rows.filter((row) => row.passed).length,
+      failed: rows.filter((row) => !row.passed).length,
     },
   };
   await writeFile(

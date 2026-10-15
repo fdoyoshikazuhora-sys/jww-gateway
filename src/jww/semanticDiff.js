@@ -1,3 +1,5 @@
+import { jwwParseIssues } from "./parseSafety.js";
+
 function finiteNumber(value, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
@@ -109,6 +111,7 @@ export function canonicalJwwEntity(item, options = {}) {
       color: finiteNumber(entity.jwwSolidColor),
     };
   }
+  if (type === "JWW_CIRCULAR_SOLID") return { ...base, parameters: semanticMetadataValue(entity.jwwCircularSolid), color: finiteNumber(entity.jwwSolidColor) };
   if (type === "IMAGE") {
     return {
       ...base,
@@ -239,22 +242,19 @@ function documentMetadata(document = {}, tolerance) {
     lineTypeSettings: semanticMetadataValue(meta.lineTypeSettings || null),
     blockDefinitions: semanticMetadataValue(meta.jwwBlockDefinitions || []),
     embeddedImages: semanticMetadataValue(meta.jwwEmbeddedImages || []),
+    documentHeader: (meta.jwwInternalSettings?.document?.fields || []).map(({ name, type, value }) => ({ name, type, value })),
   };
 }
 
 function internalSettings(document = {}) {
   return (document.meta?.jwwInternalSettings?.records || [])
-    .map((row) => ({
-      key: String(row.key || ""),
-      settingValue: finiteNumber(row.settingValue),
-      text: String(row.rawText || row.text || ""),
-    }))
-    .sort((a, b) => a.key.localeCompare(b.key) || a.text.localeCompare(b.text));
+    .map(({ id, ...row }) => semanticMetadataValue(row));
 }
 
 function hasCleanParse(document = {}) {
   const diagnostics = document.meta?.diagnostics || {};
   return (
+    jwwParseIssues(diagnostics).length === 0 &&
     finiteNumber(diagnostics.unsupportedCount) === 0 &&
     finiteNumber(diagnostics.skippedCount) === 0
   );
@@ -290,7 +290,7 @@ export function buildJwwSemanticDiff(beforeDocument, afterDocument, options = {}
     tolerance,
     drawingSemanticEqual: orderedEqual,
     drawingRoundTripCompatible: orderedEqual && cleanParse,
-    roundTripCompatible: orderedEqual && metadataEqual && cleanParse,
+    roundTripCompatible: orderedEqual && metadataEqual && internalSettingsEqual && cleanParse,
     documentMetadataEqual: metadataEqual,
     internalSettingsEqual,
     parserClean: cleanParse,

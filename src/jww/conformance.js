@@ -1,3 +1,5 @@
+import { jwwParseIssues } from "./parseSafety.js";
+
 function finiteCount(value) {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 ? number : 0;
@@ -44,7 +46,7 @@ export function assessParsedJww(doc = {}) {
     !entityListComplete || !blockListComplete || !embeddedImageListComplete;
   const readAssessment = !jwwVersion
     ? "invalid-or-unparsed"
-    : unsupportedCount || skippedCount || structuralIncomplete
+    : unsupportedCount || skippedCount || structuralIncomplete || jwwParseIssues(diagnostics).length
       ? "parsed-with-reported-loss"
       : "parsed-without-reported-loss";
 

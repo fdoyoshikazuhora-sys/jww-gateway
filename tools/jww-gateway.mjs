@@ -7,6 +7,8 @@ import { buildJwwArcDiagnostics } from "../src/jww/arcDiagnostics.js";
 import { buildJwwArcGeometry } from "../src/jww/arcGeometry.js";
 import { buildJwwEnvironment } from "../src/jww/environment.js";
 import { partitionJwwInternalSettings } from "../src/jww/internalSettings.js";
+import { jwwCircularSolid } from "../src/jww/solidGeometry.js";
+import { assertJwwParseSafe } from "../src/jww/parseSafety.js";
 import {
   JWW_LINE_TYPE_NAMES,
   getJwwScreenColorHex,
@@ -96,9 +98,10 @@ function nativePoint(value = {}) {
     jww: baseAttrs(value.base || {}),
     position: point(value.x, value.y),
     isTemporary: Boolean(value.is_temporary),
+    temporaryFlag: value.temporary_flag,
     code: numberOrZero(value.code),
     angle: numberOrZero(value.angle),
-    scale: numberOrZero(value.scale || 1),
+    scale: numberOrZero(value.scale ?? 1),
   };
 }
 
@@ -112,7 +115,7 @@ function nativeText(value = {}) {
     sizeY: numberOrZero(value.size_y),
     spacing: numberOrZero(value.spacing),
     angle: numberOrZero(value.angle),
-    fontName: value.font_name || "MS Gothic",
+    fontName: value.font_name ?? "MS Gothic",
     text: value.raw_content || value.content || "",
   };
 }
@@ -191,7 +194,7 @@ function convertEntity(doc, source, index) {
         paperTextSpacing: numberOrZero(value.spacing),
         jwwTextType: numberOrZero(value.text_type),
         rotation: numberOrZero(value.angle),
-        fontFamily: value.font_name || "MS Gothic",
+        fontFamily: value.font_name ?? "MS Gothic",
         jwwDimension: {
           base: baseAttrs(rawDimension.base || {}),
           line: nativeLine(rawDimension.line || value.dimension_line || {}),
@@ -246,7 +249,7 @@ function convertEntity(doc, source, index) {
         paperTextSpacing: numberOrZero(value.spacing),
         jwwTextType: numberOrZero(value.text_type),
         rotation: Number(value.angle) || 0,
-        fontFamily: value.font_name || "MS Gothic",
+        fontFamily: value.font_name ?? "MS Gothic",
         ...(imageReference
           ? {
               fileName: imageReference.fileName,
@@ -280,6 +283,7 @@ function convertEntity(doc, source, index) {
         jwwFlatness: Number.isFinite(Number(value.flatness))
           ? Number(value.flatness)
           : 1,
+        jwwFullCircleFlag: value.full_circle_flag,
       })
     );
     return converted;
@@ -296,6 +300,12 @@ function convertEntity(doc, source, index) {
   }
 
   if ("point1_x" in value) {
+    const circular = jwwCircularSolid(value);
+    if (circular) return [makeEntity(doc, value, index, "JWW_CIRCULAR_SOLID", {
+      jwwCircularSolid: circular,
+      jwwSolidColor: numberOrZero(value.color),
+      jwwArcGeometry: buildJwwArcGeometry({ center_x: circular.center.x, center_y: circular.center.y, radius: circular.radius, flatness: circular.flatness, tilt_angle: circular.tiltAngle, start_angle: circular.startAngle, arc_angle: circular.arcAngle, is_full_circle: circular.parameter === 100 && [101, 111].includes(circular.penStyle) }),
+    })];
     converted.push(
       makeEntity(doc, value, index, "SOLID", {
         jwwSourceVertices: [
@@ -324,13 +334,13 @@ function convertEntity(doc, source, index) {
       makeEntity(doc, value, index, "INSERT", {
         position: point(value.ref_x, value.ref_y),
         blockName: blockDisplayName(definition?.name || `Block${value.def_number}`),
-        xScale: numberOrZero(value.scale_x || 1),
-        yScale: numberOrZero(value.scale_y || 1),
+        xScale: numberOrZero(value.scale_x ?? 1),
+        yScale: numberOrZero(value.scale_y ?? 1),
         rotation: numberOrZero(value.rotation),
         jwwBlock: {
           reference: point(value.ref_x, value.ref_y),
-          scaleX: numberOrZero(value.scale_x || 1),
-          scaleY: numberOrZero(value.scale_y || 1),
+          scaleX: numberOrZero(value.scale_x ?? 1),
+          scaleY: numberOrZero(value.scale_y ?? 1),
           rotation: numberOrZero(value.rotation),
           definitionNumber: numberOrZero(value.def_number),
         },
@@ -344,9 +354,10 @@ function convertEntity(doc, source, index) {
       makeEntity(doc, value, index, "POINT", {
         position: point(value.x, value.y),
         isTemporaryPoint: Boolean(value.is_temporary),
+        jwwTemporaryFlag: value.temporary_flag,
         jwwPointCode: numberOrZero(value.code),
         jwwPointAngle: numberOrZero(value.angle),
-        jwwPointScale: numberOrZero(value.scale || 1),
+        jwwPointScale: numberOrZero(value.scale ?? 1),
       })
     );
   }
@@ -405,6 +416,7 @@ export function convertJwwBytes(bytes, options = {}) {
     },
   });
   const rawEntities = Array.isArray(doc.entities) ? doc.entities : [];
+  assertJwwParseSafe(doc.diagnostics, options.allowUnsupported === true);
   const {
     drawingEntities,
     drawingEntityIndexes,
@@ -416,9 +428,10 @@ export function convertJwwBytes(bytes, options = {}) {
   const jwwBlockDefinitions = (doc.block_defs || []).map((definition, index) => ({
     number: numberOrZero(definition.number),
     referred: Boolean(definition.referred),
+    referredFlag: definition.referred_flag,
     createdAt: numberOrZero(definition.created_at),
-    name: blockDisplayName(definition.name || `Block${index}`),
-    rawName: definition.name || `Block${index}`,
+    name: blockDisplayName(definition.name ?? `Block${index}`),
+    rawName: definition.name ?? `Block${index}`,
     jww: baseAttrs(definition.base || {}),
     entities: (definition.entities || []).flatMap((entity, entityIndex) =>
       convertEntity(doc, entity, `block-${index}-${entityIndex}`)
@@ -431,6 +444,7 @@ export function convertJwwBytes(bytes, options = {}) {
     truncated: Boolean(image.truncated),
   }));
   const jwwInternalSettings = {
+    document: doc.document_header,
     sentinel: {
       start: point(0, -1000),
       end: point(0, -1000),
@@ -452,7 +466,7 @@ export function convertJwwBytes(bytes, options = {}) {
         sizeY: numberOrZero(value.size_y),
         spacing: numberOrZero(value.spacing),
         angle: numberOrZero(value.angle),
-        fontFamily: value.font_name || "MS Gothic",
+        fontFamily: value.font_name ?? "MS Gothic",
         layer: getJwwLayerName(doc, value.base || {}),
         jww: baseAttrs(value.base || {}),
       };
@@ -519,12 +533,14 @@ function parseArgs(argv) {
     output: "",
     encoding: "shift_jis",
     summary: false,
+    allowUnsupported: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "-o" || arg === "--output") args.output = argv[++i] || "";
     else if (arg === "--encoding") args.encoding = argv[++i] || "shift_jis";
     else if (arg === "--summary") args.summary = true;
+    else if (arg === "--allow-unsupported") args.allowUnsupported = true;
     else if (!args.input) args.input = arg;
   }
   return args;
@@ -534,7 +550,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.input) {
     console.error(
-      "Usage: node tools/jww-gateway.mjs <input.jww> [-o output.json] [--encoding shift_jis] [--summary]"
+      "Usage: node tools/jww-gateway.mjs <input.jww> [-o output.json] [--encoding shift_jis] [--summary] [--allow-unsupported]"
     );
     process.exitCode = 1;
     return;
@@ -544,10 +560,13 @@ async function main() {
   const inputStats = await stat(inputPath);
   const bytes = new Uint8Array(await readFile(inputPath));
   const converted = convertJwwBytes(bytes, {
+    allowUnsupported: args.allowUnsupported,
     encoding: args.encoding,
     sourcePath: inputPath,
     lastModified: inputStats.mtime,
   });
+  const sourceIssues = assertJwwParseSafe(converted.meta.diagnostics, true);
+  if (sourceIssues.length) console.error(`WARNING: unsupported source accepted; conversion may omit data: ${sourceIssues.join(", ")}`);
   const output = args.summary
     ? {
         source: inputPath,

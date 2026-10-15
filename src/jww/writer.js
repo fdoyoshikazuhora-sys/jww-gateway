@@ -17,6 +17,9 @@ import {
   normalizeJwwTextSettingsRecord,
 } from "./textSettings.js";
 import { parse } from "./parser.js";
+import { encodeJwwDocumentHeader } from "./documentHeader.js";
+import { circularSolidPayload, jwwCircularSolid } from "./solidGeometry.js";
+import { assertJwwParseSafe } from "./parseSafety.js";
 
 const JWW_HEADER = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
 const DEFAULT_JWW_VERSION = 700;
@@ -1202,42 +1205,25 @@ function itemEntity(item = {}) {
 
 function jwwBase(item = {}) {
   const source = item.entity?.jww || item.jww || {};
-  return {
-    group: finiteNumber(source.group, 0),
-    pen_style: finiteNumber(source.penStyle ?? source.pen_style, 1),
-    pen_color: finiteNumber(source.penColor ?? source.pen_color ?? item.colorNumber, 2),
-    pen_width: finiteNumber(source.penWidth ?? source.pen_width, 0),
-    layer: finiteNumber(source.layer, 0),
-    layer_group: finiteNumber(source.layerGroup ?? source.layer_group, 0),
-    flag: finiteNumber(source.flag, 0),
-  };
+  return normalizedBase(source, { pen_color: item.colorNumber ?? 2 });
 }
 
 function normalizedBase(source = {}, fallback = {}) {
   return {
-    group: finiteNumber(source.group, fallback.group || 0),
-    pen_style: finiteNumber(
-      source.penStyle ?? source.pen_style,
-      fallback.pen_style || 1
-    ),
-    pen_color: finiteNumber(
-      source.penColor ?? source.pen_color,
-      fallback.pen_color || 2
-    ),
-    pen_width: finiteNumber(
-      source.penWidth ?? source.pen_width,
-      fallback.pen_width || 0
-    ),
-    layer: finiteNumber(source.layer, fallback.layer || 0),
-    layer_group: finiteNumber(
-      source.layerGroup ?? source.layer_group,
-      fallback.layer_group || 0
-    ),
-    flag: finiteNumber(source.flag, fallback.flag || 0),
+    group: source.group ?? fallback.group ?? 0,
+    pen_style: source.penStyle ?? source.pen_style ?? fallback.pen_style ?? 1,
+    pen_color: source.penColor ?? source.pen_color ?? fallback.pen_color ?? 2,
+    pen_width: source.penWidth ?? source.pen_width ?? fallback.pen_width ?? 0,
+    layer: source.layer ?? fallback.layer ?? 0,
+    layer_group: source.layerGroup ?? source.layer_group ?? fallback.layer_group ?? 0,
+    flag: source.flag ?? fallback.flag ?? 0,
   };
 }
 
 function writeBase(writer, base) {
+  for (const [name, maximum] of Object.entries({ group: 0xffffffff, pen_style: 255, pen_color: 65535, pen_width: 65535, layer: 65535, layer_group: 65535, flag: 65535 })) {
+    if (!Number.isInteger(base[name]) || base[name] < 0 || base[name] > maximum) throw new Error(`JWW ${name} is outside its serialized range`);
+  }
   writer.dword(base.group);
   writer.byte(base.pen_style);
   writer.word(base.pen_color);
@@ -1553,7 +1539,7 @@ function dimensionFallbackTextItem(item = {}) {
       paperTextHeight: entity.paperTextHeight ?? entity.textHeight ?? entity.height ?? 2.5,
       paperTextSpacing: entity.paperTextSpacing ?? entity.textSpacing ?? 0.5,
       rotation: finiteNumber(entity.textRotation ?? entity.rotation, 0),
-      fontFamily: entity.fontFamily || "MS Gothic",
+      fontFamily: entity.fontFamily ?? "MS Gothic",
     },
   };
 }
@@ -1591,6 +1577,8 @@ function collectEntities(items = [], options = {}) {
   const out = [];
   const unsupported = options.unsupported || [];
   for (const item of Array.isArray(items) ? items : []) {
+    const beforeRecords = out.length;
+    const beforeUnsupported = unsupported.length;
     const entity = item.entity || {};
     const type = itemType(item);
     if (type === "LINE") {
@@ -1616,6 +1604,7 @@ function collectEntities(items = [], options = {}) {
         tiltAngle: finiteNumber(entity.jwwTiltAngle, 0),
         flatness: finiteNumber(entity.jwwFlatness, 1),
         isFullCircle: type === "CIRCLE",
+        fullCircleFlag: entity.jwwFullCircleFlag,
       });
     } else if (type === "ELLIPSE") {
       out.push({
@@ -1675,7 +1664,7 @@ function collectEntities(items = [], options = {}) {
         sizeY: Math.abs(finiteNumber(entity.paperTextHeight, 2.5)),
         spacing: finiteNumber(entity.paperTextSpacing, 0),
         angle,
-        fontName: entity.fontFamily || "MS Gothic",
+        fontName: entity.fontFamily ?? "MS Gothic",
         text: imageReferenceText(
           entity,
           fileName,
@@ -1711,7 +1700,7 @@ function collectEntities(items = [], options = {}) {
         sizeY: height,
         spacing: finiteNumber(entity.paperTextSpacing ?? entity.spacing, 0),
         angle: rotation,
-        fontName: entity.fontFamily || "MS Gothic",
+        fontName: entity.fontFamily ?? "MS Gothic",
         // Gateway JSON keeps the display-normalized text and the original JWW
         // control string separately. The binary writer must preserve the raw
         // control string so overlay/superscript/subscript semantics survive a
@@ -1724,10 +1713,15 @@ function collectEntities(items = [], options = {}) {
         item,
         position: point(entity.position || entity.point),
         isTemporary: isTemporaryPointEntity(item),
+        temporaryFlag: entity.jwwTemporaryFlag,
         code: finiteNumber(entity.jwwPointCode ?? entity.code, 0),
         angle: finiteNumber(entity.jwwPointAngle ?? entity.angle, 0),
         scale: finiteNumber(entity.jwwPointScale ?? entity.scale, 1),
       });
+    } else if (type === "JWW_CIRCULAR_SOLID" || (type === "SOLID" && jwwBase(item).pen_style >= 101)) {
+      const circular = entity.jwwCircularSolid || jwwCircularSolid({ base: jwwBase(item), ...Object.fromEntries([1, 4, 2, 3].flatMap((n, i) => [[`point${n}_x`, entity.jwwSourceVertices?.[i]?.x], [`point${n}_y`, entity.jwwSourceVertices?.[i]?.y]])) });
+      if (circular.penStyle !== jwwBase(item).pen_style) throw new Error("Circular solid pen style conflicts with base attributes");
+      out.push({ className: "CDataSolid", item, points: circularSolidPayload(circular) });
     } else if (type === "SOLID" || type === "TRACE" || type === "3DFACE") {
       const points = polygonPointsFromEntity(entity);
       if (type === "SOLID" && points.length === 4) {
@@ -1787,6 +1781,7 @@ function collectEntities(items = [], options = {}) {
         type,
       });
     }
+    if (out.length === beforeRecords && unsupported.length === beforeUnsupported) unsupported.push({ id: String(item.id || ""), type: `EMPTY_OR_INVALID_${type || "ENTITY"}` });
   }
   return out;
 }
@@ -2031,8 +2026,8 @@ function textPayload(value = {}) {
     sizeY: finiteNumber(value.sizeY ?? value.size_y ?? value.paperTextHeight),
     spacing: finiteNumber(value.spacing ?? value.paperTextSpacing),
     angle: finiteNumber(value.angle ?? value.rotation),
-    fontName: value.fontName || value.font_name || value.fontFamily || "MS Gothic",
-    text: value.rawText || value.text || value.content || "",
+    fontName: value.fontName ?? value.font_name ?? value.fontFamily ?? "MS Gothic",
+    text: value.rawText ?? value.raw_content ?? value.text ?? value.content ?? "",
   };
 }
 
@@ -2046,6 +2041,7 @@ function pointPayload(value = {}) {
     base,
     position,
     isTemporary: Boolean(value.isTemporary ?? value.is_temporary),
+    temporaryFlag: value.temporaryFlag ?? value.temporary_flag,
     code: finiteNumber(value.code),
     angle: finiteNumber(value.angle),
     scale: finiteNumber(value.scale, 1),
@@ -2079,15 +2075,20 @@ function writeTextPayload(writer, value) {
 
 function writePointPayload(writer, value) {
   const pointValue = pointPayload(value);
+  if (pointValue.code !== 0) pointValue.base.pen_style = 100;
   writeBase(writer, pointValue.base);
   writer.double(pointValue.position.x);
   writer.double(pointValue.position.y);
-  writer.dword(pointValue.isTemporary ? 1 : 0);
+  writer.dword(booleanDword(pointValue.isTemporary, pointValue.temporaryFlag));
   if (pointValue.base.pen_style === 100) {
     writer.dword(pointValue.code);
     writer.double(pointValue.angle);
     writer.double(pointValue.scale);
   }
+}
+
+function booleanDword(value, raw) {
+  return Number.isInteger(raw) && raw >= 0 && raw <= 0xffffffff && Boolean(raw) === Boolean(value) ? raw : value ? 1 : 0;
 }
 
 function writeEntityPayload(writer, record, version) {
@@ -2096,6 +2097,7 @@ function writeEntityPayload(writer, record, version) {
     record.className === "CDataSunpou"
       ? normalizedBase(record.dimension?.base || {}, fallbackBase)
       : fallbackBase;
+  if (record.className === "CDataTen" && record.code !== 0) base.pen_style = 100;
   writeBase(writer, base);
   if (record.className === "CDataSen") {
     writer.double(record.start.x);
@@ -2110,7 +2112,7 @@ function writeEntityPayload(writer, record, version) {
     writer.double(record.arcAngle);
     writer.double(record.tiltAngle);
     writer.double(record.flatness);
-    writer.dword(record.isFullCircle ? 1 : 0);
+    writer.dword(booleanDword(record.isFullCircle, record.fullCircleFlag));
   } else if (record.className === "CDataMoji") {
     writer.double(record.start.x);
     writer.double(record.start.y);
@@ -2126,7 +2128,7 @@ function writeEntityPayload(writer, record, version) {
   } else if (record.className === "CDataTen") {
     writer.double(record.position.x);
     writer.double(record.position.y);
-    writer.dword(record.isTemporary ? 1 : 0);
+    writer.dword(booleanDword(record.isTemporary, record.temporaryFlag));
     if (base.pen_style === 100) {
       writer.dword(record.code);
       writer.double(record.angle);
@@ -2208,9 +2210,11 @@ function writeBlockDefinitionList(
     writeClassHeader(writer, "CDataList", classIds);
     writeBase(writer, normalizedBase(definition.base || definition.jww || {}));
     writer.dword(finiteNumber(definition.number));
-    writer.dword(definition.referred === false ? 0 : 1);
-    writer.dword(finiteNumber(definition.createdAt ?? definition.created_at));
-    writer.utf16String(definition.rawName || definition.name || "Block");
+    writer.dword(booleanDword(definition.referred !== false, definition.referredFlag ?? definition.referred_flag));
+    const timestamp = definition.createdAt ?? definition.created_at ?? 0;
+    if (!Number.isInteger(timestamp) || timestamp < 0 || timestamp >= 0x80000000) throw new Error("Unverified CTime value: only 32-bit nonnegative epoch seconds are supported");
+    writer.dword(timestamp);
+    writer.utf16String(definition.rawName ?? definition.name ?? "Block");
     const unsupported = [];
     const records = collectEntities(definition.entities || [], {
       unsupported,
@@ -2335,6 +2339,24 @@ function internalSettingEntities(meta = {}) {
   }));
 }
 
+function sourceEntitiesWithSettings(entities, meta, unsupported) {
+  const result = collapseNativeDimensionGroups(entities, unsupported);
+  const settings = internalSettingEntities(meta);
+  const positions = meta.jwwInternalSettings?.records || [];
+  settings.map((item, i) => ({ item, index: positions[i].sourceIndex }))
+    .sort((a, b) => a.index - b.index)
+    .forEach(({ item, index }) => result.splice(Number.isInteger(index) && index >= 0 ? Math.min(index, result.length) : result.length, 0, item));
+  return result;
+}
+
+function gatewayTemplatePrefix(templatePrefix, meta) {
+  const explicit = normalizeTemplatePrefix(templatePrefix);
+  const header = meta.jwwInternalSettings?.document;
+  if (!header) return explicit;
+  if (explicit && (explicit.length !== header.sourceBytes?.length || explicit.some((byte, i) => byte !== header.sourceBytes[i]))) throw new Error("Explicit JWW template conflicts with preserved document header");
+  return encodeJwwDocumentHeader(header);
+}
+
 export function extractJwwTemplatePrefix(input, options = {}) {
   const bytes = input instanceof Uint8Array ? input : Uint8Array.from(input || []);
   const doc = parse(bytes, { encoding: options.encoding || "shift_jis" });
@@ -2392,108 +2414,18 @@ export function buildJwwRecordPayload(
   };
 }
 
-export function preflightJwwWrite({
-  entities,
-  templatePrefix = null,
-  dimensionSettings = null,
-  gridSettings = null,
-  colorSettings = null,
-  lineTypeSettings = null,
-  textSettings = null,
-  dxfMeta = {},
-  meta = {},
-  version = null,
-  allowImageRotation = false,
-} = {}) {
+export function preflightJwwWrite(options = {}) {
   try {
-    const unsupportedEntities = [];
-    const blockDefinitions = blockDefinitionsFromMeta(meta);
-    const embeddedImages = embeddedImagesFromMeta(meta);
-    const embeddedImageNames = embeddedImageNameSet(embeddedImages);
-    assertCompleteEmbeddedImages(embeddedImages);
-    const sourceEntities = [
-      ...collapseNativeDimensionGroups(entities, unsupportedEntities),
-      ...internalSettingEntities(meta),
-    ];
-    const records = collectEntities(sourceEntities, {
-      dxfMeta,
-      unsupported: unsupportedEntities,
-      embeddedImageNames,
-      allowImageRotation,
-    });
-    if (unsupportedEntities.length) {
-      const types = [...new Set(unsupportedEntities.map((item) => item.type))];
-      throw new Error(`Unsupported JWW write entity types: ${types.join(", ")}`);
-    }
-
-    for (const definition of blockDefinitions) {
-      const unsupported = [];
-      collectEntities(definition.entities || [], {
-        unsupported,
-        embeddedImageNames,
-        allowImageRotation,
-      });
-      if (unsupported.length) {
-        const types = [...new Set(unsupported.map((item) => item.type))];
-        throw new Error(
-          `Unsupported JWW block definition entity types: ${types.join(", ")}`
-        );
-      }
-    }
-
-    const explicitTemplatePrefix = normalizeTemplatePrefix(templatePrefix);
-    const rawPrefix =
-      explicitTemplatePrefix || normalizeTemplatePrefix(getDefaultJwwSaveTemplatePrefix());
-    const template = rawPrefix
-      ? templateForVersion(rawPrefix, version)
-      : { version: Number(version || DEFAULT_JWW_VERSION) };
-    if (!JWW_WRITE_VERSIONS.includes(template.version)) {
-      throw new Error(
-        `JWW writer supports versions ${JWW_WRITE_VERSIONS.join(", ")}; received ${template.version}`
-      );
-    }
-    if (dimensionSettings !== null) {
-      if (!template.bytes) {
-        throw new Error("JWW dimension settings require a template prefix");
-      }
-      patchTemplateDimensionSettings(template.bytes, dimensionSettings);
-    }
-    if (gridSettings !== null) {
-      if (!template.bytes) {
-        throw new Error("JWW grid settings require a template prefix");
-      }
-      patchTemplateGridSettings(template.bytes, gridSettings);
-    }
-    if (colorSettings !== null) {
-      if (!template.bytes) {
-        throw new Error("JWW color settings require a template prefix");
-      }
-      patchTemplateColorSettings(template.bytes, colorSettings);
-    }
-    if (lineTypeSettings !== null) {
-      if (!template.bytes) {
-        throw new Error("JWW line type settings require a template prefix");
-      }
-      patchTemplateLineTypeSettings(template.bytes, lineTypeSettings);
-    }
-    if (textSettings !== null) {
-      if (!template.bytes) {
-        throw new Error("JWW text settings require a template prefix");
-      }
-      patchTemplateTextSettings(template.bytes, textSettings);
-    }
-    if (template.version < 700 && embeddedImages.length) {
-      throw new Error("Embedded JWW images require version 700");
-    }
-
+    // Exercise the same serialization/validation path as the eventual write.
+    const result = buildJwwWriteResult({ ...options, strict: true });
     return {
       ok: true,
       code: null,
       reasons: [],
-      version: template.version,
-      recordsWritten: records.length,
-      blockDefinitionsWritten: blockDefinitions.length,
-      embeddedImagesWritten: embeddedImages.length,
+      version: result.version,
+      recordsWritten: result.recordsWritten,
+      blockDefinitionsWritten: result.blockDefinitionsWritten,
+      embeddedImagesWritten: result.embeddedImagesWritten,
     };
   } catch (error) {
     return {
@@ -2528,16 +2460,15 @@ export function buildJwwWriteResult({
   writeLayerGroup = null,
   writeLayer = null,
   allowImageRotation = false,
+  allowUnsupported = false,
 } = {}) {
+  const sourceIssues = assertJwwParseSafe(meta.diagnostics, allowUnsupported || !strict);
   const unsupportedEntities = [];
   const blockDefinitions = blockDefinitionsFromMeta(meta);
   const embeddedImages = embeddedImagesFromMeta(meta);
   const embeddedImageNames = embeddedImageNameSet(embeddedImages);
   assertCompleteEmbeddedImages(embeddedImages);
-  const sourceEntities = [
-    ...collapseNativeDimensionGroups(entities, unsupportedEntities),
-    ...internalSettingEntities(meta),
-  ];
+  const sourceEntities = sourceEntitiesWithSettings(entities, meta, unsupportedEntities);
   const records = collectEntities(sourceEntities, {
     dxfMeta,
     unsupported: unsupportedEntities,
@@ -2548,7 +2479,7 @@ export function buildJwwWriteResult({
     const types = [...new Set(unsupportedEntities.map((item) => item.type))];
     throw new Error(`Unsupported JWW write entity types: ${types.join(", ")}`);
   }
-  const explicitTemplatePrefix = normalizeTemplatePrefix(templatePrefix);
+  const explicitTemplatePrefix = gatewayTemplatePrefix(templatePrefix, meta);
   const rawPrefix =
     explicitTemplatePrefix || normalizeTemplatePrefix(getDefaultJwwSaveTemplatePrefix());
   const template = rawPrefix
@@ -2620,6 +2551,7 @@ export function buildJwwWriteResult({
     version: template.version,
     recordsWritten: records.length,
     unsupportedEntities,
+    sourceIssues,
     blockDefinitionsWritten: blockDefinitions.length,
     embeddedImagesWritten: embeddedImages.length,
     usedTemplatePrefix: Boolean(templateBytes),

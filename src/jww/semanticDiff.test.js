@@ -54,7 +54,7 @@ describe("JWW semantic diff", () => {
 
     expect(result.drawingSemanticEqual).toBe(true);
     expect(result.drawingRoundTripCompatible).toBe(true);
-    expect(result.roundTripCompatible).toBe(true);
+    expect(result.roundTripCompatible).toBe(false);
     expect(result.documentMetadataEqual).toBe(true);
     expect(result.internalSettingsEqual).toBe(false);
   });

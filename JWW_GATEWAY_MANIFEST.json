@@ -85,6 +85,8 @@
     "docs/JWW_GATEWAY_SAMPLE_SETS.example.json",
     "docs/JWW_GATEWAY_SAMPLE_SETS.local.json",
     "docs/JWW_GATEWAY_SPEC.md",
+    "docs/JWW_FORMAT_GAPS_AUDIT.md",
+    "docs/JWW_FORMAT_FIELD_MATRIX.md",
     "docs/JWW_GATEWAY_WINDOWS_COMMANDS.md",
     "docs/JWW_JWF_ENV_AUDIT.md",
     "docs/jww-gateway-json.schema.json",
@@ -126,6 +128,11 @@
     "samples/jwf-pairs/jwf-open-items-layer-defaults.jwf",
     "samples/jwf-pairs/jwf-open-items-layer-defaults.jww",
     "src/jww/BinaryReader.js",
+    "src/jww/attributeFlags.js",
+    "src/jww/documentHeader.js",
+    "src/jww/formatAudit.test.js",
+    "src/jww/parseSafety.js",
+    "src/jww/solidGeometry.js",
     "src/jww/arcDiagnostics.js",
     "src/jww/arcGeometry.js",
     "src/jww/arcGeometry.test.js",
@@ -204,7 +211,8 @@
     "tools/jww-special-color-summary.mjs",
     "tools/jww-value-scan-summary.mjs",
     "tools/jww-writer.mjs",
-    "tools/jww-roundtrip-corpus.mjs"
+    "tools/jww-roundtrip-corpus.mjs",
+    "tools/jww-format-field-matrix.mjs"
   ],
   "supportedEncodings": [
     "shift_jis",
