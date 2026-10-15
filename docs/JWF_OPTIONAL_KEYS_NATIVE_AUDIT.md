@@ -4,7 +4,7 @@ Updated: 2026-10-16. **Incomplete: 19 definitions reviewed, 4 keys partially obs
 
 This continues [JWF Activation Audit](JWF_ACTIVATION_AUDIT.md). Definitions, browser editing, native behavior, and persistence are separate evidence layers. This is not full JWF/JWW compatibility, engineering acceptance, or a mep-draft integration result.
 
-Latest continuation: [TNKN fields and planned-name audit](JWF_TNKN_NAME_NATIVE_AUDIT.md). Five more TNKN_SET fields have native Save As evidence; only field 1 was reopened before the automation connection failed. Fields 7/8 and all new name boundary/Japanese cases remain unexecuted. Whole-key status stays partial.
+Latest continuation: [TNKN fields and planned-name audit](JWF_TNKN_NAME_NATIVE_AUDIT.md). Connection recovered: all eight TNKN_SET field contrasts now have native generation, Save As and JWW reopen evidence across continuations. Six TNK3_NM2 Japanese/name-boundary cases were also executed, including two explicitly out-of-spec diagnostics. This is generated-text persistence, not native JWF export/reimport. Whole-key status stays partial; see that report for current tests and exact evidence.
 
 ## Sources
 
@@ -35,13 +35,13 @@ All 19 rows below have parser/serialization unit tests and individual browser re
 | R_CROSS_ST6 | 673-697; 692 | Four stroke coordinates | Not run | Same prerequisite |
 | TNKZ_SET | 1650-1717 | Nine integers, including decimal-packed fields | **Partial:** radius 25 -> 50; native save and clean-process reopen retained 50 | Other eight fields, radius zero/bounds, packed defaults and generated geometry not certified |
 | TNK3_NM1 | 1719-1721 | One literal string, documented 20 Shift_JIS bytes | **Partial:** `AuditReference` reflected; generated table saved and visibly reloaded | 20-byte boundary/truncation, Japanese boundary variants and repeated application not tested |
-| TNK3_NM2 | 1723-1725 | One literal string, documented 20 Shift_JIS bytes | **Partial:** AuditPlanned reflected only on planned option; three generated texts saved and clean-reopened | Boundary/truncation, Japanese variants, manual reload and native JWF export not run |
-| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | **Partial:** fields 1..6 have native Save As evidence across continuations; field 3 clean-reopened, field 1 reopen screenshot has framing limits | Fields 2/4/5/6 reopen pending; fields 7/8, six-byte boundaries and decoration unverified; see latest continuation |
+| TNK3_NM2 | 1723-1725 | One literal string, documented 20 Shift_JIS bytes | **Partial:** AuditPlanned plus six name cases reflected, saved and JWW-reopened; Japanese12/Japanese20/ASCII19/ASCII20 retained; ASCII21 truncated, mixed21 retained in 10.02.1 | Other strings/versions, manual reload, repeated application and native JWF export unverified; out-of-spec observations do not revise the 20-byte editing limit |
+| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | **Partial:** all eight single-field contrasts generated, saved and JWW-reopened across continuations | Six-byte boundaries, empty affixes, decoration, other numbers/geometry and native JWF export unverified; see latest continuation |
 | REF_FILE | 1764-1778 | Literal reference filename; TAB-separated substitutions on printing | Not run; distributed placeholder remains blocked | Synthetic local reference/drawing pair, print-preview and missing-file behavior; no real print job |
 
 Scope remains `unknown` at whole-key level, including TNKZ_SET: one proven document field does not prove all nine fields persist. Definition evidence points here and marks the four native observations as `partial`.
 
-## Continuation On 2026-10-16
+## Earlier Continuation On 2026-10-16
 
 The existing registry and installed-file baseline matched before any action today. Windows automation initially timed out twice; a JavaScript-kernel reset recovered the connection. Only the private test executable was subsequently launched. Association prompts were cancelled. The canonical dirty checkout was not edited.
 
@@ -57,7 +57,7 @@ The existing registry and installed-file baseline matched before any action toda
 1. Restored baseline; startup copy contained only `TNKN_SET={,},Q3,),[,],<,>` and END. This changes only field 3 from the documented default.
 2. Opened a fresh shadow-drawing copy and generated planned-building position and triangle tables at the same observed measurement/output positions as above.
 3. Native output contained `Q33)`, `Q34)`, `Q36)` twice each (diagram and table). Planned triangle labels remained `<1>` through `<5>` twice each. The suffix `)` was retained. The reference-building branch was NOT generated in this run.
-4. Closed, restored baseline, restarted with TNKN_SET commented out and reopened the JWW. Zoomed the building table and observed the Q3-prefixed labels. This proves persistence of generated text only. Other fields and `^w` rendering remain untested.
+4. Closed, restored baseline, restarted with TNKN_SET commented out and reopened the JWW. Zoomed the building table and observed the Q3-prefixed labels. This proves persistence of generated text only. Other fields were tested in the linked latest continuation; `^w` rendering remains untested.
 
 ### Evidence Files
 
@@ -87,7 +87,7 @@ Both new native outputs now pass byte-identical Gateway no-op save and JSON rebu
 
 Official download/history pages were rechecked on 2026-10-16; latest is 10.03.7, while these observations remain specific to installed 10.02.1. No upgrade was performed.
 
-### Current Verification (2026-10-16)
+### Earlier Verification (2026-10-16)
 
 | Layer | Result | Limit |
 | --- | --- | --- |
