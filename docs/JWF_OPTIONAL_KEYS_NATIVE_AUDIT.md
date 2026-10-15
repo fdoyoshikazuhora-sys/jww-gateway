@@ -1,6 +1,6 @@
 # Optional JWF Keys: Native Audit
 
-Date: 2026-10-15. **Incomplete: 19 definitions reviewed, 2 keys partially observed natively, 17 keys not behavior-tested in Jw_cad. No whole-key native certification.**
+Updated: 2026-10-16. **Incomplete: 19 definitions reviewed, 4 keys partially observed natively, 15 keys not behavior-tested in Jw_cad. No whole-key native certification.**
 
 This continues [JWF Activation Audit](JWF_ACTIVATION_AUDIT.md). Definitions, browser editing, native behavior, and persistence are separate evidence layers. This is not full JWF/JWW compatibility, engineering acceptance, or a mep-draft integration result.
 
@@ -33,13 +33,77 @@ All 19 rows below have parser/serialization unit tests and individual browser re
 | R_CROSS_ST6 | 673-697; 692 | Four stroke coordinates | Not run | Same prerequisite |
 | TNKZ_SET | 1650-1717 | Nine integers, including decimal-packed fields | **Partial:** radius 25 -> 50; native save and clean-process reopen retained 50 | Other eight fields, radius zero/bounds, packed defaults and generated geometry not certified |
 | TNK3_NM1 | 1719-1721 | One literal string, documented 20 Shift_JIS bytes | **Partial:** `AuditReference` reflected; generated table saved and visibly reloaded | 20-byte boundary/truncation, Japanese boundary variants and repeated application not tested |
-| TNK3_NM2 | 1723-1725 | One literal string, documented 20 Shift_JIS bytes | Not run | Must test independently; NM1 evidence is not transferred to NM2 |
-| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | Not run | Native six-byte boundary/truncation and decoration behavior unresolved |
+| TNK3_NM2 | 1723-1725 | One literal string, documented 20 Shift_JIS bytes | **Partial:** AuditPlanned reflected only on planned option; three generated texts saved and clean-reopened | Boundary/truncation, Japanese variants, manual reload and native JWF export not run |
+| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | **Partial:** field 3 prefix Q3 reflected in building numbers and clean-reopened; planned triangle affixes unchanged | Other seven fields, six-byte boundary/truncation, reference-side controls and decoration unresolved |
 | REF_FILE | 1764-1778 | Literal reference filename; TAB-separated substitutions on printing | Not run; distributed placeholder remains blocked | Synthetic local reference/drawing pair, print-preview and missing-file behavior; no real print job |
 
-Scope remains `unknown` at whole-key level, including TNKZ_SET: one proven document field does not prove all nine fields persist. Definition evidence points here and marks the two native observations as `partial`.
+Scope remains `unknown` at whole-key level, including TNKZ_SET: one proven document field does not prove all nine fields persist. Definition evidence points here and marks the four native observations as `partial`.
 
-## Copy Isolation
+## Continuation On 2026-10-16
+
+The existing registry and installed-file baseline matched before any action today. Windows automation initially timed out twice; a JavaScript-kernel reset recovered the connection. Only the private test executable was subsequently launched. Association prompts were cancelled. The canonical dirty checkout was not edited.
+
+### TNK3_NM2
+
+1. Restored baseline; startup copy contained only `TNK3_NM2=AuditPlanned` and END. Opened a fresh copy of the distributed shadow drawing, then Sky -> Triangulation, measurement point, planned building, position table and triangulation.
+2. The planned radio label became `AuditPlanned`; the reference label stayed at its default. Generated the output at a separate empty location and used native Save As.
+3. Closed Jw_cad, restored baseline, replaced the TEST startup profile with the commented-off arm, restarted and reopened the saved JWW. Generated AuditPlanned headings remained visible. The command's planned label reverted to its default, independently of the saved text.
+4. The output contains three AuditPlanned text entities. This is one ASCII-name observation, not a 20-byte boundary certificate or proof of persistent environment naming.
+
+### TNKN_SET
+
+1. Restored baseline; startup copy contained only `TNKN_SET={,},Q3,),[,],<,>` and END. This changes only field 3 from the documented default.
+2. Opened a fresh shadow-drawing copy and generated planned-building position and triangle tables at the same observed measurement/output positions as above.
+3. Native output contained `Q33)`, `Q34)`, `Q36)` twice each (diagram and table). Planned triangle labels remained `<1>` through `<5>` twice each. The suffix `)` was retained. The reference-building branch was NOT generated in this run.
+4. Closed, restored baseline, restarted with TNKN_SET commented out and reopened the JWW. Zoomed the building table and observed the Q3-prefixed labels. This proves persistence of generated text only. Other fields and `^w` rendering remain untested.
+
+### Evidence Files
+
+Private root: `.work/jwf-native-manual-17`. Generated source profiles remain unchanged. Both input copies match SHA-256 `a574ab02d25d5dcefb4ed4e0d18b192c45c6fa264f58769dedcd7a904d7afb8b`.
+
+| File | Bytes | SHA-256 | Drawing entities |
+| --- | ---: | --- | ---: |
+| TNK3_NM2/planned-name-output.jww | 140746 | 29e0b32070c6e3de8c90bbf8ce19e2c88d3a1c35e8e852486c216fc63189c8d8 | 1952 |
+| TNKN_SET/planned-prefix-output.jww | 140716 | c3259a3089a2423bbf8744f200bce8772512ee2630e0602d060fb79725a8b5cb | 1952 |
+
+Both outputs are v700 and include six additional internal-setting records. Reopen screenshots are `KEY/reopened.png`; TNK3_NM2 also has accessibility observations in `observations.json`. These private full drawings are not added to the public package.
+
+### Writer Regression Found During Verification
+
+The direct JSON rebuild initially produced a false semantic mismatch because `sourceEntitiesWithSettings` spliced six sentinel rows into the caller's drawing array when no dimension group was collapsed. Reusing the same input for preflight/save could accumulate records. A failing regression reproduced this using an existing native blank fixture; the fix copies the array before insertion. The format and fields are unchanged. Tests cover preflight, a frozen caller array, repeated writes and exactly six preserved settings.
+
+Both new native outputs now pass byte-identical Gateway no-op save and JSON rebuild semantic comparison (including metadata). Native Save As byte identity is NOT claimed.
+
+### Prepared Manual Pack And Stop Gates
+
+`tools/jwf-native-probe-pack.mjs` produces 17 case directories, 143 JWF profiles, per-key STEPS.md, a hash manifest, synthetic REF_FILE input/reference files and a NOT_RUN results template. See [manual protocol](JWF_NATIVE_MANUAL_PROTOCOL.md).
+
+- Eight clock keys: startup-only negative switching distance and per-command mode prerequisites are included. Hourly disable profiles, supported command/side modes, text/dimension mode 4 and both color digits have separate variants. Right drag and button-held snapshots require manual evidence.
+- Six cursor keys: off/on arms retain the other five shaku strokes; ST1..3 also have separate Km families. Active non-mm units and real-size graduated cursor are included. Passive cursor motion/appearance remains a manual check. The CROSS_ST/R_CROSS_ST naming discrepancy is not resolved.
+- TNK3_NM2 and TNKN_SET: prepared boundaries/field contrasts are NOT passed merely because the two above observations passed.
+- REF_FILE: the installed official CHM `_RESOURCE/menu-file.html` lines 295..307 warns that a left canvas click in Print immediately outputs a job. A safe non-printing preview route has not been established; substitution, missing-file behavior and relative lookup remain BLOCKED/UNVERIFIED. No print command or job was performed. The distributed placeholder was not activated.
+
+Official download/history pages were rechecked on 2026-10-16; latest is 10.03.7, while these observations remain specific to installed 10.02.1. No upgrade was performed.
+
+### Current Verification (2026-10-16)
+
+| Layer | Result | Limit |
+| --- | --- | --- |
+| Focused tests | 31/31 passed | Includes the new generator and native evidence regressions |
+| Full npm test | 351/351 passed, no skips | JWF_REVIEWED_SAMPLE and JWF_NATIVE_EVIDENCE_DIR set to local verified inputs |
+| npm run verify | Passed | Smoke and package file manifest |
+| npm run roundtrip:corpus | 41/41 passed | Generated corpus, not 41 native GUI tests |
+| npm run build | Missing script | Existing package has no build command |
+| localhost:3000 browser | 19/19 read/edit/export/reopen checks; zero captured errors | Headless Chrome; private run4/result.json; existing narrow-layout overflow remains |
+| Native progress this turn | 2 additional partial keys | 14 manual-input keys and REF_FILE's preview gate remain; partial keys also retain untested variants |
+| Protection | Installed sources and Jw_cad registry restored/verified; all 9 canonical dirty-file hashes unchanged | Canonical main was not edited |
+| Legacy path / whitespace | No old OneDrive project path matches in scoped source scan; git diff --check passed | .git, .work and node_modules excluded |
+
+To repeat all 351 tests on this machine, set `JWF_REVIEWED_SAMPLE=C:/JWW/Sample.jwf` and `JWF_NATIVE_EVIDENCE_DIR=.work/jwf-native-manual-17` before `npm test`. Without those environment variables, three source/private-fixture tests explicitly skip; the mutation regression still runs from a bundled blank native fixture. A configured but missing evidence file fails, rather than silently skipping.
+
+`native-results.json` in the private pack records actual observations separately from the generated NOT_RUN manifest/results template. No manual results have been supplied for the other 15 keys. This continuation is not completion of all 17 keys.
+
+## Previous Copy Isolation (2026-10-15)
 
 The original Sample.jwf and live jw_win.JWF were never edited. Twenty-two off/on pairs were generated in `.work/jwf-native-19/cases` for 18 keys and their alternative rows. Each pair differs by one leading ASCII `#`; END remains present. REF_FILE's placeholder was not activated. Generating a pair is not loading or testing it.
 
@@ -50,7 +114,7 @@ An initial launch resolved the installed executable instead of its copy. It was 
 Original live `jw_win.JWF` SHA-256: `0cfe66d4b3576695d9b882c2ee05009ef33fd5e2c3bf4e082de4b0d49d58e8d1`.
 Test executable SHA-256: `95e6b11c4ee014e0079f288429ae2c6e5eed41141a963e4b8770d2e8ead87acf` (file version 10.2.1.0).
 
-## Native Radius Evidence
+## Native Radius Evidence (2026-10-15)
 
 1. With a restored baseline and no active TNKZ_SET startup entry, radius 25 was observed. A blank native drawing was saved separately.
 2. Loaded `TNKZ_SET=50 1 0 3 302 20 11 201 100` from a test-only copy, outside the sky command. Only the first sample value was changed. The sky projection control showed radius 50.
@@ -69,7 +133,7 @@ Other differences must not be hidden: `dummyBeforeSunpou[0]` at 2396 changed 268
 
 `jwfNativeEvidence.test.js` verifies each fixture's own no-op Gateway save is byte/hash identical, and JSON rebuild preserves diameter and normalized drawing/document meaning with a clean parser. This is distinct from rerunning the native application.
 
-## Native Building-Name Evidence
+## Native Building-Name Evidence (2026-10-15)
 
 The distributed shadow drawing was copied privately (input v600, 117,097 bytes, SHA-256 `a574ab02d25d5dcefb4ed4e0d18b192c45c6fa264f58769dedcd7a904d7afb8b`). The original was not saved over.
 
@@ -87,9 +151,9 @@ The output, accessibility observations and reopen screenshot are private evidenc
 - TNKN_SET retains eight literal fields and applies a conservative six-byte-per-item editing guard. Exact native boundary/truncation behavior has not been verified; do not use this guard as proof of native acceptance.
 - REF_FILE never causes Gateway to open an external file. Its filename round trip does not verify Jw_cad substitution, path resolution, or printer behavior.
 - Right-button drag and button-held snapshots are unavailable in the documented current computer-use API. The clock-menu acceptance cases require manual evidence or an approved capable harness. A user question was issued; no manual result was received during this audit.
-- The two partially checked native keys do not cover other values, interactions, exports, versions, or the remaining 17 keys. Those are pending work, not passed tests.
+- The four partially checked native keys do not cover all their values, interactions, exports or versions. The other 15 keys still have no native behavior evidence. These gaps are pending work, not passed tests.
 
-## Verification
+## Previous Verification (2026-10-15)
 
 | Layer | Result | Boundary |
 | --- | --- | --- |
@@ -110,9 +174,9 @@ Browser script: `node tools/jwf-optional-browser-check.mjs <new-output-directory
 ## Next Native Gates
 
 1. Restore baseline separately for each arm; record on/off source hashes, dependencies, native JWF export, JWW Save As and clean-process reopen. Commenting a setting out does not reset a running process.
-2. Finish TNKZ_SET fields 2..9 individually using explicit contrast values; then TNK3_NM2 and TNKN_SET with reference/planned generated tables. Verify boundary cases before promoting definitions to native-verified.
+2. Finish TNKZ_SET fields 2..9 and the seven untested TNKN_SET fields individually. Verify name boundaries, Japanese variants, TNKN_SET decoration and environment reload/export separately from generated text persistence before promoting definitions to native-verified.
 3. Test six cursor strokes individually against an identical reviewed non-mm/real-size-cursor baseline; investigate the naming discrepancy separately.
 4. Obtain manual clock-menu right-drag/hold evidence, then test every supported command/hour, including text/dimension mode 4. Do not equate loading without an error with reflection.
-5. Use a synthetic local REF_FILE/drawing pair and preview only. Record missing-file and relative-path behavior. Keep real printing and arbitrary external-file reads out of this audit.
+5. First establish a documented, safe non-printing preview route for REF_FILE; until then keep it BLOCKED. Only after resolving that gate use the synthetic local reference/drawing pair to record substitution, missing-file and relative-path behavior. Keep real printing and arbitrary external-file reads out of this audit.
 
-The remaining native checklist stays open. Do not merge this draft as proof of complete JWF support.
+The remaining native checklist stays open. Do not merge this draft as proof of complete JWF support. Current results and remaining gates are in the 2026-10-16 continuation above.

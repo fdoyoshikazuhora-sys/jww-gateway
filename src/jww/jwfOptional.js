@@ -55,7 +55,7 @@ export function optionalJwfDefinition(key) {
       note: "External text file: %%token, TAB, replacement text. A bare filename resolves relative to the drawing. Replacement is for printing. Never automatically open this path or activate the sample placeholder. Not exported by Jw_cad to JWF." };
   }
   return definition ? { ...definition, evidence: { ...REVIEW,
-    nativeEvidence: ["TNKZ_SET", "TNK3_NM1"].includes(key) ? "partial" : "unverified",
+    nativeEvidence: ["TNKZ_SET", "TNK3_NM1", "TNK3_NM2", "TNKN_SET"].includes(key) ? "partial" : "unverified",
     nativeReport: "docs/JWF_OPTIONAL_KEYS_NATIVE_AUDIT.md",
   }, scope: "unknown" } : null;
 }

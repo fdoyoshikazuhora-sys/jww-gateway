@@ -2340,7 +2340,7 @@ function internalSettingEntities(meta = {}) {
 }
 
 function sourceEntitiesWithSettings(entities, meta, unsupported) {
-  const result = collapseNativeDimensionGroups(entities, unsupported);
+  const result = [...collapseNativeDimensionGroups(entities, unsupported)];
   const settings = internalSettingEntities(meta);
   const positions = meta.jwwInternalSettings?.records || [];
   settings.map((item, i) => ({ item, index: positions[i].sourceIndex }))

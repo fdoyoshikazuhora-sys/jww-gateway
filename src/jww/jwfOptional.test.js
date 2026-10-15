@@ -30,7 +30,7 @@ for (const [key, raw] of Object.entries(cases)) {
     assert.deepEqual(saveJwfProfile(profile).bytes, source);
     assert.equal(hash(saveJwfProfile(profile).bytes), hash(source));
     const entry = profile.parsed.entries[key];
-    assert.equal(entry.definition.evidence.nativeEvidence, ["TNKZ_SET", "TNK3_NM1"].includes(key) ? "partial" : "unverified");
+    assert.equal(entry.definition.evidence.nativeEvidence, ["TNKZ_SET", "TNK3_NM1", "TNK3_NM2", "TNKN_SET"].includes(key) ? "partial" : "unverified");
     assert.equal(entry.definition.scope, "unknown");
     const changedValues = [...entry.values];
     if (key === "TNKZ_SET") changedValues[0] = 50;

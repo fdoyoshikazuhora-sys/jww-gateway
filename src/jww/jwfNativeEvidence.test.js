@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { openNativeJww, saveNativeJww } from "./native.js";
 import { parseJwwDocumentHeader } from "./documentHeader.js";
-import { buildJwwBytes } from "./writer.js";
+import { buildJwwBytes, preflightJwwWrite } from "./writer.js";
 import { buildJwwSemanticDiff } from "./semanticDiff.js";
 import { convertJwwBytes } from "../../tools/jww-gateway.mjs";
 
@@ -45,3 +45,40 @@ test("native radius contrast changes metadata, not blank-drawing geometry", () =
   // These are two deliberate native saves, not a byte-identity round trip.
   assert.notEqual(hash(fixture(25)), hash(fixture(50)));
 });
+
+test("preflight and repeated writes do not insert sentinel records into caller entities", () => {
+  const drawing = convertJwwBytes(fixture(25));
+  assert.equal(drawing.meta.jwwInternalSettings.records.length, 6);
+  const before = hash(JSON.stringify(drawing));
+  const options = { version: 700, entities: drawing.entities, meta: drawing.meta };
+  assert.equal(preflightJwwWrite(options).ok, true);
+  assert.equal(hash(JSON.stringify(drawing)), before);
+  Object.freeze(drawing.entities);
+  const first = buildJwwBytes(options), second = buildJwwBytes(options);
+  assert.deepEqual(first, second);
+  assert.equal(hash(JSON.stringify(drawing)), before);
+  const reopened = convertJwwBytes(second);
+  assert.equal(reopened.meta.jwwInternalSettings.records.length, 6);
+  assert.equal(buildJwwSemanticDiff(drawing, reopened).roundTripCompatible, true);
+});
+
+const nativePack = process.env.JWF_NATIVE_EVIDENCE_DIR;
+for (const [path, sha256, expected] of [
+  ["TNK3_NM2/planned-name-output.jww", "29e0b32070c6e3de8c90bbf8ce19e2c88d3a1c35e8e852486c216fc63189c8d8", "AuditPlanned"],
+  ["TNKN_SET/planned-prefix-output.jww", "c3259a3089a2423bbf8744f200bce8772512ee2630e0602d060fb79725a8b5cb", "Q33)"],
+]) {
+  const file = nativePack && `${nativePack}/${path}`;
+  test(`private native evidence ${path}: no-op bytes and rebuilt meaning`, { skip: !file }, async () => {
+    const source = new Uint8Array(readFileSync(file));
+    assert.equal(hash(source), sha256);
+    assert.deepEqual(saveNativeJww(await openNativeJww(source)).bytes, source);
+    const drawing = convertJwwBytes(source);
+    assert.ok(drawing.entities.some(item => item.type === "TEXT" && item.entity.text.includes(expected)));
+    const snapshot = hash(JSON.stringify(drawing));
+    const rebuilt = buildJwwBytes({ version: drawing.meta.jwwVersion, entities: drawing.entities, meta: drawing.meta });
+    assert.equal(hash(JSON.stringify(drawing)), snapshot);
+    const diff = buildJwwSemanticDiff(drawing, convertJwwBytes(rebuilt));
+    assert.equal(diff.parserClean, true);
+    assert.equal(diff.roundTripCompatible, true);
+  });
+}
