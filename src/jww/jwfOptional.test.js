@@ -123,3 +123,39 @@ test("TNK3_NM2 uses Shift_JIS bytes at the documented name boundary", () => {
     }
   }
 });
+
+test("TNKN_SET enforces six Shift_JIS bytes for every field without truncating or losing empty/overlay values", () => {
+  const defaults = ["{", "}", "(", ")", "[", "]", "<", ">"];
+  for (let field = 0; field < 8; field += 1) {
+    for (const [value, bytes] of [
+      ["", 0], ["ABCDE", 5], ["ABCDEF", 6], ["ABCDEFG", 7],
+      ["\u6771\u4eac\u90fd", 6], ["ABCDE\u5efa", 7],
+      ["\u25a1^w", 4], ["\u25cb^w", 4],
+    ]) {
+      const values = [...defaults];
+      values[field] = value;
+      assert.equal(encodeJwfText(value).length, bytes);
+      const row = `TNKN_SET=${values.join(",")}`;
+      const source = encodeJwfText(`# retain comment\r\n${row}\r\n#${row}\r\nEND\r\n`);
+      const profile = openJwfProfile(source);
+      assert.deepEqual(profile.parsed.entries.TNKN_SET.values, values);
+      assert.equal(profile.validation.ok, bytes <= 6);
+      assert.equal(validateJwfText(`#${row}\r\nEND\r\n`).ok, true);
+      const baseline = openJwfProfile(encodeJwfText(`TNKN_SET=${defaults.join(",")}\r\nEND\r\n`));
+      if (bytes > 6) {
+        // Out-of-spec native observations must not relax the documented guard.
+        assert.throws(() => updateJwfProfileEntry(baseline, "TNKN_SET", values));
+      } else {
+        assert.deepEqual(saveJwfProfile(profile).bytes, source);
+        const saved = saveJwfProfile(updateJwfProfileEntry(baseline, "TNKN_SET", values));
+        assert.deepEqual(parseJwfBytes(saved.bytes).entries.TNKN_SET.values, values);
+        assert.ok(decodeJwfBytes(saved.bytes).includes(row));
+      }
+    }
+  }
+  const empty = encodeJwfText("TNKN_SET=,,,,,,,\r\nEND\r\n");
+  const profile = openJwfProfile(empty);
+  assert.equal(profile.validation.ok, true);
+  assert.deepEqual(profile.parsed.entries.TNKN_SET.values, Array(8).fill(""));
+  assert.deepEqual(saveJwfProfile(profile).bytes, empty);
+});

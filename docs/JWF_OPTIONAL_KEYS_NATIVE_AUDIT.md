@@ -4,7 +4,7 @@ Updated: 2026-10-16. **Incomplete: 19 definitions reviewed, 4 keys partially obs
 
 This continues [JWF Activation Audit](JWF_ACTIVATION_AUDIT.md). Definitions, browser editing, native behavior, and persistence are separate evidence layers. This is not full JWF/JWW compatibility, engineering acceptance, or a mep-draft integration result.
 
-Latest continuation: [TNKN fields and planned-name audit](JWF_TNKN_NAME_NATIVE_AUDIT.md). Connection recovered: all eight TNKN_SET field contrasts now have native generation, Save As and JWW reopen evidence across continuations. Six TNK3_NM2 Japanese/name-boundary cases were also executed, including two explicitly out-of-spec diagnostics. This is generated-text persistence, not native JWF export/reimport. Whole-key status stays partial; see that report for current tests and exact evidence.
+Latest continuation: [TNKN fields, boundaries and planned-name audit](JWF_TNKN_NAME_NATIVE_AUDIT.md). All eight TNKN_SET field contrasts have native generation, Save As and JWW reopen evidence across continuations. Nine additional boundary/empty/decoration cases were executed, including native square/circle overlay reopens. One native JWF export/reimport sequence completed but **did not preserve TNKN_SET**: the native export omitted the key and new output used default labels. Six TNK3_NM2 Japanese/name-boundary cases remain recorded separately. Whole-key status stays partial; see that report for exact limits and the latest 376/376 test result.
 
 ## Sources
 
@@ -36,7 +36,7 @@ All 19 rows below have parser/serialization unit tests and individual browser re
 | TNKZ_SET | 1650-1717 | Nine integers, including decimal-packed fields | **Partial:** radius 25 -> 50; native save and clean-process reopen retained 50 | Other eight fields, radius zero/bounds, packed defaults and generated geometry not certified |
 | TNK3_NM1 | 1719-1721 | One literal string, documented 20 Shift_JIS bytes | **Partial:** `AuditReference` reflected; generated table saved and visibly reloaded | 20-byte boundary/truncation, Japanese boundary variants and repeated application not tested |
 | TNK3_NM2 | 1723-1725 | One literal string, documented 20 Shift_JIS bytes | **Partial:** AuditPlanned plus six name cases reflected, saved and JWW-reopened; Japanese12/Japanese20/ASCII19/ASCII20 retained; ASCII21 truncated, mixed21 retained in 10.02.1 | Other strings/versions, manual reload, repeated application and native JWF export unverified; out-of-spec observations do not revise the 20-byte editing limit |
-| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | **Partial:** all eight single-field contrasts generated, saved and JWW-reopened across continuations | Six-byte boundaries, empty affixes, decoration, other numbers/geometry and native JWF export unverified; see latest continuation |
+| TNKN_SET | 1727-1744 | Eight comma-separated strings, including empty strings and `^w` | **Partial:** eight field contrasts plus field-3 boundaries, all-empty arms and official square/circle example generated, saved and JWW-reopened; one native JWF export/reimport omitted the key and did not preserve the prefix | Other-field native boundaries, independent empty mixtures, other numbers/geometry, export after generation, repeated application and other versions unverified; see latest continuation |
 | REF_FILE | 1764-1778 | Literal reference filename; TAB-separated substitutions on printing | Not run; distributed placeholder remains blocked | Synthetic local reference/drawing pair, print-preview and missing-file behavior; no real print job |
 
 Scope remains `unknown` at whole-key level, including TNKZ_SET: one proven document field does not prove all nine fields persist. Definition evidence points here and marks the four native observations as `partial`.
@@ -57,7 +57,7 @@ The existing registry and installed-file baseline matched before any action toda
 1. Restored baseline; startup copy contained only `TNKN_SET={,},Q3,),[,],<,>` and END. This changes only field 3 from the documented default.
 2. Opened a fresh shadow-drawing copy and generated planned-building position and triangle tables at the same observed measurement/output positions as above.
 3. Native output contained `Q33)`, `Q34)`, `Q36)` twice each (diagram and table). Planned triangle labels remained `<1>` through `<5>` twice each. The suffix `)` was retained. The reference-building branch was NOT generated in this run.
-4. Closed, restored baseline, restarted with TNKN_SET commented out and reopened the JWW. Zoomed the building table and observed the Q3-prefixed labels. This proves persistence of generated text only. Other fields were tested in the linked latest continuation; `^w` rendering remains untested.
+4. Closed, restored baseline, restarted with TNKN_SET commented out and reopened the JWW. Zoomed the building table and observed the Q3-prefixed labels. This proves persistence of generated text only. Other fields and bounded `^w` rendering cases were tested in the linked latest continuation.
 
 ### Evidence Files
 
@@ -150,7 +150,7 @@ The output, accessibility observations and reopen screenshot are private evidenc
 
 - Sample prose names `CROSS_ST1..30`, while examples use `R_CROSS_ST1..6`. Only the six demonstrated key names are defined; aliases and additional members remain unverified and activation probes reject them.
 - TNKZ_SET packed zero/omitted digits are retained without inventing implicit color/text defaults. All persistence beyond the observed radius remains unverified.
-- TNKN_SET retains eight literal fields and applies a conservative six-byte-per-item editing guard. Exact native boundary/truncation behavior has not been verified; do not use this guard as proof of native acceptance.
+- TNKN_SET retains eight literal fields and applies the documented six-byte-per-item editing guard. Latest field-3 native observations retain 5/6 ASCII bytes and 6 Japanese bytes, truncate ASCII7 to six, but retain a mixed7 boundary-spanning character. These two out-of-spec outcomes do not establish a universal truncation algorithm or relax the guard. Other-field native boundaries remain unverified.
 - REF_FILE never causes Gateway to open an external file. Its filename round trip does not verify Jw_cad substitution, path resolution, or printer behavior.
 - Right-button drag and button-held snapshots are unavailable in the documented current computer-use API. The clock-menu acceptance cases require manual evidence or an approved capable harness. A user question was issued; no manual result was received during this audit.
 - The four partially checked native keys do not cover all their values, interactions, exports or versions. The other 15 keys still have no native behavior evidence. These gaps are pending work, not passed tests.
@@ -176,7 +176,7 @@ Browser script: `node tools/jwf-optional-browser-check.mjs <new-output-directory
 ## Next Native Gates
 
 1. Restore baseline separately for each arm; record on/off source hashes, dependencies, native JWF export, JWW Save As and clean-process reopen. Commenting a setting out does not reset a running process.
-2. Finish TNKZ_SET fields 2..9 and the seven untested TNKN_SET fields individually. Verify name boundaries, Japanese variants, TNKN_SET decoration and environment reload/export separately from generated text persistence before promoting definitions to native-verified.
+2. Finish TNKZ_SET fields 2..9 and remaining value/interaction gates in the linked TNKN/name audit. The eight TNKN field contrasts and bounded name/decoration tests are already recorded; do not rerun or relabel them as untested. Investigate the observed TNKN native-export omission separately from generated-text persistence. Whole-key native certification remains closed.
 3. Test six cursor strokes individually against an identical reviewed non-mm/real-size-cursor baseline; investigate the naming discrepancy separately.
 4. Obtain manual clock-menu right-drag/hold evidence, then test every supported command/hour, including text/dimension mode 4. Do not equate loading without an error with reflection.
 5. First establish a documented, safe non-printing preview route for REF_FILE; until then keep it BLOCKED. Only after resolving that gate use the synthetic local reference/drawing pair to record substitution, missing-file and relative-path behavior. Keep real printing and arbitrary external-file reads out of this audit.

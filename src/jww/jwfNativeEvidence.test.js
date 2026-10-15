@@ -7,7 +7,7 @@ import { parseJwwDocumentHeader } from "./documentHeader.js";
 import { buildJwwBytes, preflightJwwWrite } from "./writer.js";
 import { buildJwwSemanticDiff } from "./semanticDiff.js";
 import { convertJwwBytes } from "../../tools/jww-gateway.mjs";
-import { decodeJwfBytes, encodeJwfText, parseJwfBytes } from "./jwf.js";
+import { decodeJwfBytes, encodeJwfText, parseJwfBytes, openJwfProfile, saveJwfProfile } from "./jwf.js";
 
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const diameter = bytes => parseJwwDocumentHeader(bytes).fields.find(field => field.name === "m_dTenkuuZuDiameter").value;
@@ -114,6 +114,102 @@ for (const [field, sha256, labels, controls] of [
     // A regression over saved bytes is not a native GUI reopen test.
   });
 }
+
+const nativeBoundaries = process.env.JWF_NATIVE_BOUNDARIES_DIR;
+const boundaryCases = [
+  ["ascii5", "465519f0c12d036345b7c02413851155b78eb0950867414c5a33bc9212e5dca1", "ABCDE", "ABCDE", false],
+  ["ascii6", "abe3a5670ed4dd01848fc51fe29d1d9343ce9c1718a63b8381ceae60d8162b34", "ABCDEF", "ABCDEF", false],
+  ["ascii7", "6ce01719f8b2fec41a2b0cf088e0fe3c1acf61f5925a362028cb03c583429bc4", "ABCDEFG", "ABCDEF", false],
+  ["japanese6", "3a4167d339b37fb808bc5bfb2ba8639407099b76922cf292cb254a91d4e36382", "\u6771\u4eac\u90fd", "\u6771\u4eac\u90fd", false],
+  ["mixed7", "47ef43a17992e15acb32da54c48080343fc9edfd70ac194f24ebc8b9636cd723", "ABCDE\u5efa", "ABCDE\u5efa", false],
+  ["empty-reference", "8be31ff9b518e6e8a9c2eb6f7db4f242c6d087ef162ca8ed697a529facf9072a", null, "", true],
+  ["empty-planned", "22d0cbb5e5eeb7e5bb2f96dc804b2596e8b25479f4c65f817e391f13e8211b29", null, "", false],
+  ["decoration-reference", "c5e8d2973bb5a0bc80c4308b3569b4dbc4b754fb6676a1e7b1900343e2276c13", null, "\u25a1^w", true],
+  ["decoration-planned", "f8c551ff86994a6fa76f189ac814e78908aff294ac708a63d698babf86447e90", null, "\u25cb^w", false],
+];
+
+for (const [id, sha256, inputPrefix, savedPrefix, reference] of boundaryCases) {
+  test(`private TNKN boundary ${id}: native bytes, affixes and overlay rebuild`, { skip: !nativeBoundaries }, async () => {
+    const folder = `${nativeBoundaries}/${id}`;
+    const decorated = id.startsWith("decoration");
+    const empty = id.startsWith("empty");
+    const value = empty ? ",,,,,,," : decorated ? "\u25a1^w,,\u25cb^w,,[,],<,>" : `{,},${inputPrefix},),[,],<,>`;
+    const on = readFileSync(`${folder}/on.jwf`);
+    assert.equal(decodeJwfBytes(on), `TNKN_SET=${value}\r\nEND\r\n`);
+    assert.equal(decodeJwfBytes(readFileSync(`${folder}/off.jwf`)), `#${decodeJwfBytes(on)}`);
+    assert.deepEqual(parseJwfBytes(on).entries.TNKN_SET.values, value.split(","));
+    assert.equal(parseJwfBytes(readFileSync(`${folder}/off.jwf`)).entryCount, 0);
+    const input = new Uint8Array(readFileSync(`${folder}/input.jww`));
+    assert.equal(hash(input), "a574ab02d25d5dcefb4ed4e0d18b192c45c6fa264f58769dedcd7a904d7afb8b");
+    const inputCount = convertJwwBytes(input).entities.length;
+    assert.equal(inputCount, 1740);
+    const source = new Uint8Array(readFileSync(`${folder}/output.jww`));
+    assert.equal(hash(source), sha256);
+    const drawing = convertJwwBytes(source);
+    assert.equal(drawing.meta.jwwVersion, 700);
+    assert.equal(drawing.entities.length, reference ? 1955 : 1952);
+    const texts = drawing.entities.slice(inputCount).filter(item => item.type === "TEXT").map(item => item.entity);
+    const raw = texts.map(entity => entity.rawText ?? entity.text);
+    const expected = [3, 4, 6].map(n => `${savedPrefix}${n}${empty || decorated ? "" : ")"}`);
+    expected.push(...[1, 2, 3, 4, 5].map(n => empty ? String(n) : reference ? `[${n}]` : `<${n}>`));
+    for (const label of new Set(expected)) {
+      assert.equal(raw.filter(text => text === label).length, expected.filter(text => text === label).length * 2, label);
+    }
+    if (decorated) {
+      const overlays = texts.filter(entity => entity.rawText?.startsWith(savedPrefix));
+      assert.equal(overlays.length, 6);
+      for (const entity of overlays) {
+        const digit = entity.rawText.slice(savedPrefix.length);
+        assert.equal(entity.text, `${savedPrefix[0]}${digit}`);
+        assert.deepEqual(entity.jwwSpecialRuns, [{
+          kind: "halfOverlay", marker: "^w", baseText: savedPrefix[0], overlayText: digit, start: 0, end: 2,
+        }]);
+      }
+    }
+    const saved = saveNativeJww(await openNativeJww(source));
+    assert.deepEqual(saved.bytes, source);
+    assert.equal(hash(saved.bytes), sha256);
+    const snapshot = hash(JSON.stringify(drawing));
+    const json = JSON.parse(JSON.stringify(drawing));
+    const rebuilt = buildJwwBytes({ version: 700, entities: json.entities, meta: json.meta });
+    assert.equal(hash(JSON.stringify(json)), snapshot);
+    const reopened = convertJwwBytes(rebuilt);
+    const diff = buildJwwSemanticDiff(drawing, reopened);
+    assert.equal(diff.parserClean, true);
+    assert.equal(diff.roundTripCompatible, true);
+    const textMeaning = d => d.entities.filter(item => item.type === "TEXT").map(({ entity }) => ({
+      text: entity.text, rawText: entity.rawText, runs: entity.jwwSpecialRuns, segments: entity.jwwTextSegments,
+    }));
+    assert.deepEqual(textMeaning(reopened), textMeaning(drawing));
+  });
+}
+
+test("private native JWF export omits TNKN_SET and clean reimport uses default numbering", { skip: !nativeBoundaries }, async () => {
+  const bytes = new Uint8Array(readFileSync(`${nativeBoundaries}/ascii6/native-export.jwf`));
+  assert.equal(bytes.length, 10180);
+  assert.equal(hash(bytes), "3fa686f3b4b84a4b4a4f7967d99e92fa4c1602992a5968d559d3c6ddb810f8bf");
+  const profile = openJwfProfile(bytes);
+  assert.equal(profile.validation.ok, true);
+  assert.equal(profile.parsed.entryCount, 209);
+  assert.equal(profile.parsed.entries.TNKN_SET, undefined);
+  assert.equal(decodeJwfBytes(bytes).includes("TNKN_SET"), false);
+  assert.deepEqual(saveJwfProfile(profile).bytes, bytes);
+  const source = new Uint8Array(readFileSync(`${nativeBoundaries}/ascii6/reimport-output.jww`));
+  assert.equal(hash(source), "36661afa8e9466128d0b74bd27059a5a4778d018f999d73d837e22afc21caff4");
+  const drawing = convertJwwBytes(source);
+  assert.equal(drawing.entities.length, 1952);
+  const texts = drawing.entities.slice(1740).filter(item => item.type === "TEXT").map(item => item.entity.text);
+  for (const label of ["(3)", "(4)", "(6)", "<1>", "<2>", "<3>", "<4>", "<5>"]) {
+    assert.equal(texts.filter(text => text === label).length, 2, label);
+  }
+  assert.equal(texts.some(text => text.includes("ABCDEF")), false);
+  assert.deepEqual(saveNativeJww(await openNativeJww(source)).bytes, source);
+  const rebuilt = buildJwwBytes({ version: 700, entities: drawing.entities, meta: drawing.meta });
+  const diff = buildJwwSemanticDiff(drawing, convertJwwBytes(rebuilt));
+  assert.equal(diff.parserClean, true);
+  assert.equal(diff.roundTripCompatible, true);
+  // This pins the observed limitation, not successful environment round-trip preservation.
+});
 
 // These expectations record 10.02.1 observations, not new valid JWF lengths.
 for (const [id, sha256, inputName, inputBytes, savedName] of [
