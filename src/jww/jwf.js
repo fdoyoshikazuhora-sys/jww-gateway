@@ -214,8 +214,8 @@ function definitionForKey(key) {
   if (key === "R_STR0_00") {
     return {
       label: "numeric input unit preset",
-      valueSchema: ["scale", "flags...", "unitText"],
-      note: "Sample.jwf uses this for unit conversion presets such as m, Km, or shaku.",
+      valueSchema: ["unitParameters...", "unitText", "trailingDelimiter"],
+      note: "The legacy comma-segment array retains five space-separated parameters in the first segment: millimeters per unit, unit input, dimension unit, unit display, and leading-zero suppression. Later dimension rows can override dimension unit and display settings.",
     };
   }
   if (key === "R_CROSS_SET") {
@@ -325,7 +325,7 @@ function definitionForKey(key) {
     ],
     S_SET5: [
       "dimension angle preset setting",
-      ["angle1", "angle2", "angle3", "angle4"],
+      Array.from({ length: 10 }, (_, index) => `angle${index + 1}`),
     ],
   };
   if (dimensionDefinitions[key]) {
@@ -334,8 +334,9 @@ function definitionForKey(key) {
   }
   if (key === "ZF_SET") {
     return {
-      label: "shape setting",
-      valueSchema: ["values..."],
+      label: "coordinate file input / output setting",
+      valueSchema: ["coordinateDecimalPlaces", "angleDecimalPlaces", "meterUnits", "writeYX", "tabSeparator", "initializeReferenceFromFirstRecord"],
+      note: "Sample.jwf describes coordinate-file options, not shape geometry; JWW persistence is not established by this definition.",
     };
   }
   if (key === "SL_SET") {
@@ -347,7 +348,8 @@ function definitionForKey(key) {
   if (key === "CU_SET") {
     return {
       label: "measurement / calculation setting",
-      valueSchema: ["unit", "decimalPlaces", "rounding", "values..."],
+      valueSchema: ["distanceUnit", "angleUnit", "decimalPlaces", "textType", "showTrailingZeros", "showThousandsSeparator", "rounding", "showUnit", "calculationOptionsPacked"],
+      note: "The ninth value packs expression-format enablement in the ones digit and simultaneous distance/area measurement in the tens digit.",
     };
   }
   if (key === "MS_SET") {
@@ -1052,6 +1054,20 @@ function inlineCommentSuffix(value) {
 function formattedJwfValues(values, originalRawValue = "", key = "") {
   if (key === "MHEN" && values.length === 2 && /^\$<[^>\r\n]+>\/?$/u.test(String(values[1]))) {
     return `${formatJwfToken(values[0])} "${values[1]}`;
+  }
+  if (key === "R_STR0_00") {
+    // Preserve the legacy comma-segment array, but do not quote its numeric
+    // prefix: Sample.jwf uses five space-separated numbers followed by ,unit,.
+    const grouped = values.length === 3 && typeof values[0] === "string" && values[2] === "";
+    const numbers = grouped ? values[0].trim().split(/[ \t]+/) : values;
+    const numeric = numbers.length === 5 && numbers.every((value) =>
+      /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(String(value)) && Number.isFinite(Number(value)));
+    if (!numeric || (!grouped && values.length !== 5)) throw new Error("Unverified R_STR0_00 syntax: expected five numbers with optional ,unit,");
+    const prefix = numbers.join(" ");
+    if (!grouped) return prefix;
+    const unit = String(values[1]);
+    if (/[\r\n,#"]/u.test(unit)) throw new Error("Unverified R_STR0_00 unit delimiter");
+    return `${prefix} ,${unit},`;
   }
   const separator = String(originalRawValue).includes(",") ? "," : " ";
   return (values || []).map(formatJwfToken).join(separator);
