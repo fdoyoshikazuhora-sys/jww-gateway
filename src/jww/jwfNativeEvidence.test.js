@@ -219,6 +219,15 @@ for (const [field, size, sha256] of [
   [2, 6, "c61e3088847a2cccd7510f31ab994132c1247ffc321e8f54c8d0312e3049b94c"],
   [2, 7, "b16af48c16597afbf1cd365485575782ca3092df20592f7af31cd108781ecfbb"],
   [4, 6, "e9a91a11fb9906fc78c41c6d784acc342f7bb246452aec749b3b9f677f98ab69"],
+  [4, 7, "9655f1fd4364332e9245fa9af6ee6923274c80d1c9fc7202d3977bb77eb797e0"],
+  [5, 6, "86de89b59f3a4e05c38822aa502a42f6723be9c42a4bf02affcf0144bd0997af"],
+  [5, 7, "3d7da314eef403d7f55a223ded2afff0284952c46bbaf8233011d9d4492fd654"],
+  [6, 6, "bd28178515d34188dcfdf1a665cc1bad4a869bfa1995675b059722f5e9530547"],
+  [6, 7, "c80a4e8f7d09a3644c540b18bd99601544c4c5c4f947346305fab61a0f227e6c"],
+  [7, 6, "86a562ccaf91396ae7c26daf74eacd9e817986dd6b3161dfa6db6bbaf14f6abf"],
+  [7, 7, "fd7a68241d3a0d16a8d0255a989c5336e8322cc62cbf190cce7cc204d594995b"],
+  [8, 6, "e914c58f76e34b5136aee694bb9d612db08e80c1d069ec1181462365c2cfa17a"],
+  [8, 7, "fded9bf8b89befbfccfd5bb3c4fcde63a4e7c1339856f11403b1d2f2353aded9"],
 ]) {
   test(`private TNKN field ${field} ASCII${size}: saved bytes only, not native reopen acceptance`, { skip: !nativeSeven }, async () => {
     const folder = `${nativeSeven}/field-${field}-ascii${size}`;
@@ -234,11 +243,18 @@ for (const [field, size, sha256] of [
     assert.equal(hash(source), sha256);
     const drawing = convertJwwBytes(source);
     assert.equal(drawing.meta.jwwVersion, 700);
-    assert.equal(drawing.entities.length, field === 4 ? 2003 : 2008);
+    const reference = [1, 2, 5, 6].includes(field);
+    assert.equal(drawing.entities.length, reference ? 2008 : 2003);
+    assert.equal(drawing.meta.diagnostics.unsupportedCount, 0);
+    assert.equal(drawing.meta.diagnostics.skippedCount, 0);
     const texts = drawing.entities.slice(1740).filter(item => item.type === "TEXT").map(item => item.entity.text);
     const observedAffix = size === 5 ? "ABCDE" : "ABCDEF";
-    const labels = [3, 4, 5].map(n => field === 1 ? `${observedAffix}${n}}` : `${field === 2 ? "{" : "("}${n}${observedAffix}`);
-    labels.push(...[1, 2, 3, 4, 5, 6, 7].map(n => field === 4 ? `<${n}>` : `[${n}]`));
+    const savedAffixes = ["{", "}", "(", ")", "[", "]", "<", ">"];
+    savedAffixes[field - 1] = observedAffix;
+    const building = reference ? 0 : 2;
+    const triangle = reference ? 4 : 6;
+    const labels = [3, 4, 5].map(n => `${savedAffixes[building]}${n}${savedAffixes[building + 1]}`);
+    labels.push(...[1, 2, 3, 4, 5, 6, 7].map(n => `${savedAffixes[triangle]}${n}${savedAffixes[triangle + 1]}`));
     for (const label of labels) assert.equal(texts.filter(text => text === label).length, 2, label);
     assert.equal(texts.some(text => text.includes("ABCDEFG")), false);
     assert.deepEqual(saveNativeJww(await openNativeJww(source)).bytes, source);

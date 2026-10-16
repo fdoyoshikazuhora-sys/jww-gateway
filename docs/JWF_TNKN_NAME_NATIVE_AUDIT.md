@@ -1,6 +1,6 @@
 # TNKN Fields And Planned Name Native Audit
 
-Updated: 2026-10-16. **Latest seven-field boundary continuation is INCOMPLETE: the five pending saved-output reopens are now confirmed, completing clean native reopens for all six existing outputs. Nine generation/save/reopen cases remain unverified. Capture recovered for one session but failed again after restart with `foreground window did not report a process id`; reliable tool recovery and its internal root cause are NOT established.** The earlier post-generation JWF export did NOT preserve TNKN_SET. Earlier field contrasts, nine boundary/empty/decoration cases and six planned-name cases remain below. This follows [the optional-key audit](JWF_OPTIONAL_KEYS_NATIVE_AUDIT.md). Neither key is fully certified. No production behavior was changed.
+Updated: 2026-10-16. **All nine previously pending ASCII boundary cases now have reflection, separate native Save As and clean native JWW reopen evidence. All seven remaining fields have ASCII6/ASCII7 coverage; six extra ASCII5 controls remain NOT RUN.** Computer Use operated across private Jw_cad restarts, but its internal timeout cause and permanent stability remain unconfirmed; see [recovery findings](COMPUTER_USE_RECOVERY_20261016.md). The earlier post-generation JWF export did NOT preserve TNKN_SET. Earlier field contrasts, nine boundary/empty/decoration cases and six planned-name cases remain below. This follows [the optional-key audit](JWF_OPTIONAL_KEYS_NATIVE_AUDIT.md). Neither key is fully certified. No production behavior was changed.
 
 ## Sources
 
@@ -8,7 +8,7 @@ Installed Jw_cad 10.02.1, official Sample.jwf SHA-256 `c6ca97617d4f2b037cec4c4c2
 
 Official [download page](https://www.jwcad.net/download.htm) and [version history](https://www.jwcad.net/versioninfo.htm) were rechecked. They list 10.03.7; no upgrade was made. All native observations below are specific to installed 10.02.1.
 
-## Seven-Field Boundary Continuation (Incomplete)
+## Seven-Field ASCII6/ASCII7 Continuation
 
 The requested remaining fields are 1, 2, 4, 5, 6, 7 and 8; field 3 has the earlier evidence below. Twenty-one independent copies were prepared: each field with ASCII5, ASCII6 and ASCII7. ASCII7 exceeds the documented six-byte limit and is a diagnostic input, not a newly supported setting. Preparation does not count as execution.
 
@@ -16,17 +16,19 @@ Each generated case started from a freshly restored registry baseline and its ow
 
 | Field | Meaning | ASCII6 native generation / Save As | ASCII7 native generation / Save As | Clean native JWW reopen of boundary outputs |
 | --- | --- | --- | --- | --- |
-| 1 | Reference building prefix | ABCDEF3}, ABCDEF4}, ABCDEF5} | Same six-byte prefix; G omitted | CONFIRMED for 6/7 in this retry; ASCII5 previously confirmed |
-| 2 | Reference building suffix | {3ABCDEF, {4ABCDEF, {5ABCDEF | Same six-byte suffix; G omitted | CONFIRMED for 6/7 in this retry |
-| 4 | Planned building suffix | (3ABCDEF, (4ABCDEF, (5ABCDEF | BLOCKED before input drawing opened | ASCII6 CONFIRMED; ASCII7 NOT RUN |
-| 5 | Reference triangle prefix | NOT RUN | NOT RUN | NOT RUN |
-| 6 | Reference triangle suffix | NOT RUN | NOT RUN | NOT RUN |
-| 7 | Planned triangle prefix | NOT RUN | NOT RUN | NOT RUN |
-| 8 | Planned triangle suffix | NOT RUN | NOT RUN | NOT RUN |
+| 1 | Reference building prefix | ABCDEF3}, ABCDEF4}, ABCDEF5} | Same six-byte prefix; G omitted | CONFIRMED for 6/7 previously; ASCII5 also confirmed |
+| 2 | Reference building suffix | {3ABCDEF, {4ABCDEF, {5ABCDEF | Same six-byte suffix; G omitted | CONFIRMED for 6/7 previously |
+| 4 | Planned building suffix | (3ABCDEF, (4ABCDEF, (5ABCDEF | Same six-byte suffix; G omitted | ASCII6 previously; ASCII7 CONFIRMED in latest continuation |
+| 5 | Reference triangle prefix | ABCDEF1] through ABCDEF7] | Same six-byte prefix; G omitted | CONFIRMED for 6/7 |
+| 6 | Reference triangle suffix | [1ABCDEF through [7ABCDEF | Same six-byte suffix; G omitted | CONFIRMED for 6/7 |
+| 7 | Planned triangle prefix | ABCDEF1> through ABCDEF7> | Same six-byte prefix; G omitted | CONFIRMED for 6/7 |
+| 8 | Planned triangle suffix | <1ABCDEF through <7ABCDEF | Same six-byte suffix; G omitted | CONFIRMED for 6/7 |
 
-Each listed saved building label occurs twice. The unchanged triangle labels are [1]..[7] for reference and <1>..<7> for planned, each twice. Reference outputs have 2008 entities; planned field-4 ASCII6 has 2003. All saved outputs are v700. No setting warning was observed during these completed generation/save operations. Exact labels/counts come from the native-saved bytes; successful Gateway parsing is not native reopen evidence.
+Each listed saved label occurs twice. In building-affix cases, unchanged triangle labels are [1]..[7] for reference and <1>..<7> for planned, each twice. In triangle-affix cases, unchanged building labels are {3}/{4}/{5} for reference and (3)/(4)/(5) for planned, each twice. Reference outputs have 2008 entities; planned outputs have 2003. All saved outputs are v700. No setting warning was observed during these completed generation/save operations. Exact labels/counts come from the native-saved bytes; successful Gateway parsing is not native reopen evidence.
 
 Field-1 ASCII5 additionally generated ABCDE3}/ABCDE4}/ABCDE5}, saved, closed and reopened in a clean inactive-key session. Its zoomed building table was inspected and captured. Other ASCII5 controls are NOT RUN. In this retry, fields 1/2 ASCII6/7 and field 4 ASCII6 were opened sequentially in one new inactive-key session after restoring the baseline. All three building-table labels in each output were enlarged, inspected and captured; the five files were not edited or resaved. This confirms these specific JWW text reopens, not the environment setting, every rotated label, triangle-table rendering or other values. Japanese/mixed boundaries for these fields remain unverified.
+
+In the latest continuation, all nine remaining cases were generated independently using active startup copies, saved and closed. Field-4 ASCII7 and field-5 ASCII6 were reopened in clean inactive-key sessions. The last seven outputs were reopened sequentially in a new inactive-key session after baseline restoration and restart. Field 4's building table and fields 5..8's TRIANGLE table were enlarged and inspected, including all rows 1..7. No drawing edits or resaves occurred during those inspections. This is native-generated JWW text persistence, not native acceptance of Gateway-rebuilt files or environment-setting persistence.
 
 ### Export After Generation
 
@@ -37,9 +39,9 @@ Field-1 ASCII5 additionally generated ABCDE3}/ABCDE4}/ABCDE5}, saved, closed and
 
 **Result: SETTING_NOT_PRESERVED.** Drawing generation and Save As before export did not make this field-1 ASCII5 setting survive native JWF Write/Read in 10.02.1. This extends the earlier pre-generation export finding; it is not proof about every field, version, or exported setting. The original ABCDE-labeled JWW separately retains its generated text after reopen. Drawing-text persistence and environment-setting persistence are different results. No synthetic TNKN_SET line was inserted into native export evidence.
 
-### Evidence And Stop
+### Evidence And Remaining Gates
 
-Private root: `.work/jwf-native-seven-20261016`. `cases.json` remains the initial preparation record and `native-results.json` preserves the previous interrupted observations. **`native-results-recovered.json` is the latest explicit observed-status record**, including all 21 case statuses, artifact hashes, five new `reopened-review.jpg` screenshots, capture-failure diagnostics and protection checks. Private drawings, JWF exports and screenshots are not published.
+Private root: `.work/jwf-native-seven-20261016`. `cases.json` remains the initial preparation record. `native-results.json` and `native-results-recovered.json` preserve previous interrupted observations and the earlier five reopens. **`native-results-completed.json` is the latest observed-status record**, with all 21 statuses (15 confirmed bounded cases, six unrun ASCII5 controls), new artifact hashes, nine generation/reopen screenshot pairs, diagnostic limits and protection checks. The new images are `generated-review-20261016.jpg` and `reopened-review-20261016.jpg` within each new case. Private drawings, JWF exports and screenshots are not published.
 
 | Native artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -49,18 +51,29 @@ Private root: `.work/jwf-native-seven-20261016`. `cases.json` remains the initia
 | field-2-ascii6/output.jww | 144212 | c61e3088847a2cccd7510f31ab994132c1247ffc321e8f54c8d0312e3049b94c |
 | field-2-ascii7/output.jww | 144212 | b16af48c16597afbf1cd365485575782ca3092df20592f7af31cd108781ecfbb |
 | field-4-ascii6/output.jww | 143967 | e9a91a11fb9906fc78c41c6d784acc342f7bb246452aec749b3b9f677f98ab69 |
+| field-4-ascii7/output.jww | 143967 | 9655f1fd4364332e9245fa9af6ee6923274c80d1c9fc7202d3977bb77eb797e0 |
+| field-5-ascii6/output.jww | 144292 | 86de89b59f3a4e05c38822aa502a42f6723be9c42a4bf02affcf0144bd0997af |
+| field-5-ascii7/output.jww | 144292 | 3d7da314eef403d7f55a223ded2afff0284952c46bbaf8233011d9d4492fd654 |
+| field-6-ascii6/output.jww | 144292 | bd28178515d34188dcfdf1a665cc1bad4a869bfa1995675b059722f5e9530547 |
+| field-6-ascii7/output.jww | 144292 | c80a4e8f7d09a3644c540b18bd99601544c4c5c4f947346305fab61a0f227e6c |
+| field-7-ascii6/output.jww | 144047 | 86a562ccaf91396ae7c26daf74eacd9e817986dd6b3161dfa6db6bbaf14f6abf |
+| field-7-ascii7/output.jww | 144047 | fd7a68241d3a0d16a8d0255a989c5336e8322cc62cbf190cce7cc204d594995b |
+| field-8-ascii6/output.jww | 144047 | e914c58f76e34b5136aee694bb9d612db08e80c1d069ec1181462365c2cfa17a |
+| field-8-ascii7/output.jww | 144047 | fded9bf8b89befbfccfd5bb3c4fcde63a4e7c1339856f11403b1d2f2353aded9 |
 | field-1-ascii5/post-generation-export.jwf | 10275 | ff3efa6944e3f99259e4f3c1b7281be5002918d7710d0c984ae100cfd2246ab1 |
 | field-1-ascii5/post-export-reimport.jww | 144152 | ce244bb94c1387cba20145ef9e930ecad945e8fd5e068fc6bdc12391336fe7d5 |
 
 In the previous interrupted attempt at field-4 ASCII7, the last observed state was the Open dialog before opening input.jww. `get_window_state` timed out; window-list retries reported an active request, then a JS-kernel reset/import/list retry timed out. No subsequent native input was attempted. Only the identified agent-created private-runtime process (PID 34548) was terminated after checking its exact executable path and that no case output existed. Registry baseline restoration and installed-source verification passed. All 21 profile pairs/input copies and all nine protected canonical dirty files retained their pinned hashes. Association prompts were cancelled; no print job was issued.
 
-Seven opt-in regressions use `JWF_NATIVE_SEVEN_DIR=.work/jwf-native-seven-20261016`: six saved-output cases and the post-generation export limitation. They pin source profiles, output hashes, labels/counts, byte-identical Gateway no-op saves and JSON rebuild meaning. They do NOT supply native reopen evidence; that comes from the separately observed GUI sessions. The documented six-byte editing guard remains unchanged.
+Sixteen opt-in regressions use `JWF_NATIVE_SEVEN_DIR=.work/jwf-native-seven-20261016`: fifteen saved-output cases and the post-generation export limitation. They pin source profiles, output hashes, affected and unchanged labels/counts, clean diagnostics, byte-identical Gateway no-op saves and JSON rebuild meaning. They do NOT supply native reopen evidence; that comes from the separately observed GUI sessions. The documented six-byte editing guard remains unchanged.
 
-Verification: native-evidence file tests **36/36 passed**; full **npm test 383/383 passed, zero skips**, with JWF_REVIEWED_SAMPLE and all four private-evidence directory variables configured. The new seven tests explicitly skip when JWF_NATIVE_SEVEN_DIR is unset. A deliberately nonexistent configured directory failed with ENOENT rather than skipping, as required. `npm run verify` passed; `npm run roundtrip:corpus` passed 41/41. `npm run build` returned the existing missing-script error; no build command was invented. Scoped source scanning found no legacy OneDrive project-path references and `git diff --check` passed. Browser/consumer-app checks were not rerun: only evidence tests and documentation changed, with no production parser/writer/UI change.
+Earlier verification (before the nine new cases): native-evidence file tests **36/36 passed**; full **npm test 383/383 passed, zero skips**, with JWF_REVIEWED_SAMPLE and all four private-evidence directory variables configured. The then-new seven tests explicitly skipped when JWF_NATIVE_SEVEN_DIR was unset. A deliberately nonexistent configured directory failed with ENOENT rather than skipping, as required. `npm run verify` passed; `npm run roundtrip:corpus` passed 41/41. `npm run build` returned the existing missing-script error; no build command was invented. Scoped source scanning found no legacy OneDrive project-path references and `git diff --check` passed. Browser/consumer-app checks were not rerun: only evidence tests and documentation changed, with no production parser/writer/UI change.
 
-Resume: the five saved-output reopens are complete; do not overwrite their evidence. After reliable capture recovery, continue field-4 ASCII7 and fields 5/6/7/8 ASCII6/7 generation/save/reopen, followed by missing ASCII5 controls. Follow [the manual protocol](JWF_NATIVE_MANUAL_PROTOCOL.md). Independent empty-field mixtures, whitespace, ^w numbers 99/100, repeated manual application of original active profiles, other versions and consuming CAD acceptance remain outside these observations.
+Latest verification: native-evidence tests **45/45 passed** and full **npm test 392/392 passed, zero skips**, with the same five environment variables configured. `npm run verify` passed; generated `roundtrip:corpus` passed **41/41**. `npm run build` still reports the existing missing script. Each of the nine new outputs passed source-hash pinning, byte-identical Gateway no-op saving and clean JSON-rebuild semantic comparison. These automated checks are separate from the nine observed native reopens. The legacy OneDrive project-path scan again found no scoped source matches. Original installed files, registry, nine canonical dirty files and all 92 prior referenced artifacts were rechecked without differences. Browser and consumer apps were not operated.
 
-### Capture Recovery Attempt
+Resume: the five earlier reopens and all nine remaining ASCII6/ASCII7 cases are complete; do not overwrite their evidence. The six extra ASCII5 controls for fields 2/4/5/6/7/8 are still NOT RUN. Follow [the manual protocol](JWF_NATIVE_MANUAL_PROTOCOL.md). Japanese/mixed boundaries in these seven fields, independent empty-field mixtures, whitespace, ^w numbers 99/100, repeated manual application of original active profiles, other versions and consuming CAD acceptance remain outside these observations.
+
+### Earlier Failed Capture Recovery Attempt
 
 1. The original registry/installed-source baseline matched BEFORE this retry changed test configuration. Window enumeration succeeded. The private runtime was started with TNKN_SET inactive. Selecting the returned window, explicitly activating it, then capturing state worked. After cancelling the association dialog, the main window was selected again. Five saved-output reopens completed in that session.
 2. After closing that session, baseline restoration passed and the private startup copy was prepared for field-4 ASCII7. Its new process exposed one window, but state capture returned `foreground window did not report a process id`.
@@ -97,7 +110,7 @@ The test profiles contain actual Japanese/symbol characters encoded as Shift_JIS
 
 For reopens, ascii6 used its own clean process. The remaining eight outputs and the JWF-reimport result were opened sequentially in one new process after restoring the registry and disabling TNKN_SET in the test startup copy. No drawings were edited or saved during these reopen inspections. Each zoomed building-number table was inspected and captured. This visual check does not cover every rotated diagram label or a separate enlarged triangle-table inspection in this continuation. The actual square/circle overlays were visible after reopen, not just adjacent circle/square and digit strings. Gateway represents these as `halfOverlay` runs and retains raw `^w` text.
 
-The two seven-byte observations do not define a universal truncation algorithm or a valid seven-byte JWF setting. The documented six-byte editing guard remains unchanged. Boundaries in fields 1/2/4/5/6/7/8 were tested in Gateway code, NOT natively in this earlier continuation; see the incomplete seven-field continuation above for newer observations. Other numbering, including 99 and 100, remains unverified.
+The two seven-byte observations do not define a universal truncation algorithm or a valid seven-byte JWF setting. The documented six-byte editing guard remains unchanged. Boundaries in fields 1/2/4/5/6/7/8 were tested in Gateway code, NOT natively in this earlier continuation; see the seven-field continuation above for newer observations. Other numbering, including 99 and 100, remains unverified.
 
 ### Native JWF Write And Read
 
@@ -216,7 +229,7 @@ All agent-created native sessions were closed. Jw_cad registry and installed sou
 
 ## Remaining Work
 
-1. TNKN_SET fields 5/6/7/8 ASCII6/7 and field 4 ASCII7 remain unverified; fields 1/2 ASCII6/7 and field 4 ASCII6 now have generation/save/clean-reopen evidence. Independent empty/nonempty mixtures, whitespace, other numbering (including 99/100) and other geometry remain unverified. These bounded cases do not certify the whole key.
+1. All eight TNKN_SET fields now have ASCII6/ASCII7 generation/save/clean-native-reopen evidence across the two packs. Six additional ASCII5 controls (fields 2/4/5/6/7/8), Japanese/mixed boundaries outside field 3, independent empty/nonempty mixtures, whitespace, other numbering (including 99/100) and other geometry remain unverified. These bounded cases do not certify the whole key.
 2. Native JWF export/reimport did not preserve TNKN_SET in the recorded pre-generation field-3 ASCII6 and post-generation field-1 ASCII5 sequences. Other export scenarios, repeated manual loading of the original active copy and interactions with other settings remain unverified. Preserved generated JWW text is not restored JWF environment state.
 3. No universal over-limit algorithm, other Jw_cad release behavior or native reloading of Gateway-rebuilt files is claimed by these tests.
 4. Other optional-key manual-input/printing gates in the parent audit remain open. Do not promote either key or all JWF support to fully native-verified.
