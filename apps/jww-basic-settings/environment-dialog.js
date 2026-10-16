@@ -115,6 +115,9 @@ function entryTitle(entry) {
   return entry.definition?.label || entry.key.replaceAll("_", " ");
 }
 function fieldName(entry, index) {
+  if (entry.key === "R_STR0_00") return (entry.values.length === 3
+    ? ["Unit parameters", "Unit text", "Trailing delimiter"]
+    : ["Millimeters per unit", "Unit input", "Dimension unit", "Show unit", "Suppress leading zero"])[index] || `Value ${index + 1}`;
   if (/^(MWIDE|MHIGH|MDIST|MPEN)$/.test(entry.key)) return `Text type ${index + 1}`;
   if (/^LAYNAM_[0-9A-F]$/.test(entry.key)) return index === 0 ? "Group name" : `Layer ${(index - 1).toString(16).toUpperCase()}`;
   if (/^(LAYCOL|LAYWID|LAYTYP)_[0-9A-F]$/.test(entry.key)) return `Layer ${index.toString(16).toUpperCase()}`;
@@ -142,7 +145,8 @@ function refreshChrome() {
 function mutateEntry(entry, index, value) {
   const values = [...(profile.parsed.entries[entry.key]?.values || entry.values)];
   values[index] = value;
-  profile = updateJwfProfileEntry(profile, entry.key, values);
+  try { profile = updateJwfProfileEntry(profile, entry.key, values); }
+  catch (error) { render(); status(error.message || "This JWF edit could not be applied.", "error"); return; }
   refreshChrome();
   status(`${entry.key} changed. Select Apply to keep this edit in the current session.`, "ready");
 }
@@ -341,18 +345,22 @@ function openColorDialog(entry, label) {
   dialog.showModal();
 }
 function inputFor(entry, index, value, { describe = true } = {}) {
-  if (BOOLEAN_FIELDS.has(`${entry.key}:${index}`) && [0, 1].includes(Number(value))) {
+  if (entry.key === "R_STR0_00" && entry.values.length === 3 && index === 2 && value === "") return document.createDocumentFragment();
+  if ((BOOLEAN_FIELDS.has(`${entry.key}:${index}`) || /^(LD2|RD2)_RV$/.test(entry.key)) && [0, 1].includes(Number(value))) {
     const label = el("label", "check-field");
     const input = el("input"); input.type = "checkbox"; input.checked = Number(value) === 1;
     input.addEventListener("change", () => mutateEntry(entry, index, input.checked ? 1 : 0));
     label.append(input, el("span", "", fieldName(entry, index))); return label;
   }
   const label = el("label", "value-field"); label.append(el("span", "", fieldName(entry, index)));
+  if (entry.key === "R_STR0_00" && entry.values.length === 3 && index === 0) label.classList.add("unit-parameters");
   const input = el("input");
-  const numeric = typeof value === "number" || (String(value).trim() !== "" && Number.isFinite(Number(value)));
+  const literalText = /^(TNK3_NM[12]|TNKN_SET|REF_FILE)$/.test(entry.key);
+  const numeric = !literalText && (typeof value === "number" || (String(value).trim() !== "" && Number.isFinite(Number(value))));
   const linePattern = /^LTYPE_(?:0[2-9]|R[1-5]|L[1-4])$/.test(entry.key) && index === 0;
   const constraint = numeric ? numericConstraint(entry,index) : null;
   input.type = numeric&&constraint ? "number" : "text"; input.value = value ?? "";
+  if (/^COM_RV\d/.test(entry.key) && entry.definition?.valueSchema?.[index]?.startsWith("reserved")) input.disabled = true;
   if (constraint) { input.min=String(constraint.min); input.max=String(constraint.max); input.step=String(constraint.step); input.title=`Allowed: ${constraint.label}`; }
   if (linePattern) { input.pattern="[0-9a-fA-F]{8}"; input.maxLength=8; input.title="Enter exactly eight hexadecimal digits (00000001–ffffffff)."; }
   const validate = () => { const next=Number(input.value); const excluded=constraint?.excluded?.has(next); const invalidValue=constraint?.valid&&!constraint.valid(next); const invalidPattern=linePattern&&!/^[0-9a-fA-F]{8}$/.test(input.value); input.setCustomValidity(excluded||invalidValue?`Enter ${constraint.label}.`:invalidPattern?"Enter exactly eight hexadecimal digits.":""); return !excluded&&!invalidValue&&!invalidPattern&&input.checkValidity(); };

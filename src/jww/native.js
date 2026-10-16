@@ -363,6 +363,9 @@ function buildNativeDocument(
   const diagnostics = {
     ...parserDiagnostics,
     clean:
+      !parserDiagnostics.incompleteLists &&
+      !(parserDiagnostics.headerIssues || []).length &&
+      !(parserDiagnostics.unverifiedValues || []).length &&
       Number(parserDiagnostics.unsupportedCount || 0) === 0 &&
       Number(parserDiagnostics.skippedCount || 0) === 0 &&
       Number(parserDiagnostics.embeddedImageTruncatedCount || 0) === 0 &&
@@ -1970,6 +1973,7 @@ function nativeRecordToWriterItem(record, imageRotationRecordIds = new Set()) {
     entity.jwwArcAngle = value.arc_angle;
     entity.jwwTiltAngle = value.tilt_angle;
     entity.jwwFlatness = value.flatness;
+    entity.jwwFullCircleFlag = value.full_circle_flag;
   } else if (type === "TEXT" || type === "IMAGE") {
     entity.position = { x: value.start_x, y: value.start_y };
     entity.endPoint = { x: value.end_x, y: value.end_y };
@@ -1996,11 +2000,12 @@ function nativeRecordToWriterItem(record, imageRotationRecordIds = new Set()) {
     entity.jwwPointCode = value.code;
     entity.jwwPointAngle = value.angle;
     entity.jwwPointScale = value.scale;
+    entity.jwwTemporaryFlag = value.temporary_flag;
   } else if (type === "SOLID") {
     // CDataSolid is serialized in the boundary order point1, point4,
     // point2, point3 even though the parser exposes the named fields in
     // numeric order. Keep the writer-facing geometry in boundary order.
-    entity.vertices = [1, 4, 2, 3].map((index) => ({
+    entity.jwwSourceVertices = [1, 4, 2, 3].map((index) => ({
       x: value[`point${index}_x`],
       y: value[`point${index}_y`],
     }));
@@ -2036,6 +2041,7 @@ function nativeBlockDefinitionToWriter(definition, imageRotationRecordIds = new 
     base: value.base,
     number: value.number,
     referred: value.referred,
+    referredFlag: value.referred_flag,
     createdAt: value.created_at,
     rawName: value.name,
     entities: (value.entities || []).map((record) =>
@@ -2062,6 +2068,9 @@ function spliceBytes(source, start, end, replacement) {
 
 function hasParserLoss(document) {
   return (
+    Boolean(document.diagnostics?.incompleteLists) ||
+    (document.diagnostics?.headerIssues || []).length > 0 ||
+    (document.diagnostics?.unverifiedValues || []).length > 0 ||
     Number(document.diagnostics?.unsupportedCount || 0) > 0 ||
     Number(document.diagnostics?.skippedCount || 0) > 0 ||
     Number(document.diagnostics?.embeddedImageTruncatedCount || 0) > 0 ||
@@ -2528,7 +2537,7 @@ function assertPrefixMetadataEffects(savedDocument, revisedDocument, targetIds) 
 
 export function preflightNativeJwwSave(
   document,
-  { patches = [], strict = true, allowImageRotation = false } = {}
+  { patches = [], strict = true, allowImageRotation = false, allowUnsupported = false } = {}
 ) {
   if (document?.kind !== JWW_NATIVE_DOCUMENT_KIND) {
     return {
@@ -2538,6 +2547,9 @@ export function preflightNativeJwwSave(
       reasons: ["Expected a JwwNativeDocument"],
       willWriteBytes: false,
     };
+  }
+  if (!(document.originalBytes instanceof Uint8Array) || sha256HexSync(document.originalBytes) !== document.originalSha256) {
+    return { ok: false, code: "JWW_NATIVE_SOURCE_HASH_MISMATCH", strategy: "blocked", reasons: ["Original JWW source bytes changed after opening"], willWriteBytes: false };
   }
   if (!patches.length && !document.dirty) {
     return {
@@ -2549,6 +2561,10 @@ export function preflightNativeJwwSave(
       preservesUnsupportedBytes: true,
       willWriteBytes: true,
     };
+  }
+
+  if (hasParserLoss(document) && !allowUnsupported) {
+    return { ok: false, code: "JWW_NATIVE_UNSUPPORTED_SOURCE", strategy: "blocked", reasons: ["Unverified or incomplete source requires allowUnsupported: true; only proven byte-preserving splices remain eligible"], byteIdentical: false, willWriteBytes: false };
   }
 
   let revised;
@@ -2849,7 +2865,7 @@ function savedRecordIdTransition(sourceDocument, revisedDocument, savedDocument)
 
 export function saveNativeJww(
   document,
-  { patches = [], strict = true, allowImageRotation = false } = {}
+  { patches = [], strict = true, allowImageRotation = false, allowUnsupported = false } = {}
 ) {
   if (document?.kind !== JWW_NATIVE_DOCUMENT_KIND) {
     throw new TypeError("Expected a JwwNativeDocument");
@@ -2858,6 +2874,7 @@ export function saveNativeJww(
     patches,
     strict,
     allowImageRotation,
+    allowUnsupported,
   });
   if (!preflight.ok) {
     const error = new Error(preflight.reasons.join("; "));

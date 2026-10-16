@@ -1,0 +1,24 @@
+{
+  "url": "http://localhost:3000/apps/jww-basic-settings/environment.html",
+  "browser": "Chrome 155.0.8059.41 headless via Playwright",
+  "checks": [
+    "km/inactive: browser read-export byte equality",
+    "km/active: browser read-export byte equality",
+    "shaku/inactive: browser read-export byte equality",
+    "shaku/active: browser read-export byte equality",
+    "dpi/inactive: browser read-export byte equality",
+    "dpi/active: browser read-export byte equality",
+    "ZF_SET/coordinateDecimalPlaces: form edit/apply/export changed the intended value position",
+    "CU_SET/angleUnit: form edit/apply/export changed the intended value position",
+    "S_SET5/angle10: form edit/apply/export changed the intended value position",
+    "invalid unit edit: rejected, previous profile restored, no page exception",
+    "unit edit/apply/export/reopen: Japanese unit preserved and no quoted numeric prefix"
+  ],
+  "errors": [],
+  "mobileLayout": {
+    "viewportWidth": 390,
+    "documentWidth": 720
+  },
+  "nativeJwCad": "not-run",
+  "consumingApps": "not-run"
+}

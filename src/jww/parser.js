@@ -11,6 +11,8 @@ import {
 } from "./lineTypeSettings.js";
 import { parseJwwTextSettings } from "./textSettings.js";
 import { rgbToHex } from "./shared.js";
+import { parseJwwDocumentHeader } from "./documentHeader.js";
+import { circularSolidPayload, jwwCircularSolid } from "./solidGeometry.js";
 
 const HEADER = [0x4a, 0x77, 0x77, 0x44, 0x61, 0x74, 0x61, 0x2e];
 
@@ -58,13 +60,15 @@ function hasHeader(data) {
 
 function readCString(reader, encoding) {
   const { length, stringEncoding } = readJwwStringLength(reader, encoding);
-  if (length <= 0 || length > 1000000) return "";
+  if (length > 1000000 || length > reader.remaining()) throw new Error("Invalid or truncated JWW CString");
+  if (length === 0) return "";
   return decodeJwwRawString(reader.readBytes(length), stringEncoding);
 }
 
 function readCStringWithMetadata(reader, encoding, textContext = {}) {
   const { length, stringEncoding } = readJwwStringLength(reader, encoding);
-  if (length <= 0 || length > 1000000) {
+  if (length > 1000000 || length > reader.remaining()) throw new Error("Invalid or truncated JWW CString");
+  if (length === 0) {
     return {
       rawText: "",
       resolvedText: "",
@@ -456,7 +460,7 @@ function parseLegacyColorSettings(data, entityOffset, searchStart) {
   };
 }
 
-function parseColorSettings(data, entityOffset, environmentStart = HEADER.length) {
+function parseColorSettings(data, entityOffset, environmentStart = HEADER.length, documentHeader = null) {
   const searchStart = Math.max(
     HEADER.length,
     Math.min(Number(environmentStart) || HEADER.length, data.length)
@@ -469,9 +473,26 @@ function parseColorSettings(data, entityOffset, environmentStart = HEADER.length
     )
   );
   const candidates = [];
-  for (let offset = searchStart; offset <= searchEnd; offset += 1) {
-    const candidate = scoreOfficialColorSettings(data, offset);
-    if (candidate) candidates.push(candidate);
+  if (documentHeader) {
+    const fields = new Map(documentHeader.fields.map((field) => [field.name, field]));
+    const entry = (index, print) => {
+      const prefix = print ? "Prt" : "";
+      const raw = fields.get(`m_a${prefix}PenColor[${index}]`).value;
+      const red = raw & 255;
+      const green = (raw >>> 8) & 255;
+      const blue = (raw >>> 16) & 255;
+      return { red, green, blue, hex: rgbToHex(red, green, blue),
+        width: fields.get(`m_an${prefix}PenWidth[${index}]`).value,
+        ...(print ? { pointRadius: fields.get(`m_adPrtTenHankei[${index}]`).value } : {}) };
+    };
+    candidates.push({ offset: fields.get("m_aPenColor[0]").offset, score: 0,
+      screen: Array.from({ length: 10 }, (_, i) => entry(i, false)),
+      print: Array.from({ length: 10 }, (_, i) => entry(i, true)) });
+  } else {
+    for (let offset = searchStart; offset <= searchEnd; offset += 1) {
+      const candidate = scoreOfficialColorSettings(data, offset);
+      if (candidate) candidates.push(candidate);
+    }
   }
   const rankedCandidates = candidates
     .sort((left, right) => right.score - left.score || left.offset - right.offset)
@@ -973,10 +994,6 @@ function wrap(value) {
   return value ? { value } : undefined;
 }
 
-function isMetadataText(content) {
-  return /^hq[bd]/.test(content || "") || /^jww_/.test(content || "");
-}
-
 function parseTextPayload(reader, encoding, textContext = {}) {
   const start_x = reader.readDouble();
   const start_y = reader.readDouble();
@@ -1032,11 +1049,15 @@ function parseGridSettings(reader) {
 
 function parsePointPayload(reader, version) {
   const base = readEntityBase(reader, version);
+  const x = reader.readDouble();
+  const y = reader.readDouble();
+  const temporary_flag = reader.readDword();
   const value = {
     base,
-    x: reader.readDouble(),
-    y: reader.readDouble(),
-    is_temporary: reader.readDword() !== 0,
+    x,
+    y,
+    temporary_flag,
+    is_temporary: temporary_flag !== 0,
     code: 0,
     angle: 0,
     scale: 1,
@@ -1077,7 +1098,6 @@ function createDiagnostics() {
   };
 }
 
-const FILTERED_ENTITY = Symbol("filtered-jww-entity");
 const UNSUPPORTED_ENTITY = Symbol("unsupported-jww-entity");
 
 function addUnsupportedClass(diagnostics, className, record = null) {
@@ -1130,7 +1150,7 @@ function parseEntityByClass(
   }
 
   if (className === "CDataEnko") {
-    return wrap({
+    const value = {
       base: readEntityBase(reader, version),
       center_x: reader.readDouble(),
       center_y: reader.readDouble(),
@@ -1139,8 +1159,9 @@ function parseEntityByClass(
       arc_angle: reader.readDouble(),
       tilt_angle: reader.readDouble(),
       flatness: reader.readDouble(),
-      is_full_circle: reader.readDword() !== 0,
-    });
+      full_circle_flag: reader.readDword(),
+    };
+    return wrap({ ...value, is_full_circle: value.full_circle_flag !== 0 });
   }
 
   if (className === "CDataTen") {
@@ -1153,7 +1174,6 @@ function parseEntityByClass(
       base,
       ...parseTextPayload(reader, encoding, textContextForBase(textContext, base)),
     };
-    if (isMetadataText(text.content)) return FILTERED_ENTITY;
     return wrap(text);
   }
 
@@ -1167,18 +1187,14 @@ function parseEntityByClass(
     const point2_y = reader.readDouble();
     const point3_x = reader.readDouble();
     const point3_y = reader.readDouble();
-    return wrap({
-      base,
-      point1_x,
-      point1_y,
-      point2_x,
-      point2_y,
-      point3_x,
-      point3_y,
-      point4_x,
-      point4_y,
-      color: base.pen_color === 10 ? reader.readDword() : 0,
-    });
+    const solid = { base, point1_x, point1_y, point2_x, point2_y, point3_x, point3_y, point4_x, point4_y,
+      color: base.pen_color === 10 ? reader.readDword() : 0 };
+    const circular = jwwCircularSolid(solid);
+    if (circular) {
+      try { circularSolidPayload(circular); }
+      catch (error) { (diagnostics.unverifiedValues ||= []).push({ ...recordContext, className, reason: error.message }); }
+    }
+    return wrap(solid);
   }
 
   if (className === "CDataSunpou") {
@@ -1232,8 +1248,10 @@ function parseEntityByClass(
   if (className === "CDataList") {
     const base = readEntityBase(reader, version);
     const number = reader.readDword();
-    const referred = reader.readDword() !== 0;
+    const referred_flag = reader.readDword();
+    const referred = referred_flag !== 0;
     const created_at = reader.readDword();
+    if (created_at >= 0x80000000) throw new Error("Unverified CTime encoding (only the observed 32-bit epoch layout is supported)");
     const name = readCString(reader, encoding, textContext);
     const nested = parseEntityList(
       reader.data,
@@ -1249,10 +1267,12 @@ function parseEntityByClass(
       }
     );
     reader.pos += nested.bytes_consumed;
+    if (!nested.complete) throw new Error("Incomplete CDataList child list");
     return wrap({
       base,
       number,
       referred,
+      referred_flag,
       created_at,
       name,
       entities: nested.entities,
@@ -1323,10 +1343,10 @@ function parseEntityWithClassTracking(
     const oldClass = (classId & oldClassMask) !== 0;
     if (!oldClass) {
       const referenced = archiveState.objectByPid.get(classId);
-      if (!referenced) {
+      if (!referenced || (recordContext.section === "block-definitions") !== (referenced.className === "CDataList")) {
         const unsupported = {
           ...recordContext,
-          reason: "unregistered-object-pid",
+          reason: referenced ? "invalid-object-reference-class-in-list" : "unregistered-object-pid",
           tag: classId,
           extendedTag,
           className: "",
@@ -1399,16 +1419,29 @@ function parseEntityWithClassTracking(
   }
 
   const payloadStart = reader.pos;
-  const parsedEntity = parseEntityByClass(
-    className,
-    reader,
-    version,
-    encoding,
-    diagnostics,
-    textContext,
-    archiveState,
-    recordContext
-  );
+  const unsupportedBefore = diagnostics.unsupportedCount;
+  let parsedEntity;
+  try {
+    if ((recordContext.section === "block-definitions") !== (className === "CDataList")) throw new Error(`Invalid ${className} in ${recordContext.section}`);
+    parsedEntity = parseEntityByClass(
+      className,
+      reader,
+      version,
+      encoding,
+      diagnostics,
+      textContext,
+      archiveState,
+      recordContext
+    );
+    if (reader.failed) throw new Error("Truncated entity payload");
+  } catch (error) {
+    const unsupported = { ...recordContext, reason: error.message, className, start, payloadStart, end: null };
+    if (diagnostics.unsupportedCount === unsupportedBefore) {
+      addUnsupportedClass(diagnostics, className, unsupported);
+      diagnostics.skippedCount += 1;
+    }
+    return { entity: undefined, record: { ...unsupported, kind: "unsupported", sourceSpan: null }, stop: true };
+  }
   if (parsedEntity === UNSUPPORTED_ENTITY) {
     const unsupported = {
       ...recordContext,
@@ -1437,7 +1470,7 @@ function parseEntityWithClassTracking(
     };
   }
 
-  const entity = parsedEntity === FILTERED_ENTITY ? undefined : parsedEntity;
+  const entity = parsedEntity;
   archiveState.objectByPid.set(objectPid, { entity, className, classPid });
   const sourceSpan = {
     start,
@@ -1456,7 +1489,7 @@ function parseEntityWithClassTracking(
       className,
       classPid,
       objectPid,
-      filtered: parsedEntity === FILTERED_ENTITY,
+      filtered: false,
       sourceSpan,
     },
     stop: false,
@@ -1483,7 +1516,7 @@ function parseEntityList(
   const section = listContext.section || "drawing";
   const path = listContext.path || section;
 
-  for (let i = 0; i < count && reader.remaining() >= 4; i += 1) {
+  for (let i = 0; i < count && reader.remaining() >= 2; i += 1) {
     const result = parseEntityWithClassTracking(
       reader,
       version,
@@ -1506,7 +1539,7 @@ function parseEntityList(
     records,
     declared_count: count,
     count_bytes: archiveCount.byteLength,
-    complete: records.length === count && !records.some((record) => record?.kind === "unsupported"),
+    complete: !reader.failed && records.length === count && !records.some((record) => record?.kind === "unsupported"),
     bytes_consumed: reader.pos - startPos,
     archive_state: tracking,
   };
@@ -1649,10 +1682,17 @@ export function parse(input, options = {}) {
     ...(options.textContext || {}),
   };
   const data = input instanceof Uint8Array ? input : Uint8Array.from(input || []);
-  if (data.length < HEADER.length || !hasHeader(data)) return emptyDocument();
+  if (data.length < HEADER.length || !hasHeader(data)) {
+    const empty = emptyDocument();
+    empty.diagnostics.headerIssues = ["Invalid JWW signature"];
+    return empty;
+  }
 
   const reader = new BinaryReader(data, HEADER.length);
   const diagnostics = createDiagnostics();
+  let document_header = null;
+  try { document_header = parseJwwDocumentHeader(data, encoding); }
+  catch (error) { diagnostics.headerIssues = [error.message]; }
   const version = reader.readDword();
   const memo = readCString(reader, encoding, baseTextContext);
   const paper_size = reader.readDword();
@@ -1684,7 +1724,7 @@ export function parse(input, options = {}) {
     memo,
     layerGroups: layer_groups,
   };
-  let entityOffset = findEntityListOffset(data, version);
+  let entityOffset = document_header?.byteLength ?? findEntityListOffset(data, version);
   const layerNamesOffset = reader.pos;
   if (entityOffset !== undefined && layerNamesOffset >= entityOffset) {
     layer_groups = withDefaultLayerNames(layer_groups);
@@ -1722,7 +1762,8 @@ export function parse(input, options = {}) {
   const color_settings = parseColorSettings(
     data,
     entityOffset,
-    afterLayerNamesOffset
+    afterLayerNamesOffset,
+    document_header
   );
   const line_type_settings = parseLineTypeSettings(
     data,
@@ -1758,7 +1799,7 @@ export function parse(input, options = {}) {
       ? undefined
       : entityOffset + entityResult.bytes_consumed;
   const blockResult =
-    blockListOffset === undefined || blockListOffset + 2 > data.length
+    !entityResult.complete || blockListOffset === undefined || blockListOffset + 2 > data.length
       ? { entities: [], records: [], bytes_consumed: 0, complete: false }
       : parseEntityList(
           data,
@@ -1771,7 +1812,7 @@ export function parse(input, options = {}) {
           { section: "block-definitions", path: "blockDefinitions" }
         );
   const embeddedImageOffset =
-    blockListOffset === undefined
+    !blockResult.complete || blockListOffset === undefined
       ? undefined
       : blockListOffset + blockResult.bytes_consumed;
   const embeddedImageResult = parseEmbeddedImages(
@@ -1787,9 +1828,13 @@ export function parse(input, options = {}) {
     (image) => image.truncated
   ).length;
   diagnostics.embeddedImageIssues = embeddedImageResult.issues;
+  if (!entityResult.complete || !blockResult.complete) diagnostics.incompleteLists = true;
+  const parsedEnd = embeddedImageOffset === undefined ? null : embeddedImageOffset + embeddedImageResult.bytes_consumed;
+  if (parsedEnd !== null && parsedEnd < data.length) diagnostics.trailingByteLength = data.length - parsedEnd;
 
   return {
     version,
+    document_header,
     memo,
     paper_size,
     write_layer_group,

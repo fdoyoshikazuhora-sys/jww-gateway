@@ -2,6 +2,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { encodeJwwDocumentHeader } from "../src/jww/documentHeader.js";
+import { circularSolidPayload } from "../src/jww/solidGeometry.js";
 
 const SUPPORTED_ENCODINGS = new Set([
   "shift_jis",
@@ -65,6 +67,10 @@ function validateJwwInternalSettings(errors, value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     addError(errors, "meta.jwwInternalSettings", "must be an object", value);
     return;
+  }
+  if (value.document != null) {
+    try { encodeJwwDocumentHeader(value.document); }
+    catch (error) { addError(errors, "meta.jwwInternalSettings.document", error.message, value.document); }
   }
   if (
     !value.sentinel ||
@@ -376,6 +382,9 @@ function validateEntityShape(errors, item, index) {
         );
       }
     }
+  } else if (item.type === "JWW_CIRCULAR_SOLID") {
+    try { circularSolidPayload(entity.jwwCircularSolid); }
+    catch (error) { addError(errors, `${prefix}.entity.jwwCircularSolid`, error.message, entity.jwwCircularSolid); }
   } else if (item.type === "SOLID") {
     if (!Array.isArray(entity.vertices) || entity.vertices.length < 3) {
       addError(

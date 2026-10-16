@@ -1,5 +1,7 @@
 # JWW / JWF Environment Audit
 
+2026-10-15 audit note: this document contains historical coverage claims. See [JWF Activation Audit](JWF_ACTIVATION_AUDIT.md) for the hash-pinned commented-row inventory, corrected key meanings, and separate parser/browser/native evidence gates. The 210-key baseline below excludes commented settings and prose-only keys.
+
 ## 目的
 
 JWF は Jw_cad の環境設定ファイルで、読み込むたびに Jw_cad の現在環境を変更する。JWW ファイルにも、保存時点の図面再現に必要な環境情報が含まれている可能性が高い。
@@ -131,10 +133,10 @@ UTF-16文字列には、JWF書出し用と思われるフォーマット列が�
 | `MOFST`                                  | 文字基準点ずれ                     |         未対応 | 未抽出。                                                                                                                                                          |
 | `S_STR1..3`                              | 寸法文字設定                       |       部分対応 | 寸法エンティティの線と文字は読取済み。寸法設定表は未抽出。                                                                                                        |
 | `S_SET1..5`                              | 寸法線・矢印・寸法補助設定         |       部分対応 | 寸法エンティティの形状は一部読取済み。設定表は未抽出。                                                                                                            |
-| `ZF_SET`                                 | 図形設定                           |         未対応 | 未抽出。                                                                                                                                                          |
-| `SL_SET`                                 | ソリッド設定                       |       部分対応 | ソリッドエンティティ自体と直接色は対応。設定表は未抽出。                                                                                                          |
-| `CU_SET`                                 | 曲線設定                           |         未対応 | 曲線クラスは未対応が多い。                                                                                                                                        |
-| `MS_SET`                                 | 測定設定                           |         未対応 | 未抽出。                                                                                                                                                          |
+| `ZF_SET` | Coordinate-file input/output | Raw JWF + named fields | Sample.jwf 1106-1127; not shape geometry. Native behavior and JWW persistence remain unverified. |
+| `SL_SET` | Selection / copy / move | Raw JWF; partial definition | Sample.jwf 1131-1162; not solid geometry and not proof of circular-solid support. |
+| `CU_SET` | Measurement / calculation | Raw JWF + named fields | Sample.jwf 1166-1193; not a curve setting. Native behavior and JWW persistence remain unverified. |
+| `MS_SET` | Text counting | Raw JWF; partial definition | Sample.jwf 1196-1218. Mixed numeric/string editing and native behavior remain unverified. |
 | `HATCH_0..5`                             | ハッチ設定                         |         未対応 | ハッチ由来の線は読める場合があるが、設定としては未抽出。                                                                                                          |
 | `KEY*`                                   | キー割当                           | JWFパース対応 | `.jwf` では `normalizedSettings.operation.keyboard` に正規化する。JWWバイナリ抽出は未昇格。                                                                      |
 | `LD_*` / `RD_*`                          | AUTOクロックメニュー               | JWFパース対応 | `.jwf` では `normalizedSettings.operation.clockMenus` にAUTOクロックメニュー(1)/(2)、左右、AM/PM、12方向の割当として正規化する。JWWバイナリ抽出は未昇格。        |

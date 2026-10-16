@@ -806,8 +806,9 @@ describe("JWW native document API", () => {
         record: { ...document.layerGroups[1], scale: 25 },
       },
     ];
-    const preflight = preflightNativeJwwSave(document, { patches });
-    const saved = saveNativeJww(document, { patches });
+    expect(preflightNativeJwwSave(document, { patches }).ok).toBe(false);
+    const preflight = preflightNativeJwwSave(document, { patches, allowUnsupported: true });
+    const saved = saveNativeJww(document, { patches, allowUnsupported: true });
     const reopened = await openNativeJww(saved.bytes);
     const prefixEnd = document.preservedRegions.prefix.end;
 
@@ -833,8 +834,9 @@ describe("JWW native document API", () => {
     const dirty = applyNativeJwwPatches(document, [
       { op: "replace", targetId: target.id, record: replacement },
     ]);
-    const preflight = preflightNativeJwwSave(dirty);
-    const saved = saveNativeJww(dirty);
+    expect(preflightNativeJwwSave(dirty).ok).toBe(false);
+    const preflight = preflightNativeJwwSave(dirty, { allowUnsupported: true });
+    const saved = saveNativeJww(dirty, { allowUnsupported: true });
     const reopened = await openNativeJww(saved.bytes);
 
     expect(preflight).toMatchObject({
@@ -922,7 +924,7 @@ describe("JWW native document API", () => {
     ]);
   });
 
-  it("uses the serialized source index when filtered records precede drawing records", async () => {
+  it("retains metadata-like text and uses every serialized source index", async () => {
     const document = await openNativeJww(
       buildJwwBytes({
         version: 700,
@@ -940,10 +942,11 @@ describe("JWW native document API", () => {
       })
     );
 
-    expect(document.nativeEntities.length).toBe(1);
-    expect(document.nativeEntities[0]).toMatchObject({
+    expect(document.nativeEntities.length).toBe(2);
+    expect(document.nativeEntities[0].value.raw_content).toBe("jww_gateway_metadata");
+    expect(document.nativeEntities[1]).toMatchObject({
       id: "jww:drawing:1",
-      index: 0,
+      index: 1,
       sourceIndex: 1,
       kind: "LINE",
     });
@@ -1154,6 +1157,7 @@ describe("JWW native document API", () => {
     lossyReplacement.end_x = 77;
     expect(
       preflightNativeJwwSave(lossyDocument, {
+        allowUnsupported: true,
         patches: [
           { op: "replace", targetId: lossyNested.id, record: lossyReplacement },
         ],
@@ -2144,13 +2148,14 @@ describe("JWW native document API", () => {
       },
     ];
 
-    expect(preflightNativeJwwSave(document, { patches: safePatches })).toMatchObject({
+    expect(preflightNativeJwwSave(document, { patches: safePatches }).ok).toBe(false);
+    expect(preflightNativeJwwSave(document, { patches: safePatches, allowUnsupported: true })).toMatchObject({
       ok: true,
       strategy: "record-splice",
       prefixMetadataUpdated: true,
       preservesUnsupportedBytes: true,
     });
-    const saved = saveNativeJww(document, { patches: safePatches });
+    const saved = saveNativeJww(document, { patches: safePatches, allowUnsupported: true });
     expect(saved.bytes.length).toBe(bytes.length);
     expect(saved.document.preservedRegions.trailing.start).toBe(source.length);
     expect(saved.bytes.slice(source.length)).toEqual(bytes.slice(source.length));
@@ -2158,6 +2163,7 @@ describe("JWW native document API", () => {
     expect(saved.document.header.paperSize).toBe(4);
 
     const rebuildPreflight = preflightNativeJwwSave(document, {
+      allowUnsupported: true,
       patches: [
         {
           op: "create",
@@ -2186,8 +2192,9 @@ describe("JWW native document API", () => {
       targetId: document.header.id,
       record: { ...document.header, memo: "Longer Gateway memo" },
     }];
-    const preflight = preflightNativeJwwSave(document, { patches });
-    const saved = saveNativeJww(document, { patches });
+    expect(preflightNativeJwwSave(document, { patches }).ok).toBe(false);
+    const preflight = preflightNativeJwwSave(document, { patches, allowUnsupported: true });
+    const saved = saveNativeJww(document, { patches, allowUnsupported: true });
     const reopened = await openNativeJww(saved.bytes);
 
     expect(preflight).toMatchObject({
@@ -2234,12 +2241,14 @@ describe("JWW native document API", () => {
     expect(image.sourceSpan.end).toBe(bytes.length);
     expect(saveNativeJww(document).bytes).toEqual(bytes);
 
-    const replaced = saveNativeJww(document, { patches: replacePatches });
+    expect(preflightNativeJwwSave(document, { patches: replacePatches }).ok).toBe(false);
+    const replaced = saveNativeJww(document, { patches: replacePatches, allowUnsupported: true });
     expect(replaced.strategy).toBe("record-splice");
     expect(replaced.bytes.slice(image.sourceSpan.start)).toEqual(
       bytes.slice(image.sourceSpan.start)
     );
     const createPreflight = preflightNativeJwwSave(document, {
+      allowUnsupported: true,
       patches: [
         {
           op: "create",
@@ -2266,6 +2275,7 @@ describe("JWW native document API", () => {
             record: payloadReplacement,
           },
         ],
+        allowUnsupported: true,
       })
     ).toMatchObject({
       ok: false,
@@ -2389,14 +2399,15 @@ describe("JWW native document API", () => {
       tag: 32768,
       classPid: 0,
     });
-    const preflight = preflightNativeJwwSave(document, { patches });
+    expect(preflightNativeJwwSave(document, { patches }).ok).toBe(false);
+    const preflight = preflightNativeJwwSave(document, { patches, allowUnsupported: true });
     expect(preflight).toMatchObject({
       ok: true,
       strategy: "record-splice",
       preservesUnsupportedBytes: true,
       willWriteBytes: true,
     });
-    const saved = saveNativeJww(document, { patches });
+    const saved = saveNativeJww(document, { patches, allowUnsupported: true });
     expect(saved.bytes.length > 0).toBe(true);
     expect(saved.bytes.slice(unsupportedStart)).toEqual(bytes.slice(unsupportedStart));
     expect(parse(saved.bytes).entities[0].value.end_x).toBe(42);
@@ -2406,7 +2417,7 @@ describe("JWW native document API", () => {
     const { bytes } = await fixtureWithUnsupportedBlockRecord();
     const document = await openNativeJww(bytes);
     const patch = { op: "create", targetId: "new-line", record: line(30).entity };
-    const preflight = preflightNativeJwwSave(document, { patches: [patch] });
+    const preflight = preflightNativeJwwSave(document, { patches: [patch], allowUnsupported: true });
 
     expect(preflight).toMatchObject({
       ok: false,
@@ -2416,7 +2427,7 @@ describe("JWW native document API", () => {
     });
     let error = null;
     try {
-      saveNativeJww(document, { patches: [patch] });
+      saveNativeJww(document, { patches: [patch], allowUnsupported: true });
     } catch (caught) {
       error = caught;
     }
